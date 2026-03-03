@@ -11,8 +11,11 @@ model User {
   city                          String?
   address                       String?
   image                         String?
-  isAgreeWithTerms              Boolean
-  plan                          PLanType @default(Free)
+  bloodGroup                    String?
+  gender                        Gender?
+  allergies                     String[]     @default([])
+  isAgreeWithTerms              Boolean      @default(false)
+  plan                          PLanType     @default(Free)
   otp                           String?
   otpExpiry                     DateTime?
   emailVerificationToken        String?
@@ -21,8 +24,10 @@ model User {
   isDeleted                     Boolean      @default(false)
   stripeCustomerId              String?
   fcmToken                      String?
+  lastLoginAt                   DateTime?
   createdAt                     DateTime     @default(now())
   updatedAt                     DateTime     @updatedAt
+  isOnline                      Boolean      @default(false)
 
   //RELATION
   payments      Payment[]
@@ -39,6 +44,10 @@ model User {
   createdById   String?        @db.ObjectId
   createdBy     User?          @relation("CareGiverManagementAndFamilyMember", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   createdUsers  User[]         @relation("CareGiverManagementAndFamilyMember")
+  children      Child[]        @relation("CreatedChildren")
+  familyMembers FamilyMember[] @relation("UserFamilyMember")
+  logouts       Logout[]       @relation("Logout")
+  activities    Activity[] @relation("UserActivity")
 
   @@map("users")
 }
@@ -58,4 +67,16 @@ enum UserStatus {
 enum PLanType {
   Free
   Paid
+}
+
+model Logout {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  logoutAt  DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation("Logout", fields: [userId], references: [id])
+
+  @@map("Logout")
 }

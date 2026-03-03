@@ -1,0 +1,47 @@
+enum ChildrenStatus {
+    ACTIVE
+    INACTIVE
+    ARCHIVED
+}
+
+enum Gender {
+    Male
+    Female
+    Other
+}
+
+model Child {
+    id                String    @id @default(auto()) @map("_id") @db.ObjectId
+    userId            String    @db.ObjectId
+    fullName          String
+    preferredName     String?
+    dateOfBirth       DateTime?
+    gender            Gender?
+    // Health & Care related
+    bloodGroup        String? // A+, O-, etc.
+    favoriteFood      String[]  @default([]) // ["Apple", "Egg"]
+    allergies         String[]  @default([]) // ["Penicillin", "Egg", "Dust"]
+    medicalConditions String[]  @default([]) // ["Asthma", "Diabetes"]
+    heightCm          Float? // latest height
+    weightKg          Float? // latest weight
+    lastCheckupDate   DateTime?
+    emergencyContact  String? // phone number or relation
+    medicineRoutine   Json? // recurring medicine schedule (flexible)
+    // Additional useful fields
+    image             String? // cloud storage URL
+    about             String? // short bio / special notes
+    schoolName        String?
+    classGrade        String? // "Class 5" or "Grade 3"
+    interests         String[]  @default([]) // ["Football", "Drawing"]
+
+    // System fields
+    isActive  Boolean  @default(true)
+    isDeleted Boolean  @default(false)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    createdBy User @relation("CreatedChildren", fields: [userId], references: [id])
+
+    @@map("children")
+}

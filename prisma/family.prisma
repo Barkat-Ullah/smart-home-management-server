@@ -1,0 +1,47 @@
+model FamilyMember {
+    id          String             @id @default(auto()) @map("_id") @db.ObjectId
+    userId      String             @db.ObjectId
+    fullName    String
+    relation    FamilyRelation
+    gender      Gender
+    dateOfBirth DateTime?
+    occupation  String?
+    phone       String?
+    email       String?
+    image       String?
+    address     String?
+    city        String?
+    country     String?            @default("Bangladesh")
+    about       String?
+    status      FamilyMemberStatus @default(ACTIVE)
+    isDeleted   Boolean            @default(false)
+    createdAt   DateTime           @default(now())
+    updatedAt   DateTime           @updatedAt
+
+    user User @relation("UserFamilyMember", fields: [userId], references: [id])
+
+    @@map("familyMember")
+}
+
+enum FamilyRelation {
+    FATHER
+    MOTHER
+    SPOUSE
+    SON
+    DAUGHTER
+    BROTHER
+    SISTER
+    GRANDFATHER
+    GRANDMOTHER
+    UNCLE
+    AUNT
+    COUSIN
+    OTHER
+}
+
+enum FamilyMemberStatus {
+    ACTIVE
+    INACTIVE
+    DECEASED
+    ESTRANGED
+}
