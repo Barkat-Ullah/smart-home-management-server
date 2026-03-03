@@ -1,20 +1,22 @@
 import * as bcrypt from 'bcrypt';
 import config from '../../config';
-import { UserRoleEnum } from '@prisma/client';
+import { PLanType, UserRoleEnum, UserStatus } from '@prisma/client';
 import prisma from '../utils/prisma';
 
 export const initiateSuperAdmin = async () => {
   const hashedPassword = await bcrypt.hash(
-    '12345678',
+    process.env.SUPER_ADMIN_PASSWORD! || '12345678',
     Number(config.bcrypt_salt_rounds),
   );
   const payload: any = {
     fullName: 'Super Admin',
-    email: 'prohero5500@gmail.com',
+    email: process.env.SUPER_ADMIN_MAIL!,
     password: hashedPassword,
     role: UserRoleEnum.ADMIN,
-    emailVerified: true,
-    status: 'ACTIVE',
+    isAgreeWithTerms: true,
+    isEmailVerified: true,
+    status: UserStatus.ACTIVE,
+    plan:PLanType.Paid,
   };
 
   const isExistUser = await prisma.user.findUnique({

@@ -12,7 +12,7 @@ model User {
   address                       String?
   image                         String?
   isAgreeWithTerms              Boolean
-  plan                          PLanType
+  plan                          PLanType @default(Free)
   otp                           String?
   otpExpiry                     DateTime?
   emailVerificationToken        String?
