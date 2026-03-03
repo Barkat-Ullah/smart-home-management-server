@@ -1,0 +1,61 @@
+model User {
+  id                            String       @id @default(auto()) @map("_id") @db.ObjectId
+  fullName                      String
+  email                         String       @unique
+  phoneNumber                   String?
+  password                      String
+  role                          UserRoleEnum @default(USER)
+  status                        UserStatus   @default(ACTIVE)
+  clientInfo                    Json?
+  describe                      String?
+  city                          String?
+  address                       String?
+  image                         String?
+  isAgreeWithTerms              Boolean
+  plan                          PLanType
+  otp                           String?
+  otpExpiry                     DateTime?
+  emailVerificationToken        String?
+  emailVerificationTokenExpires String?
+  isEmailVerified               Boolean      @default(false)
+  isDeleted                     Boolean      @default(false)
+  stripeCustomerId              String?
+  fcmToken                      String?
+  createdAt                     DateTime     @default(now())
+  updatedAt                     DateTime     @updatedAt
+
+  //RELATION
+  payments      Payment[]
+  receiver      Notification[] @relation("Receiver")
+  sender        Notification[] @relation("Sender")
+  followers     Follow[]       @relation("Followers")
+  following     Follow[]       @relation("Following")
+  favorites     favorite[]     @relation("UserCreator")
+  roomSender    Room[]         @relation("RoomSender")
+  roomReceiver  Room[]         @relation("RoomReceiver")
+  sentChats     Chat[]         @relation("ChatSender")
+  receivedChats Chat[]         @relation("ChatReceiver")
+  //self relation
+  createdById   String?        @db.ObjectId
+  createdBy     User?          @relation("CareGiverManagementAndFamilyMember", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdUsers  User[]         @relation("CareGiverManagementAndFamilyMember")
+
+  @@map("users")
+}
+
+enum UserRoleEnum {
+  USER
+  ADMIN
+  CAREGIVER
+  FAMILYMEMBER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum PLanType {
+  Free
+  Paid
+}

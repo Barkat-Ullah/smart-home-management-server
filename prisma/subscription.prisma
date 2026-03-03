@@ -1,0 +1,41 @@
+model Subscription {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    title             String
+    description       String
+    amount            Int
+    duration          DurationType
+    features          String[]
+    isDeleted         Boolean            @default(false)
+    userSubscriptions UserSubscription[]
+    payment           Payment[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("subscription")
+}
+
+model UserSubscription {
+    id             String    @id @default(auto()) @map("_id") @db.ObjectId
+    subscriptionId String    @db.ObjectId
+    userId         String    @db.ObjectId
+    amount         Int
+    startDate      DateTime
+    endDate        DateTime?
+
+    subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+    // user         User         @relation("UserSubscriptions", fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([userId, subscriptionId])
+    @@map("userSubscription")
+}
+
+enum DurationType {
+    Freely
+    Monthly
+    Yearly
+}
