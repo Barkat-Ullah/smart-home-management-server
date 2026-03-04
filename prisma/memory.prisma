@@ -1,0 +1,38 @@
+model Memory {
+    id              String        @id @default(auto()) @map("_id") @db.ObjectId
+    userId          String        @db.ObjectId
+    title           String
+    description     String
+    file            String?
+    // Who this memory belongs to / is about
+    memoryOf        MemoryOf      @default(SELF) // SELF, CHILD, FAMILY_MEMBER
+    // If memory is about a specific family member or child
+    relatedPersonId String?       @db.ObjectId
+    // Shared with specific users (many-to-many)
+    sharedWith      MemoryShare[]
+    createdAt       DateTime      @default(now())
+    updatedAt       DateTime      @updatedAt
+
+    createdBy User          @relation("UsersharedMemory", fields: [userId], references: [id])
+    relatedTo FamilyMember? @relation(fields: [relatedPersonId], references: [id])
+
+    @@map("memory")
+}
+
+enum MemoryOf {
+    SELF
+    CHILD
+    FAMILY_MEMBER
+}
+
+model MemoryShare {
+    id               String   @id @default(auto()) @map("_id") @db.ObjectId
+    memoryId         String   @db.ObjectId
+    sharedWithUserId String   @db.ObjectId
+    createdAt        DateTime @default(now())
+    //relation
+    memory           Memory   @relation(fields: [memoryId], references: [id])
+    user             User     @relation(fields: [sharedWithUserId], references: [id])
+
+    @@map("memory_share")
+}

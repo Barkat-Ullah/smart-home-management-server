@@ -18,7 +18,8 @@ model FamilyMember {
     createdAt   DateTime           @default(now())
     updatedAt   DateTime           @updatedAt
 
-    createdBy User @relation("UserFamilyMember", fields: [userId], references: [id])
+    createdBy User     @relation("UserFamilyMember", fields: [userId], references: [id])
+    memories  Memory[]
 
     @@map("familyMember")
 }

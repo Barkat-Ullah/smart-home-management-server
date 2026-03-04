@@ -1,0 +1,159 @@
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum FeedType {
+    Bug
+    FeatureRequest
+    Question
+    Complaint
+    Feedback
+    Other
+}
+
+enum FeedStatus {
+    Open // নতুন post, কেউ দেখেনি
+    UnderReview // Admin/Moderator দেখছে
+    InProgress // Moderator assigned, কাজ চলছে
+    Resolved // সমাধান হয়েছে
+    Closed // বন্ধ করা হয়েছে
+    Reopened // আবার খোলা হয়েছে
+}
+
+enum FeedPriority {
+    Low
+    Medium
+    High
+    Critical
+}
+
+enum ReactionType {
+    Like
+    Helpful
+    Heart
+    Thumbsdown
+}
+
+// ─────────────────────────────────────────────
+// FEED (Main Post)
+// ─────────────────────────────────────────────
+
+model Feed {
+    id          String       @id @default(auto()) @map("_id") @db.ObjectId
+    userId      String       @db.ObjectId
+    title       String
+    description String
+    type        FeedType     @default(Other)
+    status      FeedStatus   @default(Open)
+    priority    FeedPriority @default(Low)
+    tags        String[] // e.g. ["payment", "login", "bug"]
+    attachments String[] // file URLs
+
+    isDeleted Boolean @default(false)
+    isPinned  Boolean @default(false) // Admin pin করতে পারবে
+    isLocked  Boolean @default(false) // locked হলে নতুন comment হবে না
+
+    viewCount Int @default(0)
+
+    createdAt  DateTime  @default(now())
+    updatedAt  DateTime  @updatedAt
+    resolvedAt DateTime?
+    closedAt   DateTime?
+
+    // Relations
+    createdBy     User                @relation("UserFeeds", fields: [userId], references: [id])
+    assignments   FeedAssignment[]
+    comments      FeedComment[]
+    reactions     FeedReaction[]
+    statusHistory FeedStatusHistory[]
+
+    @@map("feeds")
+}
+
+// ─────────────────────────────────────────────
+// ASSIGNMENT (Admin → Moderator assign )
+// ─────────────────────────────────────────────
+
+model FeedAssignment {
+    id          String    @id @default(auto()) @map("_id") @db.ObjectId
+    feedId      String    @db.ObjectId
+    moderatorId String    @db.ObjectId
+    assignedBy  String    @db.ObjectId // যে admin assign করেছে
+    note        String? // assignment note
+    isActive    Boolean   @default(true)
+    assignedAt  DateTime  @default(now())
+    removedAt   DateTime?
+
+    // Relations
+    feed           Feed @relation(fields: [feedId], references: [id])
+    moderator      User @relation("ModeratorAssignments", fields: [moderatorId], references: [id])
+    assignedByUser User @relation("AdminAssignments", fields: [assignedBy], references: [id])
+
+    @@map("feed_assignments")
+}
+
+// ─────────────────────────────────────────────
+// COMMENT (User/Moderator/Admin)
+// ─────────────────────────────────────────────
+
+model FeedComment {
+    id          String   @id @default(auto()) @map("_id") @db.ObjectId
+    feedId      String   @db.ObjectId
+    userId      String   @db.ObjectId
+    parentId    String?  @db.ObjectId
+    content     String
+    attachments String[]
+
+    isDeleted  Boolean @default(false)
+    isEdited   Boolean @default(false)
+    isSolution Boolean @default(false)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    feed    Feed          @relation(fields: [feedId], references: [id])
+    author  User          @relation("UserComments", fields: [userId], references: [id])
+    parent  FeedComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    replies FeedComment[] @relation("CommentReplies")
+
+    @@map("feed_comments")
+}
+
+// ─────────────────────────────────────────────
+// REACTIONS
+// ─────────────────────────────────────────────
+
+model FeedReaction {
+    id     String       @id @default(auto()) @map("_id") @db.ObjectId
+    feedId String       @db.ObjectId
+    userId String       @db.ObjectId
+    type   ReactionType
+
+    createdAt DateTime @default(now())
+
+    feed Feed @relation(fields: [feedId], references: [id])
+    user User @relation("UserFeedReactions", fields: [userId], references: [id])
+
+    @@unique([feedId, userId]) // একজন user একটা feed এ একবারই react করতে পারবে
+    @@map("feed_reactions")
+}
+
+// ─────────────────────────────────────────────
+// STATUS HISTORY (Audit Trail)
+// ─────────────────────────────────────────────
+
+model FeedStatusHistory {
+    id         String     @id @default(auto()) @map("_id") @db.ObjectId
+    feedId     String     @db.ObjectId
+    changedBy  String     @db.ObjectId
+    fromStatus FeedStatus
+    toStatus   FeedStatus
+    note       String? // কেন status change হলো
+    createdAt  DateTime   @default(now())
+
+    feed          Feed @relation(fields: [feedId], references: [id])
+    changedByUser User @relation("StatusChanges", fields: [changedBy], references: [id])
+
+    @@map("feed_status_history")
+}

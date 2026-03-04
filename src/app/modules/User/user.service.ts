@@ -275,22 +275,7 @@ const deleteUser = async (id: string) => {
   return result;
 };
 
-// ── Types ──
-interface ISingleMailPayload {
-  toEmail: string;
-  subject: string;
-  body: string;
-  adminName?: string;
-  priority?: 'normal' | 'important' | 'urgent';
-}
 
-interface IBulkMailPayload {
-  userIds?: string[];        // selected users
-  subject: string;
-  body: string;
-  adminName?: string;
-  priority?: 'normal' | 'important' | 'urgent';
-}
 
 // ── 1. Single User ──
 const sendMailToSingleUserFromDB = async (payload: ISingleMailPayload) => {

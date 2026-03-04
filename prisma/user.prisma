@@ -1,54 +1,70 @@
 model User {
-  id                            String       @id @default(auto()) @map("_id") @db.ObjectId
+  id                            String              @id @default(auto()) @map("_id") @db.ObjectId
   fullName                      String
-  email                         String       @unique
+  email                         String              @unique
   phoneNumber                   String?
   password                      String
-  role                          UserRoleEnum @default(USER)
-  status                        UserStatus   @default(ACTIVE)
+  role                          UserRoleEnum        @default(USER)
+  status                        UserStatus          @default(ACTIVE)
   describe                      String?
   city                          String?
   address                       String?
   image                         String?
   bloodGroup                    String?
   gender                        Gender?
-  allergies                     String[]     @default([])
-  isAgreeWithTerms              Boolean      @default(false)
-  plan                          PLanType     @default(Free)
+  allergies                     String[]            @default([])
+  isAgreeWithTerms              Boolean             @default(false)
+  plan                          PLanType            @default(Free)
   otp                           String?
   otpExpiry                     DateTime?
   emailVerificationToken        String?
   emailVerificationTokenExpires String?
-  isEmailVerified               Boolean      @default(false)
-  isDeleted                     Boolean      @default(false)
+  isEmailVerified               Boolean             @default(false)
+  isDeleted                     Boolean             @default(false)
   stripeCustomerId              String?
   fcmToken                      String?
-  isOnline                      Boolean      @default(false)
+  isOnline                      Boolean             @default(false)
   clientInfo                    Json?
   ipInfo                        Json?
   lastLoginAt                   DateTime?
-  createdAt                     DateTime     @default(now())
-  updatedAt                     DateTime     @updatedAt
-
+  createdAt                     DateTime            @default(now())
+  updatedAt                     DateTime            @updatedAt
   //RELATION
-  payments      Payment[]
-  receiver      Notification[] @relation("Receiver")
-  sender        Notification[] @relation("Sender")
-  followers     Follow[]       @relation("Followers")
-  following     Follow[]       @relation("Following")
-  favorites     favorite[]     @relation("UserCreator")
-  roomSender    Room[]         @relation("RoomSender")
-  roomReceiver  Room[]         @relation("RoomReceiver")
-  sentChats     Chat[]         @relation("ChatSender")
-  receivedChats Chat[]         @relation("ChatReceiver")
-  //self relation
-  createdById   String?        @db.ObjectId
-  createdBy     User?          @relation("CareGiverManagementAndFamilyMember", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  createdUsers  User[]         @relation("CareGiverManagementAndFamilyMember")
-  children      Child[]        @relation("CreatedChildren")
-  familyMembers FamilyMember[] @relation("UserFamilyMember")
-  logouts       Logout[]       @relation("Logout")
-  activities    Activity[]     @relation("UserActivity")
+  logouts                       Logout[]            @relation("Logout")
+  activities                    Activity[]          @relation("UserActivity")
+  payments                      Payment[]
+  receiver                      Notification[]      @relation("Receiver")
+  sender                        Notification[]      @relation("Sender")
+  followers                     Follow[]            @relation("Followers")
+  following                     Follow[]            @relation("Following")
+  favorites                     favorite[]          @relation("UserCreator")
+  roomSender                    Room[]              @relation("RoomSender")
+  roomReceiver                  Room[]              @relation("RoomReceiver")
+  sentChats                     Chat[]              @relation("ChatSender")
+  receivedChats                 Chat[]              @relation("ChatReceiver")
+  //self relation (family, children, care giver)
+  createdById                   String?             @db.ObjectId
+  createdBy                     User?               @relation("CareGiverManagementAndFamilyMember", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdUsers                  User[]              @relation("CareGiverManagementAndFamilyMember")
+  children                      Child[]             @relation("CreatedChildren")
+  familyMembers                 FamilyMember[]      @relation("UserFamilyMember")
+  //finance
+  financialProfiles             FinancialProfile[]  @relation("UserFinancialProfile")
+  transactions                  Transaction[]       @relation("UserTransactions")
+  budgets                       Budget[]            @relation("UserBudgets")
+  financialGoals                FinancialGoal[]     @relation("UserGoals")
+  financialSnapshots            FinancialSnapshot[] @relation("UserSnapshots")
+  //shared memory
+  memories                      Memory[]            @relation("UsersharedMemory")
+  memoryShares                  MemoryShare[]
+  // Support Feed
+  feeds                         Feed[]              @relation("UserFeeds")
+  feedComments                  FeedComment[]       @relation("UserComments")
+  feedReactions                 FeedReaction[]      @relation("UserFeedReactions")
+  feedStatusChanges             FeedStatusHistory[] @relation("StatusChanges")
+  // Assignment (role based)
+  moderatorAssignments          FeedAssignment[]    @relation("ModeratorAssignments")
+  adminAssignments              FeedAssignment[]    @relation("AdminAssignments")
 
   @@map("users")
 }
