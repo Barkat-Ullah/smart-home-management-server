@@ -1,10 +1,13 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import auth from '../../middlewares/auth';
 import { UserControllers } from './user.controller';
 // import validateRequest from '../../middlewares/validateRequest';
 // import { userValidation } from './user.validation';
 import { UserRoleEnum } from '@prisma/client';
 import { fileUploader } from '../../utils/fileUploader';
+import catchAsync from '../../utils/catchAsync';
+import axios from 'axios';
+import { ipInfoMiddleware } from '../../middlewares/ipInfo';
 
 const router = express.Router();
 
@@ -12,6 +15,17 @@ router.get(
   '/',
   auth(UserRoleEnum.ADMIN, UserRoleEnum.USER),
   UserControllers.getAllUsers,
+);
+router.get(
+  '/ip',
+  ipInfoMiddleware,
+  catchAsync(async (req: Request, res: Response) => {
+    res.status(200).json({
+      ip: req.ipInfo?.ip,
+      city: req.ipInfo?.city,
+      country: req.ipInfo?.country,
+    });
+  }),
 );
 router.get(
   '/me',

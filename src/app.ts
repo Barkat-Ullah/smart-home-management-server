@@ -20,6 +20,7 @@ const app: Application = express();
 setupMiddlewares(app);
 
 app.use('/api/v1', apiLimiter, router);
+app.set('trust proxy', true);
 
 // Stripe webhook (if needed, before error handler)
 app.post(

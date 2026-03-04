@@ -6,7 +6,6 @@ model User {
   password                      String
   role                          UserRoleEnum @default(USER)
   status                        UserStatus   @default(ACTIVE)
-  clientInfo                    Json?
   describe                      String?
   city                          String?
   address                       String?
@@ -28,6 +27,8 @@ model User {
   createdAt                     DateTime     @default(now())
   updatedAt                     DateTime     @updatedAt
   isOnline                      Boolean      @default(false)
+  clientInfo                    Json?
+  ipInfo                        Json?
 
   //RELATION
   payments      Payment[]
@@ -47,7 +48,7 @@ model User {
   children      Child[]        @relation("CreatedChildren")
   familyMembers FamilyMember[] @relation("UserFamilyMember")
   logouts       Logout[]       @relation("Logout")
-  activities    Activity[] @relation("UserActivity")
+  activities    Activity[]     @relation("UserActivity")
 
   @@map("users")
 }
