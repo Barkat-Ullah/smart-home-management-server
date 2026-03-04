@@ -65,6 +65,11 @@ model User {
   // Assignment (role based)
   moderatorAssignments          FeedAssignment[]    @relation("ModeratorAssignments")
   adminAssignments              FeedAssignment[]    @relation("AdminAssignments")
+  //medicine
+  prescriptions                 Prescription[]      @relation("UserPrescriptions")
+  medicineSchedules             MedicineSchedule[]  @relation("UserMedicineSchedules")
+  doseLogs                      DoseLog[]           @relation("UserDoseLogs")
+  medicineReminders             MedicineReminder[]  @relation("UserMedicineReminders")
 
   @@map("users")
 }

@@ -1,0 +1,161 @@
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum MemberType {
+    Self
+    Child
+    FamilyMember
+}
+
+enum MedicineForm {
+    Tablet
+    Capsule
+    Syrup
+    Injection
+    Drop
+    Inhaler
+    Cream
+    Other
+}
+
+enum FrequencyType {
+    Daily
+    Weekly
+    Monthly
+    Custom // e.g. every 3 days
+}
+
+enum MealTiming {
+    BeforeMeal
+    AfterMeal
+    WithMeal
+    AnyTime
+}
+
+enum ScheduleStatus {
+    Active
+    Paused
+    Completed
+    Cancelled
+}
+
+enum DoseLogStatus {
+    Taken
+    Missed
+    Skipped // user intentionally skip
+    Late // time
+}
+
+// ─────────────────────────────────────────────
+// PRESCRIPTION
+// ─────────────────────────────────────────────
+
+model Prescription {
+    id           String   @id @default(auto()) @map("_id") @db.ObjectId
+    userId       String   @db.ObjectId
+    memberId     String?  @db.ObjectId
+    childId      String?  @db.ObjectId
+    title        String // e.g. "Dr. Karim  prescription"
+    doctorName   String?
+    hospitalName String?
+    notes        String?
+    fileUrl      String? // prescription image/pdf
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @updatedAt
+
+    // Relations
+    createdBy User               @relation("UserPrescriptions", fields: [userId], references: [id])
+    medicines MedicineSchedule[]
+
+    @@map("prescriptions")
+}
+
+// ─────────────────────────────────────────────
+// MEDICINE SCHEDULE
+// ─────────────────────────────────────────────
+
+model MedicineSchedule {
+    id             String             @id @default(auto()) @map("_id") @db.ObjectId
+    prescriptionId String             @db.ObjectId
+    userId         String             @db.ObjectId
+    medicineName   String // e.g. "Napa 500mg"
+    medicineForm   MedicineForm       @default(Tablet)
+    doseAmount     Float // e.g. 1, 0.5, 2
+    doseUnit       String // e.g. "tablet", "ml", "mg"
+    frequencyType  FrequencyType      @default(Daily)
+    frequencyValue Int                @default(1) // Daily=1, every 2 days=2
+    timesPerDay    Int                @default(1) // দিনে কতবার
+    specificDays   String[] // Weekly হলে ["Monday", "Thursday"]
+    specificDates  Int[] // Monthly হলে [1, 15]
+    mealTiming     MealTiming         @default(AfterMeal)
+    scheduledTimes String[] // e.g. ["08:00", "14:00", "21:00"]
+    startDate      DateTime
+    endDate        DateTime?
+    status         ScheduleStatus     @default(Active)
+    notes          String?
+    sideEffects    String?
+    refillReminder Boolean            @default(false)
+    refillAt       Int?
+    isDeleted      Boolean            @default(false)
+    createdAt      DateTime           @default(now())
+    updatedAt      DateTime           @updatedAt
+    completedAt    DateTime?
+    // Relations
+    prescription   Prescription       @relation(fields: [prescriptionId], references: [id])
+    createdBy      User               @relation("UserMedicineSchedules", fields: [userId], references: [id])
+    doseLogs       DoseLog[]
+    reminders      MedicineReminder[]
+
+    @@map("medicine_schedules")
+}
+
+// ─────────────────────────────────────────────
+// DOSE LOG 
+// ─────────────────────────────────────────────
+
+model DoseLog {
+    id          String           @id @default(auto()) @map("_id") @db.ObjectId
+    scheduleId  String           @db.ObjectId
+    userId      String           @db.ObjectId
+    scheduledAt DateTime
+    takenAt     DateTime?
+    status      DoseLogStatus    @default(Missed)
+    skipReason  String?
+    note        String?
+    createdAt   DateTime         @default(now())
+    updatedAt   DateTime         @updatedAt
+    // Relations
+    schedule    MedicineSchedule @relation(fields: [scheduleId], references: [id])
+    loggedBy    User             @relation("UserDoseLogs", fields: [userId], references: [id])
+
+    @@map("dose_logs")
+}
+
+// ─────────────────────────────────────────────
+// REMINDER
+// ─────────────────────────────────────────────
+
+enum ReminderStatus {
+    Pending
+    Sent
+    Acknowledged
+    Failed
+}
+
+model MedicineReminder {
+    id         String           @id @default(auto()) @map("_id") @db.ObjectId
+    scheduleId String           @db.ObjectId
+    userId     String           @db.ObjectId
+    remindAt   DateTime
+    status     ReminderStatus   @default(Pending)
+    channel    String           @default("push") // "push", "sms", "email"
+    sentAt     DateTime?
+    failReason String?
+    createdAt  DateTime         @default(now())
+    // Relations
+    schedule   MedicineSchedule @relation(fields: [scheduleId], references: [id])
+    user       User             @relation("UserMedicineReminders", fields: [userId], references: [id])
+
+    @@map("medicine_reminders")
+}
