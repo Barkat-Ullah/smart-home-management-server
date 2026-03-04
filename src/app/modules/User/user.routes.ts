@@ -20,6 +20,7 @@ router.post(
   userController.createUser,
 );
 
+
 router.get('/', auth(), userController.getUserList);
 router.get('/my', auth(), userController.getMyProfile);
 router.get('/:id', auth(), userController.getUserById);

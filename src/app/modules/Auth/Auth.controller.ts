@@ -2,6 +2,7 @@ import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { AuthServices } from './Auth.service';
+import { userService } from '../user/user.service';
 
 const loginWithOtp = catchAsync(async (req, res) => {
   const result = await AuthServices.loginWithOtpFromDB(
@@ -143,6 +144,41 @@ const resetPassword = catchAsync(async (req, res) => {
   });
 });
 
+const sendMailToSingleUser = catchAsync(async (req, res) => {
+  const result = await userService.sendMailToSingleUserFromDB(req.body);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+// ── Send mail to selected users ──
+const sendMailToSelectedUsers = catchAsync(
+  async (req, res) => {
+    const result = await userService.sendMailToSelectedUsersFromDB(req.body);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: result.message,
+      data: result.data,
+    });
+  },
+);
+
+// ── Send mail to ALL users ──
+const sendMailToAllUsers = catchAsync(async (req, res) => {
+  const result = await userService.sendMailToAllUsersFromDB(req.body);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: result.data,
+  });
+});
+
+
 export const AuthControllers = {
   loginWithOtp,
   registerWithOtp,
@@ -155,4 +191,7 @@ export const AuthControllers = {
   adminLogoutUser,
   adminLogoutSelectedUsers,
   adminLogoutAllUsers,
+  sendMailToSingleUser,
+  sendMailToSelectedUsers,
+  sendMailToAllUsers,
 };

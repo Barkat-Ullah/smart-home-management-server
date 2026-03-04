@@ -23,6 +23,23 @@ router.post(
   AuthControllers.registerWithOtp,
 );
 
+router.post(
+  '/admin/send-mail/single',
+  auth(UserRoleEnum.ADMIN),
+  AuthControllers.sendMailToSingleUser,
+);
+
+router.post(
+  '/admin/send-mail/selected',
+  auth(UserRoleEnum.ADMIN),
+  AuthControllers.sendMailToSelectedUsers,
+);
+
+router.post(
+  '/admin/send-mail/all',
+  auth(UserRoleEnum.ADMIN),
+  AuthControllers.sendMailToAllUsers,
+);
 
 // Self logout (authenticated)
 router.post('/logout', auth(), AuthControllers.logoutUser);
