@@ -34,22 +34,31 @@ const auth = <T extends readonly (UserRoleEnum | 'ANY')[]>(
         config.jwt.access_secret as Secret,
       );
 
-      // Check user is exist
+      const lastLogout = await insecurePrisma.logout.findFirst({
+        where: { userId: verifyUserToken.id },
+        orderBy: { logoutAt: 'desc' },
+      });
+
+      if (
+        lastLogout &&
+        new Date(lastLogout.logoutAt) > new Date(verifyUserToken.iat! * 1000)
+      ) {
+        throw new AppError(
+          httpStatus.UNAUTHORIZED,
+          'Session expired. Please login again.',
+        );
+      }
+
       const user = await insecurePrisma.user.findUnique({
-        where: {
-          id: verifyUserToken.id,
-        },
+        where: { id: verifyUserToken.id },
       });
 
       if (!user) {
         throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
       }
       if (user.isDeleted) {
-        throw new AppError(httpStatus.UNAUTHORIZED, 'You are deleted !');
+        throw new AppError(httpStatus.UNAUTHORIZED, 'You are deleted!');
       }
-      // if (!user.isApproved) {
-      //   throw new AppError(httpStatus.UNAUTHORIZED, 'You are not approved by admin!');
-      // }
       if (!user.isEmailVerified) {
         throw new AppError(httpStatus.UNAUTHORIZED, 'You are not verified!');
       }
@@ -58,10 +67,11 @@ const auth = <T extends readonly (UserRoleEnum | 'ANY')[]>(
       }
 
       if (user?.image) {
-        verifyUserToken.image = user?.image;
+        verifyUserToken.image = user.image;
       }
 
       req.user = verifyUserToken;
+
       if (roles.includes('ANY')) {
         next();
       } else {

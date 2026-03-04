@@ -1,63 +1,40 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import auth from '../../middlewares/auth';
-import { UserControllers } from './user.controller';
-import { UserRoleEnum } from '@prisma/client';
+import validateRequest from '../../middlewares/validateRequest';
+import { userController } from './user.controller';
+import { userValidation } from './user.validation';
 import { fileUploader } from '../../utils/fileUploader';
 
 const router = express.Router();
 
-router.get(
+router.post(
   '/',
-  auth(UserRoleEnum.ADMIN, UserRoleEnum.USER),
-  UserControllers.getAllUsers,
+  auth(),
+  fileUploader.upload.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'video', maxCount: 1 },
+    { name: 'pdf', maxCount: 1 },
+    { name: 'files', maxCount: 1 },
+  ]),
+  validateRequest(userValidation.createSchema),
+  userController.createUser,
 );
 
-router.get(
-  '/me',
-  auth(UserRoleEnum.ADMIN, UserRoleEnum.USER),
-  UserControllers.getMyimage,
-);
-router.get('/:id', auth('ANY'), UserControllers.getUserDetails);
-
-router.delete('/soft-delete', auth('ANY'), UserControllers.softDeleteUser);
-router.delete(
-  '/hard-delete/:id',
-  auth(UserRoleEnum.ADMIN),
-  UserControllers.hardDeleteUser,
-);
+router.get('/', auth(), userController.getUserList);
+router.get('/my', auth(), userController.getMyProfile);
+router.get('/:id', auth(), userController.getUserById);
 
 router.put(
-  '/user-role/:id',
-  auth(UserRoleEnum.ADMIN),
-  // validateRequest.body(userValidation.updateUserRoleSchema),
-  UserControllers.updateUserRoleStatus,
+  '/:id',
+  auth(),
+  validateRequest(userValidation.updateSchema),
+  userController.updateUser,
 );
 
-router.put(
-  '/user-status/:id',
-  auth(UserRoleEnum.ADMIN),
-  // validateRequest.body(userValidation.updateUserStatus),
-  UserControllers.updateUserStatus,
-);
-router.put(
-  '/approve-user',
-  auth(UserRoleEnum.ADMIN),
-  UserControllers.updateUserApproval,
-);
+router.patch('/toggle-status/:id', auth(), userController.toggleStatusUser);
 
-router.put(
-  '/update-user/:id',
-  fileUploader.uploadSingle, // "image"
-  auth(UserRoleEnum.ADMIN),
-  // validateRequest.body(userValidation.updateUser),
-  UserControllers.updateUser,
-);
+router.patch('/soft-delete/:id', auth(), userController.softDeleteUser);
 
-router.put(
-  '/update-image',
-  auth(UserRoleEnum.ADMIN, UserRoleEnum.USER),
-  fileUploader.uploadSingle, // "image"
-  UserControllers.updateMyimage,
-);
+router.delete('/:id', auth(), userController.deleteUser);
 
-export const UserRouters = router;
+export const userRoutes = router;

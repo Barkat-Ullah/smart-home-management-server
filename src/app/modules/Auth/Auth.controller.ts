@@ -7,7 +7,7 @@ const loginWithOtp = catchAsync(async (req, res) => {
   const result = await AuthServices.loginWithOtpFromDB(
     res,
     req.body,
-    req.clientInfo ,
+    req.clientInfo,
     req.ipInfo,
   );
 
@@ -31,8 +31,14 @@ const registerWithOtp = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
 const logoutUser = catchAsync(async (req, res) => {
-  // Clear the token cookie
+  const userId = req.user?.id;
+
+  if (userId) {
+    await AuthServices.logoutUser(userId);
+  }
+
   res.clearCookie('token', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -42,11 +48,48 @@ const logoutUser = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'User Successfully logged out',
+    message: 'Logged out successfully',
     data: null,
   });
 });
 
+// Admin: logout one user
+const adminLogoutUser = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  const result = await AuthServices.adminLogoutUser(userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+// Admin: logout selected users
+const adminLogoutSelectedUsers = catchAsync(async (req, res) => {
+  const { userIds } = req.body; // string[]
+  const result = await AuthServices.adminLogoutSelectedUsers(userIds);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+// Admin: logout all users
+const adminLogoutAllUsers = catchAsync(async (req, res) => {
+  const result = await AuthServices.adminLogoutAllUsers();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: { count: result.count },
+  });
+});
 const resendVerificationWithOtp = catchAsync(async (req, res) => {
   const email = req.body.email;
   const result = await AuthServices.resendVerificationWithOtp(email);
@@ -109,4 +152,7 @@ export const AuthControllers = {
   forgetPassword,
   verifyOtpCommon,
   resetPassword,
+  adminLogoutUser,
+  adminLogoutSelectedUsers,
+  adminLogoutAllUsers,
 };

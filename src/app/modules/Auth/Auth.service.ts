@@ -19,7 +19,7 @@ import { IClientInfo, IIPInfo } from '../../../types/ip.type';
 // ========== LOGIN ==========
 const loginWithOtpFromDB = async (
   res: Response,
-  payload: { email: string; password: string },
+  payload: { email: string; password: string, fcmToken?: string },
   clientInfo: IClientInfo | null | undefined,
   ipInfo: IIPInfo | null | undefined,
 ) => {
@@ -49,6 +49,7 @@ const loginWithOtpFromDB = async (
           : undefined,
         ipInfo: ipInfo ? (ipInfo as unknown as Prisma.JsonObject) : undefined,
         lastLoginAt: new Date(),
+        fcmToken:payload.fcmToken,
       },
     });
 
@@ -68,8 +69,12 @@ const loginWithOtpFromDB = async (
     await prisma.user.update({
       where: { email: userData.email },
       data: {
-        clientInfo: clientInfo ? (clientInfo as unknown as Prisma.JsonObject) : undefined,
+        clientInfo: clientInfo
+          ? (clientInfo as unknown as Prisma.JsonObject)
+          : undefined,
         ipInfo: ipInfo ? (ipInfo as unknown as Prisma.JsonObject) : undefined,
+        fcmToken: payload.fcmToken,
+        lastLoginAt: new Date(),
       },
     });
 
@@ -139,6 +144,93 @@ const registerWithOtpIntoDB = async (
   }
 
   return 'Please check mail to verify your email';
+};
+
+
+// ======================== SELF LOGOUT ========================
+const logoutUser = async (userId: string) => {
+  await prisma.logout.create({
+    data: { userId, logoutAt: new Date() },
+  });
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { fcmToken: null, isOnline: false },
+  });
+
+  return { message: 'Logged out successfully' };
+};
+
+// ======================== ADMIN: LOGOUT ONE USER ========================
+const adminLogoutUser = async (targetUserId: string) => {
+  const user = await prisma.user.findUnique({ where: { id: targetUserId } });
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+
+  await prisma.logout.create({
+    data: { userId: targetUserId, logoutAt: new Date() },
+  });
+
+  await prisma.user.update({
+    where: { id: targetUserId },
+    data: { fcmToken: null, isOnline: false },
+  });
+
+  return { message: `User ${user.fullName} has been logged out` };
+};
+
+// ======================== ADMIN: LOGOUT SELECTED USERS ========================
+const adminLogoutSelectedUsers = async (userIds: string[]) => {
+  if (!userIds.length) throw new AppError(httpStatus.BAD_REQUEST, 'No user IDs provided');
+
+  // Verify all users exist
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true },
+  });
+
+  const foundIds = users.map(u => u.id);
+  const notFound = userIds.filter(id => !foundIds.includes(id));
+  if (notFound.length) {
+    throw new AppError(httpStatus.NOT_FOUND, `Users not found: ${notFound.join(', ')}`);
+  }
+
+  await prisma.$transaction([
+    prisma.logout.createMany({
+      data: userIds.map(userId => ({ userId, logoutAt: new Date() })),
+    }),
+    prisma.user.updateMany({
+      where: { id: { in: userIds } },
+      data: { fcmToken: null, isOnline: false },
+    }),
+  ]);
+
+  return { message: `${userIds.length} user(s) have been logged out` };
+};
+
+// ======================== ADMIN: LOGOUT ALL USERS ========================
+const adminLogoutAllUsers = async () => {
+  const activeUsers = await prisma.user.findMany({
+    where: { isOnline: true, isDeleted: false },
+    select: { id: true },
+  });
+
+  if (!activeUsers.length) {
+    return { message: 'No active users to log out', count: 0 };
+  }
+
+  const userIds = activeUsers.map(u => u.id);
+
+  await prisma.$transaction([
+    prisma.logout.createMany({
+      data: userIds.map(userId => ({ userId, logoutAt: new Date() })),
+    }),
+    prisma.user.updateMany({
+      where: { id: { in: userIds } },
+      data: { fcmToken: null, isOnline: false },
+    }),
+  ]);
+
+  return { message: `All ${userIds.length} active users have been logged out`, count: userIds.length };
 };
 
 // ======================== COMMON OTP VERIFY (REGISTER + FORGOT) ========================
@@ -366,4 +458,8 @@ export const AuthServices = {
   forgetPassword,
   resetPassword,
   verifyOtpCommon,
+  logoutUser,
+  adminLogoutUser,
+  adminLogoutSelectedUsers,
+  adminLogoutAllUsers,
 };

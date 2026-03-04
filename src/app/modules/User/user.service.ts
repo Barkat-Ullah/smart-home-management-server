@@ -1,95 +1,136 @@
 import httpStatus from 'http-status';
-import { Prisma, User, UserRoleEnum, UserStatus } from '@prisma/client';
-import { prisma } from '../../utils/prisma';
-import { Request } from 'express';
-import AppError from '../../errors/AppError';
-import ApiError from '../../errors/AppError';
+import { Prisma, UserRoleEnum } from '@prisma/client';
+import prisma from '../../utils/prisma';
 import { IPaginationOptions } from '../../interface/pagination.type';
 import { paginationHelper } from '../../utils/calculatePagination';
+import ApiError from '../../errors/AppError';
+import { Request } from 'express';
+import { handleFileUploads } from '../../utils/handleFile';
+import { userSelect } from './user.select';
 
-type IUserFilterRequest = {
-  searchTerm?: string;
-  status?: string;
-  subscription?: 'Free' | 'Paid';
+// -------------------------------------------------------
+// create User
+// -------------------------------------------------------
+const createUser = async (req: Request) => {
+  const userId = req.user.id;
+  const data = req.body;
+  const files = req.files as
+    | { [fieldname: string]: Express.Multer.File[] }
+    | undefined;
+
+  const uploadedFiles = await handleFileUploads(files);
+  const addedData = { ...data, ...uploadedFiles, userId };
+  const result = await prisma.user.create({
+    data: addedData,
+    select: userSelect,
+  });
+  return result;
 };
 
-const getAllUsersFromDB = async (
+// -------------------------------------------------------
+// get all User
+// -------------------------------------------------------
+type IUserFilterRequest = {
+  searchTerm?: string;
+  id?: string;
+  createdAt?: string;
+  status?: string;
+  role?: string;
+};
+
+const userSearchAbleFields = ['fullName', 'email'];
+
+const getUserList = async (
   options: IPaginationOptions,
   filters: IUserFilterRequest,
 ) => {
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.UserWhereInput[] = [];
+  const andConditions: Prisma.UserWhereInput[] = [{ role: UserRoleEnum.USER }];
 
-  andConditions.push({
-    role: UserRoleEnum.USER,
-    isDeleted: false,
-  });
-
-  // Search by name or email
   if (searchTerm) {
     andConditions.push({
-      OR: [
-        { fullName: { contains: searchTerm, mode: 'insensitive' } },
-        { email: { equals: searchTerm, mode: 'insensitive' } },
-      ],
+      OR: userSearchAbleFields.map(field => ({
+        [field]: { contains: searchTerm, mode: 'insensitive' },
+      })),
     });
   }
 
-  if (filterData.status) {
-    andConditions.push({
-      status: filterData.status === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED',
+  if (Object.keys(filterData).length) {
+    Object.keys(filterData).forEach(key => {
+      const value = (filterData as any)[key];
+      if (value === '' || value === null || value === undefined) return;
+
+      if (key === 'createdAt' && value) {
+        const parts = (value as string).split('-');
+        if (parts.length === 2) {
+          const year = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const start = new Date(year, month, 1, 0, 0, 0, 0);
+          const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+          andConditions.push({
+            createdAt: { gte: start.toISOString(), lte: end.toISOString() },
+          });
+        } else {
+          const start = new Date(value);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(value);
+          end.setHours(23, 59, 59, 999);
+          andConditions.push({
+            createdAt: { gte: start.toISOString(), lte: end.toISOString() },
+          });
+        }
+        return;
+      }
+
+      if (key.includes('.')) {
+        const [relation, field] = key.split('.');
+        andConditions.push({ [relation]: { some: { [field]: value } } });
+        return;
+      }
+
+      if (key === 'status') {
+        const statuses = Array.isArray(value) ? value : [value];
+        andConditions.push({
+          status: { in: statuses },
+        });
+        return;
+      }
+      if (key === 'role') {
+        const roles = Array.isArray(value) ? value : [value];
+        andConditions.push({
+          role: { in: roles },
+        });
+        return;
+      }
+      if (key === 'plan') {
+        const plans = Array.isArray(value) ? value : [value];
+        andConditions.push({
+          plan: { in: plans },
+        });
+        return;
+      }
+      if (key === 'gender') {
+        const genders = Array.isArray(value) ? value : [value];
+        andConditions.push({
+          gender: { in: genders },
+        });
+        return;
+      }
+
+      andConditions.push({ [key]: value });
     });
   }
 
   const whereConditions: Prisma.UserWhereInput =
-    andConditions.length > 0
-      ? { AND: andConditions }
-      : { role: UserRoleEnum.USER };
+    andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const users = await prisma.user.findMany({
-    where: whereConditions,
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      image: true,
-      status: true,
-      createdAt: true,
-    },
-    orderBy: { createdAt: 'desc' },
+  const result = await prisma.user.findMany({
     skip,
     take: limit,
-  });
-
-  const total = await prisma.user.count({
     where: whereConditions,
-  });
-
-  const formattedData = users.map(user => ({
-    id: user.id,
-    fullName: user.fullName,
-    email: user.email,
-    image: user.image,
-    status: user.status === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED',
-  }));
-
-  return {
-    meta: {
-      total,
-      page,
-      limit,
-    },
-    data: formattedData,
-  };
-};
-
-const getMyimageFromDB = async (id: string) => {
-  const image = await prisma.user.findUnique({
-    where: {
-      id: id,
-    },
+    orderBy: { createdAt: 'desc' },
     select: {
       id: true,
       fullName: true,
@@ -97,253 +138,147 @@ const getMyimageFromDB = async (id: string) => {
       phoneNumber: true,
       role: true,
       status: true,
-      describe: true,
-      city: true,
-      address: true,
       image: true,
+      bloodGroup: true,
+      gender: true,
     },
   });
 
-  return image;
+  const total = await prisma.user.count({ where: whereConditions });
+
+  return { meta: { total, page, limit }, data: result };
 };
 
-const getUserDetailsFromDB = async (id: string) => {
-  const user = await prisma.user.findUnique({
+// -------------------------------------------------------
+// get User by id
+// -------------------------------------------------------
+const getUserById = async (id: string) => {
+  const result = await prisma.user.findUnique({
     where: { id },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      phoneNumber: true,
-      role: true,
-      status: true,
-      describe: true,
-      city: true,
-      address: true,
-      image: true,
-      clientInfo: true,
-    },
+    select: userSelect,
   });
-  return user;
-};
-
-const updateUserRoleStatusIntoDB = async (id: string, role: UserRoleEnum) => {
-  const result = await prisma.user.update({
-    where: {
-      id: id,
-    },
-    data: {
-      role: role,
-    },
-  });
-  return result;
-};
-const updateUserStatus = async (id: string) => {
-  const user = await prisma.user.findUnique({
-    where: { id },
-    select: { status: true, role: true },
-  });
-
-  if (!user) {
+  if (!result) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
-  const newStatus = user.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-  const result = await prisma.user.update({
-    where: { id },
-    data: { status: newStatus },
+  return result;
+};
+
+// -------------------------------------------------------
+// get my User
+// -------------------------------------------------------
+const getMyUser = async (req: Request) => {
+  const userId = req.user.id;
+
+  const result = await prisma.user.findMany({
+    where: {
+      id: userId,
+    },
+    orderBy: { createdAt: 'desc' },
     select: {
       id: true,
       fullName: true,
       email: true,
-      status: true,
+      phoneNumber: true,
       role: true,
+      status: true,
+      describe: true,
+      city: true,
+      address: true,
       image: true,
+      bloodGroup: true,
+      gender: true,
+      allergies: true,
+      isAgreeWithTerms: true,
+      plan: true,
     },
   });
 
   return result;
 };
-const updateUserApproval = async (userId: string) => {
-  console.log(userId);
-  // const user = await prisma.user.findUnique({
-  //   where: { id: userId },
-  //   select: {
-  //     id: true,
-  //     fullName: true,
-  //     email: true,
-  //     isApproved: true,
-  //   },
-  // });
 
-  // if (!user) {
-  //   throw new AppError(httpStatus.NOT_FOUND, 'User not found');
-  // }
-  // const result = await prisma.user.update({
-  //   where: { id: userId },
-  //   data: {
-  //     isApproved: true,
-  //   },
-  // });
-  // return result;
+// -------------------------------------------------------
+// update User
+// -------------------------------------------------------
+const updateUser = async (req: Request) => {
+  const { id } = req.params;
+  const data = req.body;
+
+  const files = req.files as
+    | { [fieldname: string]: Express.Multer.File[] }
+    | undefined;
+  const uploadedFiles = await handleFileUploads(files);
+
+  const existingUser = await prisma.user.findUnique({ where: { id } });
+  if (!existingUser) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+
+  // Strip undefined values
+  const cleanData = Object.fromEntries(
+    Object.entries({ ...data, ...uploadedFiles }).filter(
+      ([_, v]) => v !== undefined,
+    ),
+  );
+
+  return prisma.user.update({
+    where: { id },
+    data: cleanData,
+    select: userSelect,
+  });
 };
 
-const softDeleteUserIntoDB = async (id: string) => {
+// -------------------------------------------------------
+// toggle status User
+// -------------------------------------------------------
+const toggleStatusUser = async (id: string) => {
+  const existingUser = await prisma.user.findUnique({ where: { id } });
+  if (!existingUser) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+
+  const newStatus = existingUser.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+
+  return prisma.user.update({
+    where: { id },
+    data: { status: newStatus },
+    select: userSelect,
+  });
+};
+
+// -------------------------------------------------------
+// soft delete User
+// -------------------------------------------------------
+const softDeleteUser = async (id: string) => {
+  const existingUser = await prisma.user.findUnique({ where: { id } });
+  if (!existingUser) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  }
+  if ((existingUser as any).isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'User is already deleted');
+  }
   const result = await prisma.user.update({
     where: { id },
     data: { isDeleted: true },
-    select: {
-      id: true,
-      isDeleted: true,
-    },
+    select: userSelect,
   });
   return result;
 };
-const hardDeleteUserIntoDB = async (id: string, adminId: string) => {
-  // const adminUser = await prisma.user.findUnique({
-  //   where: {
-  //     id: adminId,
-  //     role: UserRoleEnum.ADMIN,
-  //   },
-  // });
-  // if (!adminUser) {
-  //   throw new AppError(httpStatus.UNAUTHORIZED, 'You are not a admin');
-  // }
-  // return await prisma.$transaction(
-  //   async tx => {
-  //     // related tables delete
-  //     await tx.goal.deleteMany({ where: { userId: id } });
-  //     await tx.message.deleteMany({ where: { senderId: id } });
-  //     await tx.message.deleteMany({ where: { receiverId: id } });
-  //     await tx.payment.deleteMany({ where: { userId: id } });
-  //     await tx.motivation.deleteMany({ where: { userId: id } });
-  //     await tx.notificationUser.deleteMany({ where: { userId: id } });
-  //     await tx.vision.deleteMany({ where: { userId: id } });
-  //     await tx.community.deleteMany({ where: { userId: id } });
-  //     await tx.communityMembers.deleteMany({ where: { userId: id } });
-  //     await tx.follow.deleteMany({
-  //       where: {
-  //         OR: [{ followerId: id }, { followingId: id }],
-  //       },
-  //     });
-  //     const deletedUser = await tx.user.delete({
-  //       where: { id },
-  //       select: { id: true, email: true },
-  //     });
-  //     return deletedUser;
-  //   },
-  //   {
-  //     timeout: 20000,
-  //     maxWait: 5000,
-  //   },
-  // );
-};
 
-const updateUserIntoDb = async (req: Request, id: string) => {
-  // Step 1️⃣: Check if user exists
-  const userInfo = await prisma.user.findUnique({
-    where: { id },
-  });
-
-  if (!userInfo) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User not found with id: ' + id);
+// -------------------------------------------------------
+// hard delete User
+// -------------------------------------------------------
+const deleteUser = async (id: string) => {
+  const existingUser = await prisma.user.findUnique({ where: { id } });
+  if (!existingUser) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
-
-  // Step 2️⃣: Parse incoming data
-  const { fullName, describe, city, address, phoneNumber } = JSON.parse(
-    req.body.data,
-  );
-
-  // Step 3️⃣: Handle file upload (optional)
-  const file = req.file as Express.Multer.File | undefined;
-
-  let imageUrl: string | null = userInfo.image;
-
-  if (file) {
-    // const location = await fileUploader.uploadToDigitalOcean(file);
-    // imageUrl = location.Location;
-  }
-
-  // Step 4️⃣: Update user in DB
-  const result = await prisma.user.update({
-    where: { id },
-    data: {
-      fullName,
-      // businessType,
-      describe,
-      city,
-      address,
-      phoneNumber,
-      image: imageUrl,
-    },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      image: true,
-      role: true,
-      // businessType: true,
-      describe: true,
-      city: true,
-      address: true,
-      status: true,
-    },
-  });
-
-  if (!result) {
-    throw new AppError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to update user image',
-    );
-  }
-
+  const result = await prisma.user.delete({ where: { id } });
   return result;
 };
 
-const updateMyimageIntoDB = async (
-  id: string,
-  file: Express.Multer.File | undefined,
-  payload: Partial<User>,
-) => {
-  // Prevent updating sensitive fields
-  const { email, role, ...updateData } = payload;
-
-  let imageUrl: string | null = null;
-  if (file) {
-    // const location = await fileUploader.uploadToCloudinaryWithType(file );
-    // imageUrl = location.Location;
-    // updateData.image = imageUrl;
-  }
-
-  // Always update (with or without file)
-  const result = await prisma.user.update({
-    where: { id },
-    data: updateData,
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      phoneNumber: true,
-      image: true,
-      role: true,
-      status: true,
-      describe: true,
-      city: true,
-      address: true,
-    },
-  });
-
-  return result;
-};
-
-export const UserServices = {
-  getAllUsersFromDB,
-  getMyimageFromDB,
-  getUserDetailsFromDB,
-  updateUserRoleStatusIntoDB,
-  updateUserStatus,
-  updateUserApproval,
-  softDeleteUserIntoDB,
-  hardDeleteUserIntoDB,
-  updateUserIntoDb,
-  updateMyimageIntoDB,
+export const userService = {
+  createUser,
+  getUserList,
+  getUserById,
+  getMyUser,
+  updateUser,
+  toggleStatusUser,
+  softDeleteUser,
+  deleteUser,
 };

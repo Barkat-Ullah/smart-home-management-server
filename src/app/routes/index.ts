@@ -1,11 +1,12 @@
 import express from 'express';
 import { AuthRouters } from '../modules/Auth/Auth.routes';
-import { UserRouters } from '../modules/User/user.routes';
 import { FollowRoutes } from '../modules/follow/follow.routes';
 import { notificationsRoute } from '../modules/Notifications/Notification.routes';
 import { subscriptionRoutes } from '../modules/subscription/subscription.routes';
 import { favoriteRoutes } from '../modules/favorite/favorite.routes';
-import { paymentRoutes } from "../modules/payment/payment.routes";
+import { paymentRoutes } from '../modules/payment/payment.routes';
+import { userRoutes } from '../modules/user/user.routes';
+import { analyticsrouter } from '../modules/user/analytics/analytics.routes';
 
 const router = express.Router();
 
@@ -14,9 +15,14 @@ const moduleRoutes = [
     path: '/auth',
     route: AuthRouters,
   },
+
   {
-    path: '/user',
-    route: UserRouters,
+    path: '/users',
+    route: userRoutes,
+  },
+  {
+    path: '/analytics',
+    route: analyticsrouter,
   },
   {
     path: '/follow',
@@ -35,10 +41,9 @@ const moduleRoutes = [
     route: favoriteRoutes,
   },
   {
-    path: "/payments",
+    path: '/payments',
     route: paymentRoutes,
   },
-
 ];
 
 moduleRoutes.forEach(route => router.use(route.path, route.route));

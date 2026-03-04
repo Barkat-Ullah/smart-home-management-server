@@ -23,7 +23,31 @@ router.post(
   AuthControllers.registerWithOtp,
 );
 
-router.post('/logout', AuthControllers.logoutUser);
+
+// Self logout (authenticated)
+router.post('/logout', auth(), AuthControllers.logoutUser);
+
+// Admin: logout a specific user
+router.post(
+  '/admin/logout/:userId',
+  auth(UserRoleEnum.ADMIN),
+  AuthControllers.adminLogoutUser,
+);
+
+// Admin: logout selected users
+// Body: { "userIds": ["id1", "id2", "id3"] }
+router.post(
+  '/admin/logout-selected',
+  auth(UserRoleEnum.ADMIN),
+  AuthControllers.adminLogoutSelectedUsers,
+);
+
+// Admin: logout ALL active users
+router.post(
+  '/admin/logout-all',
+  auth(UserRoleEnum.ADMIN),
+  AuthControllers.adminLogoutAllUsers,
+);
 
 router.post('/verify-email-with-otp', AuthControllers.verifyOtpCommon);
 

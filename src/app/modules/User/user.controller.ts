@@ -1,133 +1,121 @@
 import httpStatus from 'http-status';
+import { userService } from './user.service';
+import { Request, Response } from 'express';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
-import { UserServices } from './user.service';
 import pick from '../../utils/pickValidFields';
 
-const getFilterableFields = ['searchTerm', 'id', 'createdAt', 'status'];
-const getAllUsers = catchAsync(async (req, res) => {
-  const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
-  const filters = pick(req.query, getFilterableFields);
-  const result = await UserServices.getAllUsersFromDB(options, filters);
-
+// create User
+const createUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.createUser(req);
   sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'Users retrieved successfully',
-    ...result,
-  });
-});
-const getMyimage = catchAsync(async (req, res) => {
-  const id = req.user.id;
-  const result = await UserServices.getMyimageFromDB(id);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'image retrieved successfully',
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'User created successfully',
     data: result,
   });
 });
 
-const getUserDetails = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const result = await UserServices.getUserDetailsFromDB(id);
-
+// get all User
+const userFilterableFields = [
+  'searchTerm',
+  'id',
+  'createdAt',
+  'status',
+  'role',
+  'gender',
+  'plan'
+];
+const getUserList = catchAsync(async (req: Request, res: Response) => {
+  const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
+  const filters = pick(req.query, userFilterableFields);
+  const result = await userService.getUserList(options, filters);
   sendResponse(res, {
     statusCode: httpStatus.OK,
+    success: true,
+    message: 'User list retrieved successfully',
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
+// get User by id
+const getUserById = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await userService.getUserById(id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
     message: 'User details retrieved successfully',
     data: result,
   });
 });
 
-const updateUserRoleStatus = catchAsync(async (req, res) => {
+// get my User
+const getMyProfile = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.getMyUser(req);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'My profile retrieved successfully',
+    data: result,
+  });
+});
+
+// update User
+const updateUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.updateUser(req);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User updated successfully',
+    data: result,
+  });
+});
+
+// toggle status User
+const toggleStatusUser = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const role = req.body.role;
-  const result = await UserServices.updateUserRoleStatusIntoDB(id, role);
-
+  const result = await userService.toggleStatusUser(id);
   sendResponse(res, {
     statusCode: httpStatus.OK,
-    message: 'User role updated successfully',
+    success: true,
+    message: 'User status toggled successfully',
     data: result,
   });
 });
 
-const updateUserStatus = catchAsync(async (req, res) => {
+// soft delete User
+const softDeleteUser = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-
-  const result = await UserServices.updateUserStatus(id);
-
+  const result = await userService.softDeleteUser(id);
   sendResponse(res, {
     statusCode: httpStatus.OK,
-    message: 'User status updated successfully',
-    data: result,
-  });
-});
-const updateUserApproval = catchAsync(async (req, res) => {
-  const { userId } = req.body;
-  const result = await UserServices.updateUserApproval(userId);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'User approved successfully',
-    data: result,
-  });
-});
-
-const softDeleteUser = catchAsync(async (req, res) => {
-  const id = req.user.id;
-  const result = await UserServices.softDeleteUserIntoDB(id);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'User soft deleted successfully',
-    data: result,
-  });
-});
-const hardDeleteUser = catchAsync(async (req, res) => {
-  const userId = req.user.id;
-  const { id } = req.params;
-  const result = await UserServices.hardDeleteUserIntoDB(id, userId);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
+    success: true,
     message: 'User soft deleted successfully',
     data: result,
   });
 });
 
-const updateUser = catchAsync(async (req, res) => {
-  const id = req.params.id;
-  const result = await UserServices.updateUserIntoDb(req, id);
+// hard delete User
+const deleteUser = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await userService.deleteUser(id);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'User updated successfully!',
+    message: 'User deleted successfully',
     data: result,
   });
 });
 
-const updateMyimage = catchAsync(async (req, res) => {
-  const id = req.user.id;
-  const file = req.file;
-  const payload = JSON.parse(req.body.data);
-  const result = await UserServices.updateMyimageIntoDB(id, file, payload);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'image updated successfully',
-    data: result,
-  });
-});
-
-export const UserControllers = {
-  getAllUsers,
-  getMyimage,
-  getUserDetails,
-  updateUserRoleStatus,
-  updateUserStatus,
-  updateUserApproval,
-  softDeleteUser,
-  hardDeleteUser,
+export const userController = {
+  createUser,
+  getUserList,
+  getUserById,
+  getMyProfile,
   updateUser,
-  updateMyimage,
+  toggleStatusUser,
+  softDeleteUser,
+  deleteUser,
 };
