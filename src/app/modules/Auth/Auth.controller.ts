@@ -4,7 +4,13 @@ import sendResponse from '../../utils/sendResponse';
 import { AuthServices } from './Auth.service';
 
 const loginWithOtp = catchAsync(async (req, res) => {
-  const result = await AuthServices.loginWithOtpFromDB(res, req.body);
+  const result = await AuthServices.loginWithOtpFromDB(
+    res,
+    req.body,
+    req.clientInfo ,
+    req.ipInfo,
+  );
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: 'User logged in successfully',
@@ -13,7 +19,11 @@ const loginWithOtp = catchAsync(async (req, res) => {
 });
 
 const registerWithOtp = catchAsync(async (req, res) => {
-  const result = await AuthServices.registerWithOtpIntoDB(req.body);
+  const result = await AuthServices.registerWithOtpIntoDB(
+    req.body,
+    req.clientInfo,
+    req.ipInfo,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -21,7 +31,6 @@ const registerWithOtp = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
 const logoutUser = catchAsync(async (req, res) => {
   // Clear the token cookie
   res.clearCookie('token', {
@@ -37,8 +46,6 @@ const logoutUser = catchAsync(async (req, res) => {
     data: null,
   });
 });
-
-
 
 const resendVerificationWithOtp = catchAsync(async (req, res) => {
   const email = req.body.email;
@@ -71,7 +78,6 @@ const forgetPassword = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
 
 const verifyOtpCommon = catchAsync(async (req, res) => {
   const result = await AuthServices.verifyOtpCommon(req.body);

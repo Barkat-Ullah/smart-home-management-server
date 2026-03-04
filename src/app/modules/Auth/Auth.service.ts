@@ -4,30 +4,30 @@ import httpStatus from 'http-status';
 import { Secret, SignOptions } from 'jsonwebtoken';
 import config from '../../../config';
 import AppError from '../../errors/AppError';
-import { User, UserRoleEnum, UserStatus } from '@prisma/client';
+import { Prisma, User, UserRoleEnum, UserStatus } from '@prisma/client';
 import { Response } from 'express';
 import {
   getOtpStatusMessage,
   otpExpiryTime,
   generateOTP,
 } from '../../utils/otp';
-import sendResponse from '../../utils/sendResponse';
 import { generateToken } from '../../utils/generateToken';
 import { insecurePrisma, prisma } from '../../utils/prisma';
 import emailSender from './../../utils/sendMail';
+import { IClientInfo, IIPInfo } from '../../../types/ip.type';
 
-// ======================== LOGIN WITH OTP ========================
+// ========== LOGIN ==========
 const loginWithOtpFromDB = async (
   res: Response,
   payload: { email: string; password: string },
+  clientInfo: IClientInfo | null | undefined,
+  ipInfo: IIPInfo | null | undefined,
 ) => {
   const userData = await insecurePrisma.user.findUnique({
     where: { email: payload.email },
   });
 
-  if (!userData) {
-    throw new AppError(401, 'User not found');
-  }
+  if (!userData) throw new AppError(401, 'User not found');
 
   const isCorrectPassword = await bcrypt.compare(
     payload.password,
@@ -44,6 +44,11 @@ const loginWithOtpFromDB = async (
       data: {
         otp,
         otpExpiry: otpExpiryTime(),
+        clientInfo: clientInfo
+          ? (clientInfo as unknown as Prisma.JsonObject)
+          : undefined,
+        ipInfo: ipInfo ? (ipInfo as unknown as Prisma.JsonObject) : undefined,
+        lastLoginAt: new Date(),
       },
     });
 
@@ -60,6 +65,14 @@ const loginWithOtpFromDB = async (
       accessToken: null,
     };
   } else {
+    await prisma.user.update({
+      where: { email: userData.email },
+      data: {
+        clientInfo: clientInfo ? (clientInfo as unknown as Prisma.JsonObject) : undefined,
+        ipInfo: ipInfo ? (ipInfo as unknown as Prisma.JsonObject) : undefined,
+      },
+    });
+
     const accessToken = await generateToken(
       {
         id: userData.id,
@@ -83,8 +96,13 @@ const loginWithOtpFromDB = async (
   }
 };
 
-// ======================== REGISTER WITH OTP ========================
-const registerWithOtpIntoDB = async (payload: User) => {
+// ========== REGISTER ==========
+
+const registerWithOtpIntoDB = async (
+  payload: User,
+  clientInfo: IClientInfo | null | undefined,
+  ipInfo: IIPInfo | null | undefined,
+) => {
   const hashedPassword = await bcrypt.hash(payload.password, 12);
 
   const isUserExist = await prisma.user.findUnique({
@@ -103,6 +121,10 @@ const registerWithOtpIntoDB = async (payload: User) => {
       password: hashedPassword,
       otp,
       otpExpiry: otpExpiryTime(),
+      clientInfo: clientInfo
+        ? (clientInfo as unknown as Prisma.JsonObject)
+        : undefined,
+      ipInfo: ipInfo ? (ipInfo as unknown as Prisma.JsonObject) : undefined,
     },
   });
 

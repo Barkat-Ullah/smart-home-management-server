@@ -154,7 +154,7 @@ const clientInfoParser = async (
     req.body.clientInfo = clientInfo;
 
     // Also add to req object for middleware access
-    (req as any).clientInfo = clientInfo;
+    req.clientInfo = clientInfo;
 
     next();
   } catch (error) {

@@ -23,12 +23,12 @@ model User {
   isDeleted                     Boolean      @default(false)
   stripeCustomerId              String?
   fcmToken                      String?
-  lastLoginAt                   DateTime?
-  createdAt                     DateTime     @default(now())
-  updatedAt                     DateTime     @updatedAt
   isOnline                      Boolean      @default(false)
   clientInfo                    Json?
   ipInfo                        Json?
+  lastLoginAt                   DateTime?
+  createdAt                     DateTime     @default(now())
+  updatedAt                     DateTime     @updatedAt
 
   //RELATION
   payments      Payment[]

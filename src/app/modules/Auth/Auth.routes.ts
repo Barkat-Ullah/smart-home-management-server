@@ -4,18 +4,25 @@ import auth from '../../middlewares/auth';
 import { UserRoleEnum } from '@prisma/client';
 import { authValidation } from './Auth.validation';
 import { AuthControllers } from './Auth.controller';
-
+import clientInfoParser from '../../middlewares/clientInfoPerser';
+import { ipInfoMiddleware } from '../../middlewares/ipInfo';
 
 const router = express.Router();
 
 router.post(
   '/login',
-
-  // validateRequest.body(authValidation.loginUser),
+  clientInfoParser,
+  ipInfoMiddleware,
   AuthControllers.loginWithOtp,
 );
 
-router.post('/register', AuthControllers.registerWithOtp);
+router.post(
+  '/register',
+  clientInfoParser,
+  ipInfoMiddleware,
+  AuthControllers.registerWithOtp,
+);
+
 router.post('/logout', AuthControllers.logoutUser);
 
 router.post('/verify-email-with-otp', AuthControllers.verifyOtpCommon);
