@@ -1,9 +1,10 @@
 import express from 'express';
 import auth from '../../middlewares/auth';
 import { UserRoleEnum } from '@prisma/client';
-import { AuthControllers } from './Auth.controller';
+
 import clientInfoParser from '../../middlewares/clientInfoPerser';
 import { ipInfoMiddleware } from '../../middlewares/ipInfo';
+import { AuthControllers } from './Auth.controller';
 
 const router = express.Router();
 
@@ -91,4 +92,4 @@ router.post(
   AuthControllers.resetPassword,
 );
 
-export const AuthRouters = router;
+export const authRouters = router;

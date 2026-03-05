@@ -1,5 +1,4 @@
 import express from 'express';
-import { AuthRouters } from '../modules/Auth/Auth.routes';
 import { FollowRoutes } from '../modules/follow/follow.routes';
 import { notificationsRoute } from '../modules/Notifications/Notification.routes';
 import { subscriptionRoutes } from '../modules/subscription/subscription.routes';
@@ -7,13 +6,15 @@ import { favoriteRoutes } from '../modules/favorite/favorite.routes';
 import { paymentRoutes } from '../modules/payment/payment.routes';
 import { userRoutes } from '../modules/user/user.routes';
 import { analyticsrouter } from '../modules/user/analytics/analytics.routes';
+import { authRouters } from '../modules/auth/Auth.routes';
+
 
 const router = express.Router();
 
 const moduleRoutes = [
   {
     path: '/auth',
-    route: AuthRouters,
+    route: authRouters,
   },
 
   {

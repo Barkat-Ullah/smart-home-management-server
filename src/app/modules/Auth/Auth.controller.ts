@@ -1,8 +1,9 @@
 import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
-import { AuthServices } from './Auth.service';
+
 import { userService } from '../user/user.service';
+import { AuthServices } from './Auth.service';
 
 const loginWithOtp = catchAsync(async (req, res) => {
   const result = await AuthServices.loginWithOtpFromDB(
