@@ -19,13 +19,26 @@ const createUser = catchAsync(async (req: Request, res: Response) => {
 // get all User
 const userFilterableFields = [
   'searchTerm',
-  'id',
-  'createdAt',
   'status',
   'role',
   'gender',
-  'plan'
+  'plan',
+  'createdAt',
+  'isEmailVerified',
+  'isOnline',
+  'isDeleted',
+  // clientInfo based
+  'device',
+  'browser',
+  'os',
+  // ipInfo based
+  'country',
+  'region',
+  'city',
+  'timezone',
+  'isp',
 ];
+
 const getUserList = catchAsync(async (req: Request, res: Response) => {
   const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
   const filters = pick(req.query, userFilterableFields);

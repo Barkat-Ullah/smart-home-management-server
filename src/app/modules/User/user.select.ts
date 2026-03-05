@@ -13,7 +13,6 @@ export const userSelect = {
   fullName: true,
   email: true,
   phoneNumber: true,
-  password: true,
   role: true,
   status: true,
   describe: true,
@@ -27,8 +26,6 @@ export const userSelect = {
   plan: true,
   otp: true,
   otpExpiry: true,
-  emailVerificationToken: true,
-  emailVerificationTokenExpires: true,
   isEmailVerified: true,
   isDeleted: true,
   stripeCustomerId: true,
@@ -48,4 +45,40 @@ export const userSelect = {
   // activities: { select: { id: true } }, // ← uncomment to include relation
   // favorites: { select: { id: true } }, // ← uncomment to include relation
   // payments: { select: { id: true } }, // ← uncomment to include relation
+  // receiver: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // sender: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // followers: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // following: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // roomSender: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // roomReceiver: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // sentChats: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // receivedChats: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // financialProfiles: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // transactions: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // budgets: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // financialGoals: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // financialSnapshots: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // memories: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // memoryShares: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // feeds: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // feedComments: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // feedReactions: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // feedStatusChanges: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // moderatorAssignments: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // adminAssignments: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // prescriptions: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // medicineSchedules: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // doseLogs: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // medicineReminders: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // meals: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // weeklyMealPlans: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // mealPlanDays: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // caregiverMealDays: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // inventories: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // events: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // houserooms: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // cameras: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // aircons: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // devices: { select: { id: true } }, // ← NEW relation — uncomment to include
+  // userSubscriptions: { select: { id: true } }, // ← NEW relation — uncomment to include
 } satisfies Prisma.UserSelect;

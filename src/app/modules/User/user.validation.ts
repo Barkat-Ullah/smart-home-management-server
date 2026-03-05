@@ -27,6 +27,7 @@ const createSchema = z.object({
   fcmToken: z.string({ required_error: 'fcmToken is required', invalid_type_error: 'Invalid fcmToken' }).optional(),
   isOnline: z.boolean({ required_error: 'isOnline is required', invalid_type_error: 'Invalid isOnline' }).optional(),
   lastLoginAt: z.coerce.date({ required_error: 'lastLoginAt is required', invalid_type_error: 'Invalid lastLoginAt' }).optional(),
+  createdById: z.string({ required_error: 'createdById is required', invalid_type_error: 'Invalid createdById' }).optional(), // ← NEW
 });
 
 const updateSchema = z.object({
@@ -55,6 +56,7 @@ const updateSchema = z.object({
   fcmToken: z.string({ required_error: 'fcmToken is required', invalid_type_error: 'Invalid fcmToken' }).optional(),
   isOnline: z.boolean({ required_error: 'isOnline is required', invalid_type_error: 'Invalid isOnline' }).optional(),
   lastLoginAt: z.coerce.date({ required_error: 'lastLoginAt is required', invalid_type_error: 'Invalid lastLoginAt' }).optional(),
+  createdById: z.string({ required_error: 'createdById is required', invalid_type_error: 'Invalid createdById' }).optional(), // ← NEW
 });
 
 export const userValidation = {

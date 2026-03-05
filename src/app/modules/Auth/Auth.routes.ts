@@ -1,8 +1,6 @@
 import express from 'express';
-import validateRequest from '../../middlewares/validateRequest';
 import auth from '../../middlewares/auth';
 import { UserRoleEnum } from '@prisma/client';
-import { authValidation } from './Auth.validation';
 import { AuthControllers } from './Auth.controller';
 import clientInfoParser from '../../middlewares/clientInfoPerser';
 import { ipInfoMiddleware } from '../../middlewares/ipInfo';

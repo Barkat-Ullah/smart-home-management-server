@@ -3,13 +3,15 @@ import { Prisma, UserRoleEnum } from '@prisma/client';
 import prisma from '../../utils/prisma';
 import { IPaginationOptions } from '../../interface/pagination.type';
 import { paginationHelper } from '../../utils/calculatePagination';
-
 import { Request } from 'express';
 import { handleFileUploads } from '../../utils/handleFile';
 import { userSelect } from './user.select';
 import emailSender from '../../utils/sendMail';
 import ApiError from '../../errors/AppError';
-import { generateAdminCustomEmail, IAdminMailPayload } from '../../utils/allmailformat';
+import {
+  generateAdminCustomEmail,
+  IAdminMailPayload,
+} from '../../utils/allmailformat';
 
 // -------------------------------------------------------
 // create User
@@ -35,13 +37,35 @@ const createUser = async (req: Request) => {
 // -------------------------------------------------------
 type IUserFilterRequest = {
   searchTerm?: string;
-  id?: string;
-  createdAt?: string;
   status?: string;
   role?: string;
+  gender?: string;
+  plan?: string;
+  createdAt?: string;
+  isEmailVerified?: string;
+  isOnline?: string;
+  isDeleted?: string;
+  // clientInfo
+  device?: string;
+  browser?: string;
+  os?: string;
+  // ipInfo
+  country?: string;
+  region?: string;
+  city?: string;
+  timezone?: string;
+  isp?: string;
 };
 
-const userSearchAbleFields = ['fullName', 'email'];
+// searchable fields
+const userSearchAbleFields = [
+  'fullName',
+  'email',
+  'phoneNumber',
+  'city',
+  'address',
+  'bloodGroup',
+];
 
 const getUserList = async (
   options: IPaginationOptions,
@@ -60,71 +84,66 @@ const getUserList = async (
     });
   }
 
-  if (Object.keys(filterData).length) {
-    Object.keys(filterData).forEach(key => {
-      const value = (filterData as any)[key];
-      if (value === '' || value === null || value === undefined) return;
+if (Object.keys(filterData).length) {
+  Object.keys(filterData).forEach(key => {
+    const value = (filterData as any)[key];
+    if (value === '' || value === null || value === undefined) return;
 
-      if (key === 'createdAt' && value) {
-        const parts = (value as string).split('-');
-        if (parts.length === 2) {
-          const year = parseInt(parts[0]);
-          const month = parseInt(parts[1]) - 1;
-          const start = new Date(year, month, 1, 0, 0, 0, 0);
-          const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
-          andConditions.push({
-            createdAt: { gte: start.toISOString(), lte: end.toISOString() },
-          });
-        } else {
-          const start = new Date(value);
-          start.setHours(0, 0, 0, 0);
-          const end = new Date(value);
-          end.setHours(23, 59, 59, 999);
-          andConditions.push({
-            createdAt: { gte: start.toISOString(), lte: end.toISOString() },
-          });
-        }
-        return;
+    // --- Date filter ---
+    if (key === 'createdAt') {
+      const parts = (value as string).split('-');
+      if (parts.length === 2) {
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1;
+        andConditions.push({
+          createdAt: {
+            gte: new Date(year, month, 1, 0, 0, 0, 0),
+            lte: new Date(year, month + 1, 0, 23, 59, 59, 999),
+          },
+        });
+      } else {
+        const start = new Date(value);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(value);
+        end.setHours(23, 59, 59, 999);
+        andConditions.push({ createdAt: { gte: start, lte: end } });
       }
+      return;
+    }
 
-      if (key.includes('.')) {
-        const [relation, field] = key.split('.');
-        andConditions.push({ [relation]: { some: { [field]: value } } });
-        return;
-      }
+    // --- Enum array filters ---
+    if (['status', 'role', 'plan', 'gender'].includes(key)) {
+      andConditions.push({
+        [key]: { in: Array.isArray(value) ? value : [value] },
+      });
+      return;
+    }
 
-      if (key === 'status') {
-        const statuses = Array.isArray(value) ? value : [value];
-        andConditions.push({
-          status: { in: statuses },
-        });
-        return;
-      }
-      if (key === 'role') {
-        const roles = Array.isArray(value) ? value : [value];
-        andConditions.push({
-          role: { in: roles },
-        });
-        return;
-      }
-      if (key === 'plan') {
-        const plans = Array.isArray(value) ? value : [value];
-        andConditions.push({
-          plan: { in: plans },
-        });
-        return;
-      }
-      if (key === 'gender') {
-        const genders = Array.isArray(value) ? value : [value];
-        andConditions.push({
-          gender: { in: genders },
-        });
-        return;
-      }
+    // --- Boolean filters ---
+    if (['isEmailVerified', 'isOnline', 'isDeleted'].includes(key)) {
+      andConditions.push({ [key]: value === 'true' });
+      return;
+    }
 
-      andConditions.push({ [key]: value });
-    });
-  }
+    // --- clientInfo JSON filters ---
+    if (['device', 'browser', 'os'].includes(key)) {
+      andConditions.push({
+        clientInfo: { string_contains: value },
+      } as any);
+      return;
+    }
+
+    // --- ipInfo JSON filters ---
+    if (['country', 'region', 'city', 'timezone', 'isp'].includes(key)) {
+      andConditions.push({
+        ipInfo: { string_contains: value },
+      } as any);
+      return;
+    }
+
+    andConditions.push({ [key]: value });
+  });
+}
 
   const whereConditions: Prisma.UserWhereInput =
     andConditions.length > 0 ? { AND: andConditions } : {};
@@ -141,9 +160,24 @@ const getUserList = async (
       phoneNumber: true,
       role: true,
       status: true,
+      describe: true,
+      city: true,
+      address: true,
       image: true,
       bloodGroup: true,
       gender: true,
+      allergies: true,
+      isAgreeWithTerms: true,
+      plan: true,
+      isEmailVerified: true,
+      isDeleted: true,
+      isOnline: true,
+      clientInfo: true,
+      ipInfo: true,
+      lastLoginAt: true,
+      createdAt: true,
+      updatedAt: true,
+      createdById: true,
     },
   });
 
@@ -172,11 +206,10 @@ const getUserById = async (id: string) => {
 const getMyUser = async (req: Request) => {
   const userId = req.user.id;
 
-  const result = await prisma.user.findMany({
+  const result = await prisma.user.findUnique({
     where: {
       id: userId,
     },
-    orderBy: { createdAt: 'desc' },
     select: {
       id: true,
       fullName: true,
@@ -191,8 +224,9 @@ const getMyUser = async (req: Request) => {
       bloodGroup: true,
       gender: true,
       allergies: true,
-      isAgreeWithTerms: true,
       plan: true,
+      lastLoginAt: true,
+      createdAt: true,
     },
   });
 
@@ -275,8 +309,6 @@ const deleteUser = async (id: string) => {
   return result;
 };
 
-
-
 // ── 1. Single User ──
 const sendMailToSingleUserFromDB = async (payload: ISingleMailPayload) => {
   const user = await prisma.user.findUnique({
@@ -289,18 +321,20 @@ const sendMailToSingleUserFromDB = async (payload: ISingleMailPayload) => {
   }
 
   const mailPayload: IAdminMailPayload = {
-    toName:    user.fullName,
-    toEmail:   user.email,
-    subject:   payload.subject,
-    body:      payload.body,
+    toName: user.fullName,
+    toEmail: user.email,
+    subject: payload.subject,
+    body: payload.body,
     adminName: payload.adminName,
-    priority:  payload.priority ?? 'normal',
+    priority: payload.priority ?? 'normal',
   };
 
   const html = generateAdminCustomEmail(mailPayload);
   await emailSender(user.email, html, payload.subject);
 
-  return { message: `Email sent to ${user.fullName} (${user.email}) successfully` };
+  return {
+    message: `Email sent to ${user.fullName} (${user.email}) successfully`,
+  };
 };
 
 // ── 2. Selected Users ──
@@ -321,21 +355,21 @@ const sendMailToSelectedUsersFromDB = async (
   }
 
   const results = await Promise.allSettled(
-    users.map(async (user) => {
+    users.map(async user => {
       const html = generateAdminCustomEmail({
-        toName:    user.fullName,
-        toEmail:   user.email,
-        subject:   payload.subject,
-        body:      payload.body,
+        toName: user.fullName,
+        toEmail: user.email,
+        subject: payload.subject,
+        body: payload.body,
         adminName: payload.adminName,
-        priority:  payload.priority ?? 'normal',
+        priority: payload.priority ?? 'normal',
       });
       await emailSender(user.email, html, payload.subject);
       return user.email;
     }),
   );
 
-  const sent   = results.filter(r => r.status === 'fulfilled').length;
+  const sent = results.filter(r => r.status === 'fulfilled').length;
   const failed = results.filter(r => r.status === 'rejected').length;
 
   return {
@@ -356,21 +390,21 @@ const sendMailToAllUsersFromDB = async (payload: IBulkMailPayload) => {
   }
 
   const results = await Promise.allSettled(
-    users.map(async (user) => {
+    users.map(async user => {
       const html = generateAdminCustomEmail({
-        toName:    user.fullName,
-        toEmail:   user.email,
-        subject:   payload.subject,
-        body:      payload.body,
+        toName: user.fullName,
+        toEmail: user.email,
+        subject: payload.subject,
+        body: payload.body,
         adminName: payload.adminName,
-        priority:  payload.priority ?? 'normal',
+        priority: payload.priority ?? 'normal',
       });
       await emailSender(user.email, html, payload.subject);
       return user.email;
     }),
   );
 
-  const sent   = results.filter(r => r.status === 'fulfilled').length;
+  const sent = results.filter(r => r.status === 'fulfilled').length;
   const failed = results.filter(r => r.status === 'rejected').length;
 
   return {
