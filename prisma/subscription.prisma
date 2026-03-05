@@ -37,5 +37,4 @@ model UserSubscription {
 enum DurationType {
     Freely
     Monthly
-    Yearly
 }

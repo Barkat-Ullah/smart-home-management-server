@@ -60,7 +60,7 @@ model Prescription {
     doctorName   String?
     hospitalName String?
     notes        String?
-    fileUrl      String? // prescription image/pdf
+    files      String? // prescription image/pdf
     createdAt    DateTime @default(now())
     updatedAt    DateTime @updatedAt
 

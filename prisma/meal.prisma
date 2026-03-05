@@ -1,0 +1,135 @@
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum WeeklyPlanStatus {
+    Active
+    Completed
+    Skipped
+}
+
+enum DayOfWeek {
+    Monday
+    Tuesday
+    Wednesday
+    Thursday
+    Friday
+    Saturday
+    Sunday
+}
+
+enum MealTime {
+    Breakfast
+    Lunch
+    Dinner
+    Snack
+}
+
+enum MealPlanDayStatus {
+    Pending
+    Cooking
+    Completed
+    Skipped
+}
+
+// ─────────────────────────────────────────────
+// MEAL (Recipe/Dish master list)
+// ─────────────────────────────────────────────
+
+model Meal {
+    id          String   @id @default(auto()) @map("_id") @db.ObjectId
+    userId      String   @db.ObjectId
+    title       String
+    description String?
+    ingredients String[] // e.g. ["rice", "chicken", "oil"]
+    files       String?
+    prepMinutes Int? // preparation time in minutes
+    isDeleted   Boolean  @default(false)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    // Relations
+    createdBy        User              @relation("UserMeals", fields: [userId], references: [id])
+    mealPlanDayItems MealPlanDayItem[]
+
+    @@map("meals")
+}
+
+// ─────────────────────────────────────────────
+// WEEKLY MEAL PLAN
+// ─────────────────────────────────────────────
+
+model WeeklyMealPlan {
+    id         String           @id @default(auto()) @map("_id") @db.ObjectId
+    userId     String           @db.ObjectId
+    weekNumber Int // auto increments per user e.g. 1, 2, 3
+    startDate  DateTime // Monday of the week
+    endDate    DateTime // Sunday of the week
+    status     WeeklyPlanStatus @default(Active)
+    notes      String?
+
+    isDeleted   Boolean   @default(false)
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    completedAt DateTime?
+
+    // Relations
+    createdBy User          @relation("UserWeeklyMealPlans", fields: [userId], references: [id])
+    days      MealPlanDay[]
+
+    @@unique([userId, weekNumber]) // each week is unique per user
+    @@map("weekly_meal_plans")
+}
+
+// ─────────────────────────────────────────────
+// MEAL PLAN DAY (each day of the week)
+// ─────────────────────────────────────────────
+
+model MealPlanDay {
+    id           String  @id @default(auto()) @map("_id") @db.ObjectId
+    weeklyPlanId String  @db.ObjectId
+    userId       String  @db.ObjectId
+    caregiverId  String? @db.ObjectId // optional caregiver assigned for this day
+
+    day    DayOfWeek
+    date   DateTime // actual date e.g. 2026-03-09
+    status MealPlanDayStatus @default(Pending)
+    notes  String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    weeklyPlan WeeklyMealPlan    @relation(fields: [weeklyPlanId], references: [id])
+    assignedTo User?             @relation("CaregiverMealDays", fields: [caregiverId], references: [id])
+    createdBy  User              @relation("UserMealPlanDays", fields: [userId], references: [id])
+    mealItems  MealPlanDayItem[]
+
+    @@unique([weeklyPlanId, day]) // each day appears only once per plan
+    @@map("meal_plan_days")
+}
+
+// ─────────────────────────────────────────────
+// MEAL PLAN DAY ITEM (which meal at which time)
+// ─────────────────────────────────────────────
+
+model MealPlanDayItem {
+    id          String    @id @default(auto()) @map("_id") @db.ObjectId
+    planDayId   String    @db.ObjectId
+    mealId      String?   @db.ObjectId // pick from existing Meal, null if custom
+    mealTime    MealTime
+    customTitle String? // quick entry without linking a Meal record
+    servings    Int       @default(1)
+    isCompleted Boolean   @default(false)
+    completedAt DateTime?
+    notes       String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    planDay MealPlanDay @relation(fields: [planDayId], references: [id])
+    meal    Meal?       @relation(fields: [mealId], references: [id])
+
+    @@map("meal_plan_day_items")
+}

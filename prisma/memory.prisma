@@ -3,7 +3,7 @@ model Memory {
     userId          String        @db.ObjectId
     title           String
     description     String
-    file            String?
+    files            String?
     // Who this memory belongs to / is about
     memoryOf        MemoryOf      @default(SELF) // SELF, CHILD, FAMILY_MEMBER
     // If memory is about a specific family member or child

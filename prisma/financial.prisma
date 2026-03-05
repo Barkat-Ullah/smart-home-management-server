@@ -25,16 +25,16 @@ enum TransactionCategory {
     OtherIncome
 
     // Expense Categories
-    Housing        // বাসা ভাড়া, mortgage
-    Food           // খাবার
-    Transport      // যাতায়াত
-    Healthcare     // স্বাস্থ্য
-    Education      // শিক্ষা
-    Entertainment  // বিনোদন
-    Shopping       // কেনাকাটা
-    Utilities      // বিদ্যুৎ, গ্যাস, পানি
-    Insurance      // বীমা
-    EMI            // কিস্তি
+    Housing // বাসা ভাড়া, mortgage
+    Food // খাবার
+    Transport // যাতায়াত
+    Healthcare // স্বাস্থ্য
+    Education // শিক্ষা
+    Entertainment // বিনোদন
+    Shopping // কেনাকাটা
+    Utilities // বিদ্যুৎ, গ্যাস, পানি
+    Insurance // বীমা
+    EMI // কিস্তি
     OtherExpense
 
     // Saving / Investment
@@ -65,29 +65,25 @@ enum BudgetPeriod {
 // ============================================
 
 model FinancialProfile {
-    id          String   @id @default(auto()) @map("_id") @db.ObjectId
-    userId      String   @db.ObjectId
-
+    id              String          @id @default(auto()) @map("_id") @db.ObjectId
+    userId          String          @db.ObjectId
     // Period
-    month       Int      // 1-12
-    year        Int      // e.g. 2025
-
+    month           Int // 1-12
+    year            Int // e.g. 2025
     // Summary (auto-calculated / cached)
-    totalIncome     Float  @default(0)
-    totalExpense    Float  @default(0)
-    totalSaving     Float  @default(0)
-    totalInvestment Float  @default(0)
-    netBalance      Float  @default(0)  // income - expense
-
+    totalIncome     Float           @default(0)
+    totalExpense    Float           @default(0)
+    totalSaving     Float           @default(0)
+    totalInvestment Float           @default(0)
+    netBalance      Float           @default(0) // income - expense
     // Meta
-    currency    String   @default("BDT")
-    notes       String?
-    isDeleted   Boolean  @default(false)
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
-
+    currency        String          @default("BDT")
+    notes           String?
+    isDeleted       Boolean         @default(false)
+    createdAt       DateTime        @default(now())
+    updatedAt       DateTime        @updatedAt
     // Relations
-    user            User              @relation("UserFinancialProfile", fields: [userId], references: [id])
+    user            User            @relation("UserFinancialProfile", fields: [userId], references: [id])
     transactions    Transaction[]
     budgets         Budget[]
     goals           FinancialGoal[]
@@ -102,24 +98,22 @@ model FinancialProfile {
 // ============================================
 
 model SalaryInfo {
-    id                  String   @id @default(auto()) @map("_id") @db.ObjectId
-    financialProfileId  String   @unique @db.ObjectId
+    id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+    financialProfileId String    @unique @db.ObjectId
+    basicSalary        Float
+    houseRentAllowance Float     @default(0)
+    medicalAllowance   Float     @default(0)
+    transportAllowance Float     @default(0)
+    bonus              Float     @default(0)
+    otherAllowance     Float     @default(0)
+    taxDeduction       Float     @default(0)
+    providentFund      Float     @default(0) // PF কাটা
+    netSalary          Float // final take-home
+    salaryDate         DateTime? // কবে বেতন পেয়েছে
+    createdAt          DateTime  @default(now())
+    updatedAt          DateTime  @updatedAt
 
-    basicSalary         Float
-    houseRentAllowance  Float    @default(0)
-    medicalAllowance    Float    @default(0)
-    transportAllowance  Float    @default(0)
-    bonus               Float    @default(0)
-    otherAllowance      Float    @default(0)
-    taxDeduction        Float    @default(0)
-    providentFund       Float    @default(0)  // PF কাটা
-    netSalary           Float    // final take-home
-
-    salaryDate          DateTime?  // কবে বেতন পেয়েছে
-    createdAt           DateTime @default(now())
-    updatedAt           DateTime @updatedAt
-
-    financialProfile    FinancialProfile @relation(fields: [financialProfileId], references: [id])
+    financialProfile FinancialProfile @relation(fields: [financialProfileId], references: [id])
 
     @@map("salary_info")
 }
@@ -129,30 +123,26 @@ model SalaryInfo {
 // ============================================
 
 model Transaction {
-    id                  String              @id @default(auto()) @map("_id") @db.ObjectId
-    userId              String              @db.ObjectId
-    financialProfileId  String              @db.ObjectId
-
-    title               String
-    description         String?
-    amount              Float
-    type                TransactionType
-    category            TransactionCategory
-
-    date                DateTime            // কোন দিন
-    isRecurring         Boolean             @default(false)  // মাসিক recurring কিনা
-    recurringDay        Int?                // মাসের কত তারিখে (1-31)
-    tags                String[]            @default([])
-
+    id                 String              @id @default(auto()) @map("_id") @db.ObjectId
+    userId             String              @db.ObjectId
+    financialProfileId String              @db.ObjectId
+    title              String
+    description        String?
+    amount             Float
+    type               TransactionType
+    category           TransactionCategory
+    date               DateTime // কোন দিন
+    isRecurring        Boolean             @default(false) // মাসিক recurring কিনা
+    recurringDay       Int? // মাসের কত তারিখে (1-31)
+    tags               String[]            @default([])
     // Reference (e.g. bill photo, receipt)
-    attachmentUrl       String?
+    files              String?
+    isDeleted          Boolean             @default(false)
+    createdAt          DateTime            @default(now())
+    updatedAt          DateTime            @updatedAt
 
-    isDeleted           Boolean             @default(false)
-    createdAt           DateTime            @default(now())
-    updatedAt           DateTime            @updatedAt
-
-    user                User                @relation("UserTransactions", fields: [userId], references: [id])
-    financialProfile    FinancialProfile     @relation(fields: [financialProfileId], references: [id])
+    user             User             @relation("UserTransactions", fields: [userId], references: [id])
+    financialProfile FinancialProfile @relation(fields: [financialProfileId], references: [id])
 
     @@map("transactions")
 }
@@ -162,27 +152,23 @@ model Transaction {
 // ============================================
 
 model Budget {
-    id                  String              @id @default(auto()) @map("_id") @db.ObjectId
-    userId              String              @db.ObjectId
-    financialProfileId  String              @db.ObjectId
+    id                 String              @id @default(auto()) @map("_id") @db.ObjectId
+    userId             String              @db.ObjectId
+    financialProfileId String              @db.ObjectId
+    category           TransactionCategory
+    period             BudgetPeriod        @default(Monthly)
+    limitAmount        Float // কত টাকা budget
+    spentAmount        Float               @default(0) // কত খরচ হয়েছে
+    remainingAmount    Float               @default(0) // বাকি কত
+    alertThreshold     Float               @default(80) // 80% খরচ হলে alert
+    isAlertSent        Boolean             @default(false)
+    month              Int
+    year               Int
+    createdAt          DateTime            @default(now())
+    updatedAt          DateTime            @updatedAt
 
-    category            TransactionCategory
-    period              BudgetPeriod        @default(Monthly)
-    limitAmount         Float               // কত টাকা budget
-    spentAmount         Float               @default(0)  // কত খরচ হয়েছে
-    remainingAmount     Float               @default(0)  // বাকি কত
-
-    alertThreshold      Float               @default(80)  // 80% খরচ হলে alert
-    isAlertSent         Boolean             @default(false)
-
-    month               Int
-    year                Int
-
-    createdAt           DateTime            @default(now())
-    updatedAt           DateTime            @updatedAt
-
-    user                User                @relation("UserBudgets", fields: [userId], references: [id])
-    financialProfile    FinancialProfile     @relation(fields: [financialProfileId], references: [id])
+    user             User             @relation("UserBudgets", fields: [userId], references: [id])
+    financialProfile FinancialProfile @relation(fields: [financialProfileId], references: [id])
 
     @@unique([userId, category, month, year])
     @@map("budgets")
@@ -193,29 +179,25 @@ model Budget {
 // ============================================
 
 model FinancialGoal {
-    id                  String      @id @default(auto()) @map("_id") @db.ObjectId
-    userId              String      @db.ObjectId
-    financialProfileId  String      @db.ObjectId
+    id                 String     @id @default(auto()) @map("_id") @db.ObjectId
+    userId             String     @db.ObjectId
+    financialProfileId String     @db.ObjectId
+    title              String // e.g. "Emergency Fund", "Laptop কেনা"
+    description        String?
+    targetAmount       Float
+    savedAmount        Float      @default(0)
+    remainingAmount    Float      @default(0)
+    startDate          DateTime
+    targetDate         DateTime // deadline
+    achievedDate       DateTime?
+    status             GoalStatus @default(Active)
+    priority           Int        @default(1) // 1 = highest
+    isDeleted          Boolean    @default(false)
+    createdAt          DateTime   @default(now())
+    updatedAt          DateTime   @updatedAt
 
-    title               String      // e.g. "Emergency Fund", "Laptop কেনা"
-    description         String?
-    targetAmount        Float
-    savedAmount         Float       @default(0)
-    remainingAmount     Float       @default(0)
-
-    startDate           DateTime
-    targetDate          DateTime    // deadline
-    achievedDate        DateTime?
-
-    status              GoalStatus  @default(Active)
-    priority            Int         @default(1)  // 1 = highest
-
-    isDeleted           Boolean     @default(false)
-    createdAt           DateTime    @default(now())
-    updatedAt           DateTime    @updatedAt
-
-    user                User        @relation("UserGoals", fields: [userId], references: [id])
-    financialProfile    FinancialProfile @relation(fields: [financialProfileId], references: [id])
+    user             User             @relation("UserGoals", fields: [userId], references: [id])
+    financialProfile FinancialProfile @relation(fields: [financialProfileId], references: [id])
 
     @@map("financial_goals")
 }
@@ -226,31 +208,26 @@ model FinancialGoal {
 // ============================================
 
 model FinancialSnapshot {
-    id          String       @id @default(auto()) @map("_id") @db.ObjectId
-    userId      String       @db.ObjectId
-
-    period      BudgetPeriod
-    startDate   DateTime
-    endDate     DateTime
-
+    id                String       @id @default(auto()) @map("_id") @db.ObjectId
+    userId            String       @db.ObjectId
+    period            BudgetPeriod
+    startDate         DateTime
+    endDate           DateTime
     // Aggregated data
-    totalIncome     Float   @default(0)
-    totalExpense    Float   @default(0)
-    totalSaving     Float   @default(0)
-    totalInvestment Float   @default(0)
-    netBalance      Float   @default(0)
-
-    savingRate      Float   @default(0)  // saving / income * 100 (%)
-    expenseRate     Float   @default(0)  // expense / income * 100 (%)
-
+    totalIncome       Float        @default(0)
+    totalExpense      Float        @default(0)
+    totalSaving       Float        @default(0)
+    totalInvestment   Float        @default(0)
+    netBalance        Float        @default(0)
+    savingRate        Float        @default(0) // saving / income * 100 (%)
+    expenseRate       Float        @default(0) // expense / income * 100 (%)
     // Category-wise breakdown (JSON store)
-    categoryBreakdown Json?  // { "Food": 5000, "Transport": 2000 }
-    weeklyBreakdown   Json?  // weekly data array
+    categoryBreakdown Json? // { "Food": 5000, "Transport": 2000 }
+    weeklyBreakdown   Json? // weekly data array
+    createdAt         DateTime     @default(now())
+    updatedAt         DateTime     @updatedAt
 
-    createdAt   DateTime     @default(now())
-    updatedAt   DateTime     @updatedAt
-
-    user        User         @relation("UserSnapshots", fields: [userId], references: [id])
+    user User @relation("UserSnapshots", fields: [userId], references: [id])
 
     @@map("financial")
 }

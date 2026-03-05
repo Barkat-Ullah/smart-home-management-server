@@ -70,6 +70,18 @@ model User {
   medicineSchedules             MedicineSchedule[]  @relation("UserMedicineSchedules")
   doseLogs                      DoseLog[]           @relation("UserDoseLogs")
   medicineReminders             MedicineReminder[]  @relation("UserMedicineReminders")
+  //meal plan
+  meals                         Meal[]              @relation("UserMeals")
+  weeklyMealPlans               WeeklyMealPlan[]    @relation("UserWeeklyMealPlans")
+  mealPlanDays                  MealPlanDay[]       @relation("UserMealPlanDays")
+  caregiverMealDays             MealPlanDay[]       @relation("CaregiverMealDays")
+  // event relation
+  events                        Event[]             @relation("UserEvents")
+  // House & Device Relations
+  houserooms                    Houseroom[]         @relation("UserHouserooms")
+  cameras                       CctvCamera[]        @relation("UserCameras")
+  aircons                       AirConditioner[]    @relation("UserAircons")
+  devices                       SmartDevice[]       @relation("UserDevices")
 
   @@map("users")
 }
@@ -101,4 +113,17 @@ model Logout {
   user User @relation("Logout", fields: [userId], references: [id])
 
   @@map("Logout")
+}
+
+model Activity {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation("UserActivity", fields: [userId], references: [id])
+
+  @@map("activity")
 }

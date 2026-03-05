@@ -1,0 +1,156 @@
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum houseroomType {
+    LivingRoom
+    Kitchen
+    Bathroom
+    Bedroom
+    Backyard
+    Terrace
+    Garage
+    Office
+    Other
+}
+
+enum DeviceStatus {
+    Online
+    Offline
+    Idle
+}
+
+enum AcMode {
+    Cool
+    Heat
+    Fan
+    Dry
+    Auto
+}
+
+// ─────────────────────────────────────────────
+// houseroom
+// ─────────────────────────────────────────────
+
+model Houseroom {
+    id        String        @id @default(auto()) @map("_id") @db.ObjectId
+    userId    String        @db.ObjectId
+    name      String
+    type      houseroomType
+    files     String?
+    isDefault Boolean       @default(false) // true = auto-created on registration
+    isDeleted Boolean       @default(false)
+    createdAt DateTime      @default(now())
+    updatedAt DateTime      @updatedAt
+
+    owner        User             @relation("UserHouserooms", fields: [userId], references: [id])
+    cameras      CctvCamera[]
+    aircons      AirConditioner[]
+    smartDevices SmartDevice[]
+
+    @@map("houserooms")
+}
+
+// ─────────────────────────────────────────────
+// CCTV CAMERA (stream URL only, no recording)
+// ─────────────────────────────────────────────
+
+model CctvCamera {
+    id          String @id @default(auto()) @map("_id") @db.ObjectId
+    userId      String @db.ObjectId
+    houseroomId String @db.ObjectId
+
+    name      String // e.g. "Front Door Cam"
+    streamUrl String // RTSP or HLS stream URL e.g. "rtsp://192.168.1.10/stream"
+    username  String? // camera login (optional)
+    password  String? // camera login — encrypt this in production!
+    brand     String? // e.g. "Hikvision", "Dahua"
+    model     String? // e.g. "DS-2CD2143G2"
+    status    DeviceStatus @default(Offline)
+
+    isDeleted Boolean  @default(false)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    owner     User      @relation("UserCameras", fields: [userId], references: [id])
+    houseroom Houseroom @relation(fields: [houseroomId], references: [id])
+
+    @@map("cctv_cameras")
+}
+
+enum DeviceType {
+    SmartTV
+    Speaker
+    Router
+    Wifi
+    Heater
+    Socket
+    Lamp
+    Fridge
+    WashingMachine
+    Dishwasher
+    Fan
+    Microwave
+    DoorLock
+    Doorbell
+    Other
+}
+
+// ─────────────────────────────────────────────
+// AIR CONDITIONER
+// ─────────────────────────────────────────────
+
+model AirConditioner {
+    id          String @id @default(auto()) @map("_id") @db.ObjectId
+    userId      String @db.ObjectId
+    houseroomId String @db.ObjectId
+
+    name        String // e.g. "Bedhouseroom AC"
+    brand       String? // e.g. "Samsung", "Gree"
+    isOn        Boolean      @default(false)
+    temperature Int          @default(24) // in Celsius
+    humidity    Int? // target humidity %
+    fanSpeed    Int          @default(1) // 1-5
+    mode        AcMode       @default(Cool)
+    status      DeviceStatus @default(Offline)
+
+    isDeleted Boolean  @default(false)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    owner     User      @relation("UserAircons", fields: [userId], references: [id])
+    houseroom Houseroom @relation(fields: [houseroomId], references: [id])
+
+    @@map("air_conditioners")
+}
+
+model SmartDevice {
+    id          String       @id @default(auto()) @map("_id") @db.ObjectId
+    userId      String       @db.ObjectId
+    houseroomId String       @db.ObjectId
+    name        String // e.g. "Living Room TV"
+    type        DeviceType   @default(Lamp)
+    brand       String?
+    model       String?
+    iconUrl     String?
+    isOn        Boolean      @default(false)
+    status      DeviceStatus @default(Offline)
+    powerUsage  Float? // current kWh
+    activeHours Float? // hours active today
+    // Smart control (optional - only for supported devices)
+    controlType String? // "homeassistant", "switchbot", "tuya", "manual"
+    controlId   String? // external device ID for API control
+    controlMeta String? // JSON string for extra config
+    isDeleted   Boolean      @default(false)
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+    lastSeenAt  DateTime? // last time device was online
+
+    // Relations
+    owner     User      @relation("UserDevices", fields: [userId], references: [id])
+    houseroom Houseroom @relation(fields: [houseroomId], references: [id])
+
+    @@map("smart_devices")
+}

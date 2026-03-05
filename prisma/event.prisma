@@ -1,0 +1,76 @@
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum EventStatus {
+    Upcoming
+    Ongoing
+    Completed
+    Cancelled
+    Postponed
+}
+
+enum EventType {
+    ForYou
+    ForFamilyMember
+    ForChild
+    ForCareGiver
+    ForAll
+}
+
+enum EventCategory {
+    SchoolDropOff
+    SchoolPickUp
+    MedicalAppointment
+    DentistAppointment
+    ParentTeacherMeeting
+    Vaccination
+    Therapy
+    PlayDate
+    FamilyOuting
+    GroceryShopping
+    HouseChore
+    BillPayment
+    Other
+}
+
+enum EventPriority {
+    Low
+    Medium
+    High
+    Urgent
+}
+
+// ─────────────────────────────────────────────
+// EVENT
+// ─────────────────────────────────────────────
+
+model Event {
+    id              String        @id @default(auto()) @map("_id") @db.ObjectId
+    userId          String        @db.ObjectId
+    title           String
+    description     String?
+    location        String? // physical or online location
+    meetingLink     String? // for virtual events
+    category        EventCategory
+    type            EventType
+    priority        EventPriority @default(Medium)
+    status          EventStatus   @default(Upcoming)
+    eventDate       DateTime
+    eventTime       String? // stored as "HH:mm" e.g. "09:30"
+    // Reminder
+    reminderMinutes Int? // remind X minutes before e.g. 30, 60
+    isReminderSent  Boolean       @default(false)
+    files           String[] // attachment URLs
+    notes           String? // internal notes
+    isDeleted       Boolean       @default(false)
+    createdAt       DateTime      @default(now())
+    updatedAt       DateTime      @updatedAt
+    completedAt     DateTime?
+    cancelledAt     DateTime?
+
+    // Relations
+    createdBy User @relation("UserEvents", fields: [userId], references: [id])
+
+    @@map("events")
+}

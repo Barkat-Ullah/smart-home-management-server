@@ -8,22 +8,40 @@ model Notification {
     referenceId String?
     type        NotifyType?
 
-    receiver User  @relation("Receiver", fields: [receiverId], references: [id])
-    sender   User? @relation("Sender", fields: [senderId], references: [id])
-
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+    //relation
+    receiver  User     @relation("Receiver", fields: [receiverId], references: [id])
+    sender    User?    @relation("Sender", fields: [senderId], references: [id])
 
     @@map("notifications")
 }
 
 enum NotifyType {
-    //for admin
-    Registration
+    // Admin
+    Support // new support feed post
     Contact
     Report
-    //for user
+    FeedAssigned // moderator assigned to a feed
+    FeedResponded // feed got a response
+    // User
     Message
-    //for both admin and user
+    FeedComment // someone commented on your feed
+    FeedReply // someone replied to your comment
+    FeedStatusChanged // feed status updated
+    // Medicine
+    MedicineDue // time to take medicine
+    MedicineMissed // missed a dose
+    MedicineRefill // running low on medicine
+    PrescriptionAdded // new prescription created
+    // Meal
+    MealPlanCreated // new weekly meal plan ready
+    MealPlanCompleted // weekly plan completed
+    MealReminder // time to cook/eat
+    // Event
+    EventReminder // upcoming event reminder
+    EventCancelled
+    EventUpdated
+    // Payment
     Payment
 }
