@@ -3,7 +3,13 @@ import httpStatus from 'http-status';
 import { Secret, SignOptions } from 'jsonwebtoken';
 import config from '../../../config';
 import AppError from '../../errors/AppError';
-import { Prisma, User, UserRoleEnum, UserStatus } from '@prisma/client';
+import {
+  PLanType,
+  Prisma,
+  User,
+  UserRoleEnum,
+  UserStatus,
+} from '@prisma/client';
 import { Response } from 'express';
 import {
   getOtpStatusMessage,
@@ -20,6 +26,8 @@ import {
   passwordChangedEmail,
   welcomeEmail,
 } from '../../utils/allmailformat';
+import { defaultRooms } from './auth.constant';
+import ApiError from '../../errors/AppError';
 
 // ========== LOGIN ==========
 // 📧 Template: otpVerificationEmail
@@ -123,6 +131,14 @@ const registerWithOtpIntoDB = async (
     select: { id: true },
   });
 
+  // const freeUserCount = await prisma.user.count({
+  //   where: { plan: PLanType.Free, isDeleted: false },
+  // });
+
+  // if (freeUserCount >= 500) {
+  //   throw new ApiError(403, 'Free plan is currently full');
+  // }
+
   if (isUserExist)
     throw new AppError(httpStatus.CONFLICT, 'User already exists');
 
@@ -141,6 +157,12 @@ const registerWithOtpIntoDB = async (
     },
   });
 
+  if (newUser) {
+    await prisma.houseroom.createMany({
+      data: defaultRooms.map(room => ({ ...room, userId: newUser.id })),
+    });
+  }
+
   try {
     const html = otpVerificationEmail(otp, newUser.fullName);
     await emailSender(newUser.email, html, '🔐 OTP Verification — SmartHome');
@@ -152,87 +174,6 @@ const registerWithOtpIntoDB = async (
   }
 
   return 'Please check mail to verify your email';
-};
-
-// ======================== SELF LOGOUT ========================
-const logoutUser = async (userId: string) => {
-  await prisma.logout.create({ data: { userId, logoutAt: new Date() } });
-  await prisma.user.update({
-    where: { id: userId },
-    data: { fcmToken: null, isOnline: false },
-  });
-  return { message: 'Logged out successfully' };
-};
-
-// ======================== ADMIN: LOGOUT ONE USER ========================
-
-const adminLogoutUser = async (targetUserId: string) => {
-  const user = await prisma.user.findUnique({ where: { id: targetUserId } });
-  if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
-
-  await prisma.logout.create({
-    data: { userId: targetUserId, logoutAt: new Date() },
-  });
-  await prisma.user.update({
-    where: { id: targetUserId },
-    data: { fcmToken: null, isOnline: false },
-  });
-  return { message: `User ${user.fullName} has been logged out` };
-};
-
-// ======================== ADMIN: LOGOUT SELECTED USERS ========================
-const adminLogoutSelectedUsers = async (userIds: string[]) => {
-  if (!userIds.length)
-    throw new AppError(httpStatus.BAD_REQUEST, 'No user IDs provided');
-
-  const users = await prisma.user.findMany({
-    where: { id: { in: userIds } },
-    select: { id: true },
-  });
-  const foundIds = users.map(u => u.id);
-  const notFound = userIds.filter(id => !foundIds.includes(id));
-  if (notFound.length)
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      `Users not found: ${notFound.join(', ')}`,
-    );
-
-  await prisma.$transaction([
-    prisma.logout.createMany({
-      data: userIds.map(userId => ({ userId, logoutAt: new Date() })),
-    }),
-    prisma.user.updateMany({
-      where: { id: { in: userIds } },
-      data: { fcmToken: null, isOnline: false },
-    }),
-  ]);
-  return { message: `${userIds.length} user(s) have been logged out` };
-};
-
-// ======================== ADMIN: LOGOUT ALL USERS ========================
-const adminLogoutAllUsers = async () => {
-  const activeUsers = await prisma.user.findMany({
-    where: { isOnline: true, isDeleted: false },
-    select: { id: true },
-  });
-
-  if (!activeUsers.length)
-    return { message: 'No active users to log out', count: 0 };
-
-  const userIds = activeUsers.map(u => u.id);
-  await prisma.$transaction([
-    prisma.logout.createMany({
-      data: userIds.map(userId => ({ userId, logoutAt: new Date() })),
-    }),
-    prisma.user.updateMany({
-      where: { id: { in: userIds } },
-      data: { fcmToken: null, isOnline: false },
-    }),
-  ]);
-  return {
-    message: `All ${userIds.length} active users have been logged out`,
-    count: userIds.length,
-  };
 };
 
 // ======================== OTP VERIFY (REGISTER + FORGOT) ========================
@@ -436,7 +377,6 @@ const forgetPassword = async (email: string) => {
   return { message: 'OTP sent successfully' };
 };
 
-
 const resetPassword = async (payload: { password: string; email: string }) => {
   const user = await prisma.user.findUnique({
     where: { email: payload.email },
@@ -451,6 +391,87 @@ const resetPassword = async (payload: { password: string; email: string }) => {
   });
 
   return { message: 'Password reset successfully' };
+};
+
+// ======================== SELF LOGOUT ========================
+const logoutUser = async (userId: string) => {
+  await prisma.logout.create({ data: { userId, logoutAt: new Date() } });
+  await prisma.user.update({
+    where: { id: userId },
+    data: { fcmToken: null, isOnline: false },
+  });
+  return { message: 'Logged out successfully' };
+};
+
+// ======================== ADMIN: LOGOUT ONE USER ========================
+
+const adminLogoutUser = async (targetUserId: string) => {
+  const user = await prisma.user.findUnique({ where: { id: targetUserId } });
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+
+  await prisma.logout.create({
+    data: { userId: targetUserId, logoutAt: new Date() },
+  });
+  await prisma.user.update({
+    where: { id: targetUserId },
+    data: { fcmToken: null, isOnline: false },
+  });
+  return { message: `User ${user.fullName} has been logged out` };
+};
+
+// ======================== ADMIN: LOGOUT SELECTED USERS ========================
+const adminLogoutSelectedUsers = async (userIds: string[]) => {
+  if (!userIds.length)
+    throw new AppError(httpStatus.BAD_REQUEST, 'No user IDs provided');
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true },
+  });
+  const foundIds = users.map(u => u.id);
+  const notFound = userIds.filter(id => !foundIds.includes(id));
+  if (notFound.length)
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      `Users not found: ${notFound.join(', ')}`,
+    );
+
+  await prisma.$transaction([
+    prisma.logout.createMany({
+      data: userIds.map(userId => ({ userId, logoutAt: new Date() })),
+    }),
+    prisma.user.updateMany({
+      where: { id: { in: userIds } },
+      data: { fcmToken: null, isOnline: false },
+    }),
+  ]);
+  return { message: `${userIds.length} user(s) have been logged out` };
+};
+
+// ======================== ADMIN: LOGOUT ALL USERS ========================
+const adminLogoutAllUsers = async () => {
+  const activeUsers = await prisma.user.findMany({
+    where: { isOnline: true, isDeleted: false },
+    select: { id: true },
+  });
+
+  if (!activeUsers.length)
+    return { message: 'No active users to log out', count: 0 };
+
+  const userIds = activeUsers.map(u => u.id);
+  await prisma.$transaction([
+    prisma.logout.createMany({
+      data: userIds.map(userId => ({ userId, logoutAt: new Date() })),
+    }),
+    prisma.user.updateMany({
+      where: { id: { in: userIds } },
+      data: { fcmToken: null, isOnline: false },
+    }),
+  ]);
+  return {
+    message: `All ${userIds.length} active users have been logged out`,
+    count: userIds.length,
+  };
 };
 
 export const AuthServices = {

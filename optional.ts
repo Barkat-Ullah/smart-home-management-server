@@ -23,3 +23,12 @@
 // await prisma.room.createMany({
 //   data: DEFAULT_ROOMS.map(room => ({ ...room, userId: newUser.id }))
 // })
+
+// // user register এর সময় check
+// const freeUserCount = await prisma.user.count({
+//   where: { plan: 'Free', isDeleted: false }
+// })
+
+// if (freeUserCount >= 500) {
+//   throw new BadRequestException('Free plan is currently full')
+// }
