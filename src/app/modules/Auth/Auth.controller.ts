@@ -11,6 +11,11 @@ const loginWithOtp = catchAsync(async (req, res) => {
     req.clientInfo,
     req.ipInfo,
   );
+  const { refreshToken } = result;
+  res.cookie('refreshToken', refreshToken, {
+    secure: false,
+    httpOnly: true,
+  });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -29,6 +34,19 @@ const registerWithOtp = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     message: 'User Created Successfully',
+    data: result,
+  });
+});
+
+const refreshToken = catchAsync(async (req, res) => {
+  const { refreshToken } = req.cookies;
+
+  const result = await AuthServices.refreshToken(refreshToken);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Access token generated successfully!',
     data: result,
   });
 });
@@ -155,17 +173,15 @@ const sendMailToSingleUser = catchAsync(async (req, res) => {
 });
 
 // ── Send mail to selected users ──
-const sendMailToSelectedUsers = catchAsync(
-  async (req, res) => {
-    const result = await userService.sendMailToSelectedUsersFromDB(req.body);
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: result.message,
-      data: result.data,
-    });
-  },
-);
+const sendMailToSelectedUsers = catchAsync(async (req, res) => {
+  const result = await userService.sendMailToSelectedUsersFromDB(req.body);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: result.data,
+  });
+});
 
 // ── Send mail to ALL users ──
 const sendMailToAllUsers = catchAsync(async (req, res) => {
@@ -177,7 +193,6 @@ const sendMailToAllUsers = catchAsync(async (req, res) => {
     data: result.data,
   });
 });
-
 
 export const AuthControllers = {
   loginWithOtp,
@@ -194,4 +209,5 @@ export const AuthControllers = {
   sendMailToSingleUser,
   sendMailToSelectedUsers,
   sendMailToAllUsers,
+  refreshToken,
 };

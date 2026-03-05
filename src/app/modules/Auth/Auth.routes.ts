@@ -23,6 +23,8 @@ router.post(
   AuthControllers.registerWithOtp,
 );
 
+router.post('/refresh-token', AuthControllers.refreshToken);
+
 router.post(
   '/admin/send-mail/single',
   auth(UserRoleEnum.ADMIN),

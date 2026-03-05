@@ -28,6 +28,7 @@ import {
 } from '../../utils/allmailformat';
 import { defaultRooms } from './auth.constant';
 import ApiError from '../../errors/AppError';
+import { verifyToken } from '../../utils/verifyToken';
 
 // ========== LOGIN ==========
 // 📧 Template: otpVerificationEmail
@@ -103,6 +104,17 @@ const loginWithOtpFromDB = async (
       config.jwt.access_secret as Secret,
       config.jwt.access_expires_in as SignOptions['expiresIn'],
     );
+    const refreshToken = await generateToken(
+      {
+        id: userData.id,
+        name: userData.fullName,
+        email: userData.email,
+        role: userData.role,
+      },
+      config.jwt.refresh_secret as Secret,
+      config.jwt.refresh_expires_in as SignOptions['expiresIn'],
+    );
+
 
     return {
       message: 'User logged in successfully',
@@ -112,6 +124,7 @@ const loginWithOtpFromDB = async (
       role: userData.role,
       isEmailVerified: userData.isEmailVerified,
       accessToken,
+      refreshToken,
     };
   }
 };
@@ -222,14 +235,20 @@ const verifyOtpCommon = async (payload: { email: string; otp: string }) => {
       config.jwt.access_secret as Secret,
       config.jwt.access_expires_in as SignOptions['expiresIn'],
     );
+    const refreshToken = await generateToken(
+      { id: user.id, name: user.fullName, email: user.email, role: user.role },
+      config.jwt.refresh_secret as Secret,
+      config.jwt.refresh_expires_in as SignOptions['expiresIn'],
+    );
 
     return {
       message: 'Email verified successfully!',
-      accessToken,
       id: user.id,
       name: user.fullName,
       email: user.email,
       role: user.role,
+      accessToken,
+      refreshToken,
     };
   } else {
     // Forgot password flow — OTP verify, no welcome mail
@@ -239,6 +258,47 @@ const verifyOtpCommon = async (payload: { email: string; otp: string }) => {
     });
     return { message: 'OTP verified for password reset!' };
   }
+};
+
+const refreshToken = async (token: string) => {
+  let decodedData;
+  try {
+    decodedData = await verifyToken(token, config.jwt.refresh_secret as Secret);
+  } catch (err) {
+    throw new Error('You are not authorized!');
+  }
+
+  const userData = await prisma.user.findUnique({
+    where: {
+      email: decodedData.email,
+      status: UserStatus.ACTIVE,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      role: true,
+    },
+  });
+
+  if (!userData) {
+    throw new ApiError(404, 'User not Found');
+  }
+
+  const accessToken = await generateToken(
+    {
+      id: userData.id,
+      name: userData.fullName,
+      email: userData.email,
+      role: userData.role,
+    },
+    config.jwt.access_secret as Secret,
+    config.jwt.access_expires_in as SignOptions['expiresIn'],
+  );
+
+  return {
+    accessToken,
+  };
 };
 
 // ======================== RESEND OTP ========================
@@ -477,6 +537,7 @@ const adminLogoutAllUsers = async () => {
 export const AuthServices = {
   loginWithOtpFromDB,
   registerWithOtpIntoDB,
+  refreshToken,
   resendVerificationWithOtp,
   changePassword,
   forgetPassword,
