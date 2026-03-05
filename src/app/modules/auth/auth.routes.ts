@@ -1,10 +1,9 @@
 import express from 'express';
 import auth from '../../middlewares/auth';
 import { UserRoleEnum } from '@prisma/client';
-
 import clientInfoParser from '../../middlewares/clientInfoPerser';
 import { ipInfoMiddleware } from '../../middlewares/ipInfo';
-import { AuthControllers } from './Auth.controller';
+import { authControllers } from './auth.controller';
 
 const router = express.Router();
 
@@ -12,44 +11,44 @@ router.post(
   '/login',
   clientInfoParser,
   ipInfoMiddleware,
-  AuthControllers.loginWithOtp,
+  authControllers.loginWithOtp,
 );
 
 router.post(
   '/register',
   clientInfoParser,
   ipInfoMiddleware,
-  AuthControllers.registerWithOtp,
+  authControllers.registerWithOtp,
 );
 
-router.post('/refresh-token', AuthControllers.refreshToken);
+router.post('/refresh-token', authControllers.refreshToken);
 
 router.post(
   '/admin/send-mail/single',
   auth(UserRoleEnum.ADMIN),
-  AuthControllers.sendMailToSingleUser,
+  authControllers.sendMailToSingleUser,
 );
 
 router.post(
   '/admin/send-mail/selected',
   auth(UserRoleEnum.ADMIN),
-  AuthControllers.sendMailToSelectedUsers,
+  authControllers.sendMailToSelectedUsers,
 );
 
 router.post(
   '/admin/send-mail/all',
   auth(UserRoleEnum.ADMIN),
-  AuthControllers.sendMailToAllUsers,
+  authControllers.sendMailToAllUsers,
 );
 
 // Self logout (authenticated)
-router.post('/logout', auth(), AuthControllers.logoutUser);
+router.post('/logout', auth(), authControllers.logoutUser);
 
 // Admin: logout a specific user
 router.post(
   '/admin/logout/:userId',
   auth(UserRoleEnum.ADMIN),
-  AuthControllers.adminLogoutUser,
+  authControllers.adminLogoutUser,
 );
 
 // Admin: logout selected users
@@ -57,39 +56,39 @@ router.post(
 router.post(
   '/admin/logout-selected',
   auth(UserRoleEnum.ADMIN),
-  AuthControllers.adminLogoutSelectedUsers,
+  authControllers.adminLogoutSelectedUsers,
 );
 
 // Admin: logout ALL active users
 router.post(
   '/admin/logout-all',
   auth(UserRoleEnum.ADMIN),
-  AuthControllers.adminLogoutAllUsers,
+  authControllers.adminLogoutAllUsers,
 );
 
-router.post('/verify-email-with-otp', AuthControllers.verifyOtpCommon);
+router.post('/verify-email-with-otp', authControllers.verifyOtpCommon);
 
 router.post(
   '/resend-verification-with-otp',
-  AuthControllers.resendVerificationWithOtp,
+  authControllers.resendVerificationWithOtp,
 );
 
 router.post(
   '/change-password',
   auth(UserRoleEnum.USER, UserRoleEnum.ADMIN),
-  AuthControllers.changePassword,
+  authControllers.changePassword,
 );
 
 router.post(
   '/forget-password',
   // validateRequest.body(authValidation.forgetPasswordValidationSchema),
-  AuthControllers.forgetPassword,
+  authControllers.forgetPassword,
 );
 
 router.post(
   '/reset-password',
   // validateRequest.body(authValidation.resetPasswordValidationSchema),
-  AuthControllers.resetPassword,
+  authControllers.resetPassword,
 );
 
 export const authRouters = router;

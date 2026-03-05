@@ -534,7 +534,7 @@ const adminLogoutAllUsers = async () => {
   };
 };
 
-export const AuthServices = {
+export const authServices = {
   loginWithOtpFromDB,
   registerWithOtpIntoDB,
   refreshToken,

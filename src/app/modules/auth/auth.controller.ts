@@ -1,12 +1,12 @@
 import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
-
 import { userService } from '../user/user.service';
-import { AuthServices } from './Auth.service';
+import { authServices } from './auth.service';
+
 
 const loginWithOtp = catchAsync(async (req, res) => {
-  const result = await AuthServices.loginWithOtpFromDB(
+  const result = await authServices.loginWithOtpFromDB(
     res,
     req.body,
     req.clientInfo,
@@ -26,7 +26,7 @@ const loginWithOtp = catchAsync(async (req, res) => {
 });
 
 const registerWithOtp = catchAsync(async (req, res) => {
-  const result = await AuthServices.registerWithOtpIntoDB(
+  const result = await authServices.registerWithOtpIntoDB(
     req.body,
     req.clientInfo,
     req.ipInfo,
@@ -42,7 +42,7 @@ const registerWithOtp = catchAsync(async (req, res) => {
 const refreshToken = catchAsync(async (req, res) => {
   const { refreshToken } = req.cookies;
 
-  const result = await AuthServices.refreshToken(refreshToken);
+  const result = await authServices.refreshToken(refreshToken);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -56,7 +56,7 @@ const logoutUser = catchAsync(async (req, res) => {
   const userId = req.user?.id;
 
   if (userId) {
-    await AuthServices.logoutUser(userId);
+    await authServices.logoutUser(userId);
   }
 
   res.clearCookie('token', {
@@ -76,7 +76,7 @@ const logoutUser = catchAsync(async (req, res) => {
 // Admin: logout one user
 const adminLogoutUser = catchAsync(async (req, res) => {
   const { userId } = req.params;
-  const result = await AuthServices.adminLogoutUser(userId);
+  const result = await authServices.adminLogoutUser(userId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -89,7 +89,7 @@ const adminLogoutUser = catchAsync(async (req, res) => {
 // Admin: logout selected users
 const adminLogoutSelectedUsers = catchAsync(async (req, res) => {
   const { userIds } = req.body; // string[]
-  const result = await AuthServices.adminLogoutSelectedUsers(userIds);
+  const result = await authServices.adminLogoutSelectedUsers(userIds);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -101,7 +101,7 @@ const adminLogoutSelectedUsers = catchAsync(async (req, res) => {
 
 // Admin: logout all users
 const adminLogoutAllUsers = catchAsync(async (req, res) => {
-  const result = await AuthServices.adminLogoutAllUsers();
+  const result = await authServices.adminLogoutAllUsers();
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -112,7 +112,7 @@ const adminLogoutAllUsers = catchAsync(async (req, res) => {
 });
 const resendVerificationWithOtp = catchAsync(async (req, res) => {
   const email = req.body.email;
-  const result = await AuthServices.resendVerificationWithOtp(email);
+  const result = await authServices.resendVerificationWithOtp(email);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -123,7 +123,7 @@ const resendVerificationWithOtp = catchAsync(async (req, res) => {
 
 const changePassword = catchAsync(async (req, res) => {
   const user = req.user;
-  const result = await AuthServices.changePassword(user, req.body);
+  const result = await authServices.changePassword(user, req.body);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -133,7 +133,7 @@ const changePassword = catchAsync(async (req, res) => {
 });
 
 const forgetPassword = catchAsync(async (req, res) => {
-  const result = await AuthServices.forgetPassword(req.body.email);
+  const result = await authServices.forgetPassword(req.body.email);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -143,7 +143,7 @@ const forgetPassword = catchAsync(async (req, res) => {
 });
 
 const verifyOtpCommon = catchAsync(async (req, res) => {
-  const result = await AuthServices.verifyOtpCommon(req.body);
+  const result = await authServices.verifyOtpCommon(req.body);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -153,7 +153,7 @@ const verifyOtpCommon = catchAsync(async (req, res) => {
 });
 
 const resetPassword = catchAsync(async (req, res) => {
-  await AuthServices.resetPassword(req.body);
+  await authServices.resetPassword(req.body);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -195,7 +195,7 @@ const sendMailToAllUsers = catchAsync(async (req, res) => {
   });
 });
 
-export const AuthControllers = {
+export const authControllers = {
   loginWithOtp,
   registerWithOtp,
   logoutUser,
