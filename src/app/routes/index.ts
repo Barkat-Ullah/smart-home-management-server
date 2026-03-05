@@ -6,7 +6,8 @@ import { favoriteRoutes } from '../modules/favorite/favorite.routes';
 import { paymentRoutes } from '../modules/payment/payment.routes';
 import { userRoutes } from '../modules/user/user.routes';
 import { analyticsrouter } from '../modules/user/analytics/analytics.routes';
-import { authRouters } from '../modules/auth/Auth.routes';
+import { authRouters } from '../modules/auth/auth.routes';
+
 
 
 const router = express.Router();
