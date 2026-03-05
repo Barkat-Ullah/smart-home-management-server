@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { Currency, PaymentStatus } from '@prisma/client';
+import {  PaymentStatus } from '@prisma/client';
 
 const createSchema = z.object({
   userId: z.string({ required_error: 'userId is required', invalid_type_error: 'Invalid userId' }),
   subscriptionId: z.string({ required_error: 'subscriptionId is required', invalid_type_error: 'Invalid subscriptionId' }),
   amount: z.number({ required_error: 'amount is required', invalid_type_error: 'Invalid amount' }),
-  currency: z.nativeEnum(Currency, { required_error: 'currency is required', invalid_type_error: 'Invalid currency' }).optional(),
+  // currency: z.nativeEnum(Currency, { required_error: 'currency is required', invalid_type_error: 'Invalid currency' }).optional(),
   status: z.nativeEnum(PaymentStatus, { required_error: 'status is required', invalid_type_error: 'Invalid status' }).optional(),
   paymentMethodType: z.string({ required_error: 'paymentMethodType is required', invalid_type_error: 'Invalid paymentMethodType' }).optional(),
   cardBrand: z.string({ required_error: 'cardBrand is required', invalid_type_error: 'Invalid cardBrand' }).optional(),
@@ -21,7 +21,7 @@ const updateSchema = z.object({
   userId: z.string({ required_error: 'userId is required', invalid_type_error: 'Invalid userId' }).optional(),
   subscriptionId: z.string({ required_error: 'subscriptionId is required', invalid_type_error: 'Invalid subscriptionId' }).optional(),
   amount: z.number({ required_error: 'amount is required', invalid_type_error: 'Invalid amount' }).optional(),
-  currency: z.nativeEnum(Currency, { required_error: 'currency is required', invalid_type_error: 'Invalid currency' }).optional(),
+  // currency: z.nativeEnum(Currency, { required_error: 'currency is required', invalid_type_error: 'Invalid currency' }).optional(),
   status: z.nativeEnum(PaymentStatus, { required_error: 'status is required', invalid_type_error: 'Invalid status' }).optional(),
   paymentMethodType: z.string({ required_error: 'paymentMethodType is required', invalid_type_error: 'Invalid paymentMethodType' }).optional(),
   cardBrand: z.string({ required_error: 'cardBrand is required', invalid_type_error: 'Invalid cardBrand' }).optional(),
