@@ -75,6 +75,7 @@ model User {
   weeklyMealPlans               WeeklyMealPlan[]    @relation("UserWeeklyMealPlans")
   mealPlanDays                  MealPlanDay[]       @relation("UserMealPlanDays")
   caregiverMealDays             MealPlanDay[]       @relation("CaregiverMealDays")
+  inventories                   Inventory[]         @relation("UserInventory")
   // event relation
   events                        Event[]             @relation("UserEvents")
   // House & Device Relations
@@ -82,6 +83,7 @@ model User {
   cameras                       CctvCamera[]        @relation("UserCameras")
   aircons                       AirConditioner[]    @relation("UserAircons")
   devices                       SmartDevice[]       @relation("UserDevices")
+  userSubscriptions             UserSubscription[]  @relation("UserSubscriptions")
 
   @@map("users")
 }

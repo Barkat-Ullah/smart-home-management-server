@@ -4,7 +4,7 @@ model Payment {
     subscriptionId    String        @db.ObjectId
     amount            Float
     files             String?
-    currency          Currency      @default(usd)
+    currency          String?
     status            PaymentStatus @default(PENDING)
     paymentMethodType String?
     cardBrand         String?

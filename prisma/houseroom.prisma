@@ -28,6 +28,24 @@ enum AcMode {
     Auto
 }
 
+enum DeviceType {
+    SmartTV
+    Speaker
+    Router
+    Wifi
+    Heater
+    Socket
+    Lamp
+    Fridge
+    WashingMachine
+    Dishwasher
+    Fan
+    Microwave
+    DoorLock
+    Doorbell
+    Other
+}
+
 // ─────────────────────────────────────────────
 // houseroom
 // ─────────────────────────────────────────────
@@ -77,24 +95,6 @@ model CctvCamera {
     houseroom Houseroom @relation(fields: [houseroomId], references: [id])
 
     @@map("cctv_cameras")
-}
-
-enum DeviceType {
-    SmartTV
-    Speaker
-    Router
-    Wifi
-    Heater
-    Socket
-    Lamp
-    Fridge
-    WashingMachine
-    Dishwasher
-    Fan
-    Microwave
-    DoorLock
-    Doorbell
-    Other
 }
 
 // ─────────────────────────────────────────────

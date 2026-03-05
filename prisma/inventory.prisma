@@ -1,0 +1,36 @@
+model Inventory {
+    id       String   @id @default(auto()) @map("_id") @db.ObjectId
+    userId   String   @db.ObjectId
+    title    String
+    location Location
+    item     Int      @default(0)
+
+    category  InventoryCategory
+    isDeleted Boolean           @default(false)
+    createdAt DateTime          @default(now())
+    updatedAt DateTime          @updatedAt
+
+    user User @relation("UserInventory", fields: [userId], references: [id])
+
+    @@map("inventory")
+}
+
+enum InventoryCategory {
+    Supplies
+    Cleaning
+    Maintenance
+    Food
+    other
+}
+
+enum Location {
+    LivingRoom
+    Kitchen
+    Bathroom
+    Bedroom
+    Backyard
+    Terrace
+    Garage
+    Office
+    Other
+}
