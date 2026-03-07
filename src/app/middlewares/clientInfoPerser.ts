@@ -29,7 +29,7 @@ interface ClientInfo {
 // IP to Location service function
 const getLocationFromIP = async (ip: string): Promise<LocationInfo | null> => {
   try {
-    // Skip location lookup for localhost/private IPs
+    // Skip localhost or private IP
     if (
       ip === '::1' ||
       ip === '127.0.0.1' ||
@@ -45,29 +45,28 @@ const getLocationFromIP = async (ip: string): Promise<LocationInfo | null> => {
       };
     }
 
-    // Using ip-api.com (free service, 1000 requests/month)
+    const API_KEY = process.env.IP_GEOLOCATION_KEY;
+
     const response = await axios.get(
-      `http://ip-api.com/json/${ip}?fields=status,message,country,regionName,city,lat,lon,timezone,isp`,
+      `https://api.ipgeolocation.io/ipgeo?apiKey=${API_KEY}&ip=${ip}`,
       {
-        timeout: 5000, // 5 second timeout
+        timeout: 5000,
       },
     );
 
-    if (response.data.status === 'success') {
-      return {
-        country: response.data.country,
-        region: response.data.regionName,
-        city: response.data.city,
-        latitude: response.data.lat,
-        longitude: response.data.lon,
-        timezone: response.data.timezone,
-        isp: response.data.isp,
-      };
-    }
+    const data = response.data;
 
-    return null;
+    return {
+      country: data.country_name,
+      region: data.state_prov,
+      city: data.city,
+      latitude: Number(data.latitude),
+      longitude: Number(data.longitude),
+      timezone: data.time_zone?.name,
+      isp: data.isp,
+    };
   } catch (error) {
-    console.error('Error fetching location from IP:', error);
+    console.error('IP Geolocation Error:', error);
     return null;
   }
 };
