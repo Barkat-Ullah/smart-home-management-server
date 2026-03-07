@@ -47,11 +47,11 @@ model Feed {
     status      FeedStatus   @default(Open)
     priority    FeedPriority @default(Low)
     tags        String[] // e.g. ["payment", "login", "bug"]
-    attachments String[] // file URLs
+    attachments String[]
 
     isDeleted Boolean @default(false)
-    isPinned  Boolean @default(false) // Admin pin করতে পারবে
-    isLocked  Boolean @default(false) // locked হলে নতুন comment হবে না
+    isPinned  Boolean @default(false)
+    isLocked  Boolean @default(false)
 
     viewCount Int @default(0)
 
@@ -78,8 +78,8 @@ model FeedAssignment {
     id          String    @id @default(auto()) @map("_id") @db.ObjectId
     feedId      String    @db.ObjectId
     moderatorId String    @db.ObjectId
-    assignedBy  String    @db.ObjectId // যে admin assign করেছে
-    note        String? // assignment note
+    assignedBy  String    @db.ObjectId
+    note        String?
     isActive    Boolean   @default(true)
     assignedAt  DateTime  @default(now())
     removedAt   DateTime?
@@ -135,7 +135,7 @@ model FeedReaction {
     feed Feed @relation(fields: [feedId], references: [id])
     user User @relation("UserFeedReactions", fields: [userId], references: [id])
 
-    @@unique([feedId, userId]) // একজন user একটা feed এ একবারই react করতে পারবে
+    @@unique([feedId, userId])
     @@map("feed_reactions")
 }
 

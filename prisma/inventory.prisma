@@ -1,10 +1,10 @@
 model Inventory {
-    id       String   @id @default(auto()) @map("_id") @db.ObjectId
-    userId   String   @db.ObjectId
-    title    String
-    location Location
-    item     Int      @default(0)
-
+    id        String            @id @default(auto()) @map("_id") @db.ObjectId
+    userId    String            @db.ObjectId
+    title     String
+    location  Location
+    item      Int               @default(0)
+    status    InventoryStatus   @default(Pending)
     category  InventoryCategory
     isDeleted Boolean           @default(false)
     createdAt DateTime          @default(now())
@@ -13,6 +13,11 @@ model Inventory {
     user User @relation("UserInventory", fields: [userId], references: [id])
 
     @@map("inventory")
+}
+
+enum InventoryStatus {
+    Pending
+    Done
 }
 
 enum InventoryCategory {
