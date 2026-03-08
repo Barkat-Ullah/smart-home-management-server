@@ -2,6 +2,7 @@ import { NotifyType } from '@prisma/client';
 import ApiError from '../errors/AppError';
 import { prisma } from '../utils/prisma';
 import admin from 'firebase-admin';
+import { sendSSEToUser, sendSSEToUsers } from './sse';
 
 interface CreateNotificationParams {
   receiverId: string;
@@ -52,19 +53,21 @@ export const createNotification = async (params: CreateNotificationParams) => {
     },
     include: {
       sender: {
-        select: {
-          id: true,
-          email: true,
-          role: true,
-        },
+        select: { id: true, email: true, fullName: true, image: true },
       },
     },
   });
 
-  // Send push notification using receiver's FCM token
-  // if (notification.receiver?.fcmToken) {
-  //   await sendPushNotification(notification.receiver.fcmToken, title, body);
-  // }
+  const unreadCount = await prisma.notification.count({
+    where: { receiverId, isRead: false },
+  });
+
+  // real-time SSE push
+  sendSSEToUser(receiverId, 'notification', { notification, unreadCount });
+
+  // optional FCM push (uncomment when ready)
+  // const receiver = await prisma.user.findUnique({ where: { id: receiverId }, select: { fcmToken: true } });
+  // if (receiver?.fcmToken) await sendPushNotification(receiver.fcmToken, title, body);
 
   return notification;
 };
@@ -72,9 +75,19 @@ export const createNotification = async (params: CreateNotificationParams) => {
 export const createBulkNotifications = async (
   notifications: CreateNotificationParams[],
 ) => {
-  const result = await prisma.notification.createMany({
-    data: notifications,
-  });
+  const result = await prisma.notification.createMany({ data: notifications });
+
+  // emit real-time to each unique receiver
+  const uniqueReceivers = [...new Set(notifications.map(n => n.receiverId))];
+
+  await Promise.all(
+    uniqueReceivers.map(async receiverId => {
+      const unreadCount = await prisma.notification.count({
+        where: { receiverId, isRead: false },
+      });
+      sendSSEToUser(receiverId, 'notification:bulk', { unreadCount });
+    }),
+  );
 
   return result;
 };

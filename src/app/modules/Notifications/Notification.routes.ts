@@ -9,19 +9,15 @@ router.post(
   auth(),
   notificationController.sendNotification,
 );
-
 router.post(
   '/send-notification',
   auth(),
   notificationController.sendNotifications,
 );
+// SSE — must be before /:notificationId to avoid conflict
+router.get('/subscribe', auth(), notificationController.subscribe);
 
-router.get(
-  '/my',
-  auth(),
-  notificationController.getMyNotification,
-);
-
+router.get('/my', auth(), notificationController.getMyNotification);
 router.get('/', auth(), notificationController.getNotifications);
 router.get(
   '/:notificationId',

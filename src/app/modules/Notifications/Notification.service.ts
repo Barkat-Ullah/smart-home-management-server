@@ -2,8 +2,32 @@ import httpStatus from 'http-status';
 import admin from './firebaseAdmin';
 import AppError from '../../errors/AppError';
 import { prisma } from '../../utils/prisma';
-import { Request } from 'express';
 import { UserRoleEnum } from '@prisma/client';
+import { addSSEClient, removeSSEClient, sendSSEToUser } from '../../utils/sse';
+import { Request, Response, RequestHandler } from 'express';
+
+const subscribe: RequestHandler = (req, res, _next) => {
+  const userId = (req as any).user.id;
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  res.write(`event: connected\ndata: {"message":"SSE connected"}\n\n`);
+
+  addSSEClient(userId, res);
+
+  const heartbeat = setInterval(() => {
+    res.write(`: ping\n\n`);
+  }, 30000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    removeSSEClient(userId);
+  });
+};
 type SendNotificationParams = {
   userId: string;
   senderId: string;
@@ -189,52 +213,27 @@ const sendNotifications = async (req: any) => {
   }
 };
 
-
 // Fetch notifications for the current user
 
 const getNotificationsFromDB = async (req: any) => {
-  try {
-    const userId = req.user.id;
+  const userId = req.user.id;
 
-    // Validate user ID
-    if (!userId) {
-      throw new AppError(400, 'User ID is required');
-    }
-
-    // Fetch notifications for the current user
-    const notifications = await prisma.notification.findMany({
-      where: {
-        receiverId: userId,
-      },
+  const [notifications, unreadCount] = await Promise.all([
+    prisma.notification.findMany({
+      where: { receiverId: userId },
       include: {
         sender: {
-          select: {
-            id: true,
-            email: true,
-          },
+          select: { id: true, email: true, fullName: true, image: true },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.notification.count({
+      where: { receiverId: userId, isRead: false },
+    }),
+  ]);
 
-    // Check if notifications exist
-
-    // Return formatted notifications
-    return notifications.map(notification => ({
-      id: notification.id,
-      title: notification.title,
-      body: notification.body,
-      isRead: notification.isRead,
-      createdAt: notification.createdAt,
-      sender: {
-        id: notification?.sender?.id,
-      },
-    }));
-  } catch (error: any) {
-    throw new AppError(500, error.message || 'Failed to fetch notifications');
-  }
+  return { unreadCount, notifications };
 };
 
 // Fetch a single notification and mark it as read
@@ -351,4 +350,5 @@ export const notificationServices = {
   getNotificationsFromDB,
   getSingleNotificationFromDB,
   getMyNotifications,
+  subscribe,
 };

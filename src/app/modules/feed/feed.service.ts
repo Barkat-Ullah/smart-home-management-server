@@ -1,5 +1,5 @@
 import httpStatus from 'http-status';
-import { FeedStatus, Prisma, UserRoleEnum } from '@prisma/client';
+import { FeedStatus, NotifyType, Prisma, UserRoleEnum } from '@prisma/client';
 import prisma from '../../utils/prisma';
 import { IPaginationOptions } from '../../interface/pagination.type';
 import { paginationHelper } from '../../utils/calculatePagination';
@@ -9,6 +9,10 @@ import { handleFileUploads } from '../../utils/handleFile';
 import { feedSelect } from './feed.select';
 import { buildFilterConditions } from './feed.utils';
 import { fileUploader } from '../../utils/fileUploader';
+import {
+  createBulkNotifications,
+  createNotification,
+} from '../../utils/notify';
 
 // -------------------------------------------------------
 // create Feed
@@ -53,6 +57,28 @@ const createFeed = async (req: Request) => {
     data: addedData,
     select: feedSelect,
   });
+
+  // notify all admins and moderators
+  const staffUsers = await prisma.user.findMany({
+    where: {
+      role: { in: [UserRoleEnum.ADMIN, UserRoleEnum.MODERATOR] },
+      isDeleted: false,
+    },
+    select: { id: true },
+  });
+
+  if (staffUsers.length > 0) {
+    await createBulkNotifications(
+      staffUsers.map(staff => ({
+        receiverId: staff.id,
+        senderId: userId,
+        title: 'New Support Feed',
+        body: `A new support post has been submitted: "${data.title}"`,
+        referenceId: result.id,
+        type: NotifyType.Support,
+      })),
+    );
+  }
 
   return result;
 };
@@ -422,6 +448,18 @@ const changeFeedStatus = async (req: Request) => {
     }),
   ]);
 
+  // notify feed owner (skip if owner changed their own status)
+  if (existingFeed.userId !== changedBy) {
+    await createNotification({
+      receiverId: existingFeed.userId,
+      senderId: changedBy,
+      title: 'Your Feed Status Changed',
+      body: `Your post status changed from "${fromStatus}" to "${toStatus}"${note ? `: ${note}` : ''}`,
+      referenceId: id,
+      type: NotifyType.FeedStatusChanged,
+    });
+  }
+
   return updatedFeed;
 };
 
@@ -515,6 +553,15 @@ const assignModerator = async (req: Request) => {
     data: { status: 'UnderReview' },
   });
 
+  await createNotification({
+    receiverId: moderatorId,
+    senderId: assignedBy,
+    title: 'Feed Assigned to You',
+    body: `You have been assigned to a support feed: "${feed.title}"${note ? ` — ${note}` : ''}`,
+    referenceId: feedId,
+    type: NotifyType.FeedAssigned,
+  });
+
   return result;
 };
 
@@ -591,6 +638,18 @@ const createReactionOnFeed = async (userId: string, feedId: string) => {
       },
     });
 
+    // notify feed owner (skip self-reaction)
+    // if (feed.userId !== userId) {
+    //   await createNotification({
+    //     receiverId: feed.userId,
+    //     senderId: userId,
+    //     title: 'Someone Reacted to Your Feed',
+    //     body: `Someone marked your post "${feed.title}" as favorite`,
+    //     referenceId: feedId,
+    //     type: NotifyType.FeedResponded,
+    //   });
+    // }
+
     return {
       feedId,
       isFavorite: true,
@@ -650,8 +709,9 @@ const createComment = async (req: Request) => {
       'Feed is locked — comments disabled',
     );
 
+  let parentComment = null;
   if (parentId) {
-    const parentComment = await prisma.feedComment.findUnique({
+    parentComment = await prisma.feedComment.findUnique({
       where: { id: parentId },
     });
     if (!parentComment)
@@ -676,6 +736,32 @@ const createComment = async (req: Request) => {
       },
     },
   });
+
+  if (parentId && parentComment) {
+    // reply — notify parent comment author (if not replying to self)
+    if (parentComment.userId !== userId) {
+      await createNotification({
+        receiverId: parentComment.userId,
+        senderId: userId,
+        title: 'New Reply to Your Comment',
+        body: `Someone replied to your comment: "${content.slice(0, 80)}"`,
+        referenceId: feedId,
+        type: NotifyType.FeedReply,
+      });
+    }
+  } else {
+    // top-level comment — notify feed owner (if not commenting on own feed)
+    if (feed.userId !== userId) {
+      await createNotification({
+        receiverId: feed.userId,
+        senderId: userId,
+        title: 'New Comment on Your Feed',
+        body: `Someone commented on your post "${feed.title}": "${content.slice(0, 80)}"`,
+        referenceId: feedId,
+        type: NotifyType.FeedComment,
+      });
+    }
+  }
   return result;
 };
 
