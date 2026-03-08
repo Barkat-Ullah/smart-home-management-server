@@ -7,10 +7,9 @@ import { authServices } from './auth.service';
 
 const loginWithOtp = catchAsync(async (req, res) => {
   const result = await authServices.loginWithOtpFromDB(
-    res,
     req.body,
-    req.clientInfo,
     req.ipInfo,
+    req.trackInfo,
   );
   const { refreshToken } = result;
   res.cookie('refreshToken', refreshToken, {
@@ -29,7 +28,7 @@ const registerWithOtp = catchAsync(async (req, res) => {
   const result = await authServices.registerWithOtpIntoDB(
     req.body,
     req.clientInfo,
-    req.ipInfo,
+    req.trackInfo,
   );
 
   sendResponse(res, {

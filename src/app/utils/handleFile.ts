@@ -3,6 +3,7 @@ import ApiError from '../errors/AppError';
 import { fileUploader } from './fileUploader';
 
 export type UploadedFiles = {
+  [x: string]: any;
   image?: string;
   video?: string;
   pdf?: string;

@@ -71,6 +71,80 @@ export const ipInfoMiddleware = async (
   next();
 };
 
+//* using this ip
+export interface IPWhoInfo {
+  ip: string;
+  success: boolean;
+  country?: string;
+  countryCode?: string;
+  region?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  isp?: string;
+  timezone?: string;
+  [key: string]: any;
+}
+
+export const getTrackIpWhoLocationFromIP = async (
+  ip: string,
+): Promise<IPWhoInfo | null> => {
+  try {
+    const url = `https://ipwho.is/${ip}`;
+    const { data } = await axios.get(url, { timeout: 3000 });
+    // console.log({data})
+
+    if (!data.success) return null;
+
+    return {
+      ip: data.ip,
+      success: data.success,
+      country: data.country,
+      countryCode: data.country_code,
+      region: data.region,
+      city: data.city,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      isp: data.connection?.isp,
+      timezone: data.timezone?.id,
+      raw: data,
+    };
+  } catch (error) {
+    console.error('[IPWho Middleware] Error:', error);
+    return null;
+  }
+};
+
+export const trackMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    let ip =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+      (req.headers['x-real-ip'] as string) ||
+      req.socket.remoteAddress ||
+      req.ip;
+
+    if (ip === '::1' || ip === '127.0.0.1') {
+      const { data } = await axios.get('https://api.ipify.org?format=json');
+      ip = data.ip;
+    }
+
+    if (ip?.startsWith('::ffff:')) ip = ip.replace('::ffff:', '');
+
+    console.log(`[IPWho Middleware] User IP: ${ip}`);
+
+    req.trackInfo = await getTrackIpWhoLocationFromIP(ip!);
+  } catch (error) {
+    console.error('[IPWho Middleware] Error:', error);
+    req.trackInfo = null;
+  }
+
+  next();
+};
+
 // location / {
 //     proxy_pass http://localhost:5000;
 //     proxy_set_header X-Forwarded-For $remote_addr;  # ✅ Real IP send

@@ -2,7 +2,7 @@ import express from 'express';
 import auth from '../../middlewares/auth';
 import { UserRoleEnum } from '@prisma/client';
 import clientInfoParser from '../../middlewares/clientInfoPerser';
-import { ipInfoMiddleware } from '../../middlewares/ipInfo';
+import { trackMiddleware } from '../../middlewares/ipInfo';
 import { authControllers } from './auth.controller';
 
 const router = express.Router();
@@ -10,14 +10,14 @@ const router = express.Router();
 router.post(
   '/login',
   clientInfoParser,
-  ipInfoMiddleware,
+  trackMiddleware,
   authControllers.loginWithOtp,
 );
 
 router.post(
   '/register',
   clientInfoParser,
-  ipInfoMiddleware,
+  trackMiddleware,
   authControllers.registerWithOtp,
 );
 

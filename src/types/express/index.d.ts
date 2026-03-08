@@ -44,6 +44,7 @@
 //   }
 // }
 
+
 import { IClientInfo, IIPInfo } from './clientInfo';
 
 declare global {
@@ -51,6 +52,7 @@ declare global {
     interface Request {
       clientInfo?: IClientInfo | null;
       ipInfo?: IIPInfo | null;
+      trackInfo?: IPWhoInfo | null;
     }
   }
 }

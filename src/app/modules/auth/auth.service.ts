@@ -4,7 +4,6 @@ import { Secret, SignOptions } from 'jsonwebtoken';
 import config from '../../../config';
 import AppError from '../../errors/AppError';
 import {
-  PLanType,
   Prisma,
   User,
   UserRoleEnum,
@@ -29,15 +28,16 @@ import {
 import { defaultRooms } from './auth.constant';
 import ApiError from '../../errors/AppError';
 import { verifyToken } from '../../utils/verifyToken';
+import { IPWhoInfo } from '../../middlewares/ipInfo';
 
 // ========== LOGIN ==========
 // 📧 Template: otpVerificationEmail
 const loginWithOtpFromDB = async (
-  res: Response,
   payload: { email: string; password: string; fcmToken?: string },
   clientInfo: IClientInfo | null | undefined,
-  ipInfo: IIPInfo | null | undefined,
+  trackInfo: IPWhoInfo | null | undefined,
 ) => {
+  console.log({trackInfo})
   const userData = await insecurePrisma.user.findUnique({
     where: { email: payload.email },
   });
@@ -62,13 +62,15 @@ const loginWithOtpFromDB = async (
         clientInfo: clientInfo
           ? (clientInfo as unknown as Prisma.JsonObject)
           : undefined,
-        ipInfo: ipInfo ? (ipInfo as unknown as Prisma.JsonObject) : undefined,
+        trackInfo: trackInfo
+          ? (trackInfo as unknown as Prisma.JsonObject)
+          : undefined,
         lastLoginAt: new Date(),
         fcmToken: payload.fcmToken,
       },
     });
 
-    // 📧 otpVerificationEmail — login এ email unverified হলে OTP পাঠাও
+    // 📧 otpVerificationEmail — login email
     const html = otpVerificationEmail(otp, userData.fullName);
     await emailSender(payload.email, html, '🔐 OTP Verification — SmartHome');
 
@@ -88,7 +90,9 @@ const loginWithOtpFromDB = async (
         clientInfo: clientInfo
           ? (clientInfo as unknown as Prisma.JsonObject)
           : undefined,
-        ipInfo: ipInfo ? (ipInfo as unknown as Prisma.JsonObject) : undefined,
+        trackInfo: trackInfo
+          ? (trackInfo as unknown as Prisma.JsonObject)
+          : undefined,
         fcmToken: payload.fcmToken,
         lastLoginAt: new Date(),
       },
@@ -115,7 +119,6 @@ const loginWithOtpFromDB = async (
       config.jwt.refresh_expires_in as SignOptions['expiresIn'],
     );
 
-
     return {
       message: 'User logged in successfully',
       id: userData.id,
@@ -135,7 +138,7 @@ const loginWithOtpFromDB = async (
 const registerWithOtpIntoDB = async (
   payload: User,
   clientInfo: IClientInfo | null | undefined,
-  ipInfo: IIPInfo | null | undefined,
+  trackInfo: IPWhoInfo | null | undefined,
 ) => {
   const hashedPassword = await bcrypt.hash(payload.password, 12);
 
@@ -166,7 +169,9 @@ const registerWithOtpIntoDB = async (
       clientInfo: clientInfo
         ? (clientInfo as unknown as Prisma.JsonObject)
         : undefined,
-      ipInfo: ipInfo ? (ipInfo as unknown as Prisma.JsonObject) : undefined,
+      trackInfo: trackInfo
+        ? (trackInfo as unknown as Prisma.JsonObject)
+        : undefined,
     },
   });
 

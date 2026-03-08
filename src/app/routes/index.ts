@@ -8,6 +8,7 @@ import { userRoutes } from '../modules/user/user.routes';
 import { analyticsrouter } from '../modules/user/analytics/analytics.routes';
 import { authRouters } from '../modules/auth/auth.routes';
 import { inventoryRoutes } from "../modules/inventory/inventory.routes";
+import { memoryRoutes } from "../modules/memory/memory.routes";
 
 const router = express.Router();
 
@@ -50,6 +51,12 @@ const moduleRoutes = [
     path: "/inventors",
     route: inventoryRoutes,
   },
+
+  {
+    path: "/memory",
+    route: memoryRoutes,
+  },
+
 ];
 
 moduleRoutes.forEach(route => router.use(route.path, route.route));
