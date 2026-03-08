@@ -136,7 +136,44 @@ const getFeedList = async (
     take: limit,
     where: whereConditions,
     orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
-    select: feedSelect,
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      description: true,
+      type: true,
+      status: true,
+      priority: true,
+      tags: true,
+      isLocked: true,
+      viewCount: true,
+      createdAt: true,
+      files: true,
+      _count: {
+        select: {
+          reactions: true,
+          comments: true,
+        },
+      },
+      createdBy: {
+        select: { id: true, fullName: true, email: true, image: true },
+      },
+      assignments: {
+        where: { isActive: true },
+        select: {
+          id: true,
+          note: true,
+          assignedAt: true,
+          isActive: true,
+          moderator: {
+            select: { id: true, fullName: true, email: true, image: true },
+          },
+          assignedByUser: {
+            select: { id: true, fullName: true, image: true },
+          },
+        },
+      },
+    },
   });
 
   const formatted = result.map(feed => ({
@@ -239,7 +276,44 @@ const getMyFeed = async (
     take: limit,
     where: whereConditions,
     orderBy: { createdAt: 'desc' },
-    select: feedSelect,
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      description: true,
+      type: true,
+      status: true,
+      priority: true,
+      tags: true,
+      isLocked: true,
+      viewCount: true,
+      createdAt: true,
+      files: true,
+      _count: {
+        select: {
+          reactions: true,
+          comments: true,
+        },
+      },
+      createdBy: {
+        select: { id: true, fullName: true, email: true, image: true },
+      },
+      assignments: {
+        where: { isActive: true },
+        select: {
+          id: true,
+          note: true,
+          assignedAt: true,
+          isActive: true,
+          moderator: {
+            select: { id: true, fullName: true, email: true, image: true },
+          },
+          assignedByUser: {
+            select: { id: true, fullName: true, image: true },
+          },
+        },
+      },
+    },
   });
 
   const formatted = result.map(feed => ({

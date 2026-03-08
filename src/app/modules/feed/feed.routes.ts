@@ -66,6 +66,7 @@ router.get('/:id/assignments', auth(), feedController.getFeedAssignments);
 router.post(
   '/:id/comments',
   auth(),
+  fileFields,
   validateRequest(feedValidation.commentSchema),
   feedController.createComment,
 );
