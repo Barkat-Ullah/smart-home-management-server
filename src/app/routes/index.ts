@@ -9,6 +9,7 @@ import { analyticsrouter } from '../modules/user/analytics/analytics.routes';
 import { authRouters } from '../modules/auth/auth.routes';
 import { inventoryRoutes } from "../modules/inventory/inventory.routes";
 import { memoryRoutes } from "../modules/memory/memory.routes";
+import { feedRoutes } from "../modules/feed/feed.routes";
 
 const router = express.Router();
 
@@ -57,6 +58,10 @@ const moduleRoutes = [
     route: memoryRoutes,
   },
 
+  {
+    path: "/feeds",
+    route: feedRoutes,
+  },
 ];
 
 moduleRoutes.forEach(route => router.use(route.path, route.route));

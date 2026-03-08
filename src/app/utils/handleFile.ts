@@ -41,7 +41,7 @@ export const handleFileUploads = async (
       const file = files.files[0];
       const ext = file.originalname.split('.').pop()?.toLowerCase();
       let fileType: 'image' | 'video' | 'pdf' = 'pdf';
-      if (['jpg', 'jpeg', 'png', 'webp','heic'].includes(ext || ''))
+      if (['jpg', 'jpeg', 'png', 'webp', 'heic'].includes(ext || ''))
         fileType = 'image';
       else if (['mp4', 'mov', 'avi', 'webm'].includes(ext || ''))
         fileType = 'video';

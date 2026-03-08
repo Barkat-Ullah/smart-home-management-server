@@ -27,39 +27,28 @@ enum FeedPriority {
     Critical
 }
 
-enum ReactionType {
-    Like
-    Helpful
-    Heart
-    Thumbsdown
-}
-
 // ─────────────────────────────────────────────
 // FEED (Main Post)
 // ─────────────────────────────────────────────
 
 model Feed {
-    id          String       @id @default(auto()) @map("_id") @db.ObjectId
-    userId      String       @db.ObjectId
-    title       String
-    description String
-    type        FeedType     @default(Other)
-    status      FeedStatus   @default(Open)
-    priority    FeedPriority @default(Low)
-    tags        String[] // e.g. ["payment", "login", "bug"]
-    attachments String[]
-
-    isDeleted Boolean @default(false)
-    isPinned  Boolean @default(false)
-    isLocked  Boolean @default(false)
-
-    viewCount Int @default(0)
-
-    createdAt  DateTime  @default(now())
-    updatedAt  DateTime  @updatedAt
-    resolvedAt DateTime?
-    closedAt   DateTime?
-
+    id            String              @id @default(auto()) @map("_id") @db.ObjectId
+    userId        String              @db.ObjectId
+    title         String
+    description   String
+    type          FeedType            @default(Other)
+    status        FeedStatus          @default(Open)
+    priority      FeedPriority        @default(Low)
+    tags          String[] // e.g. ["payment", "login", "bug"]
+    files         String[]
+    isDeleted     Boolean             @default(false)
+    isPinned      Boolean             @default(false)
+    isLocked      Boolean             @default(false)
+    viewCount     Int                 @default(0)
+    createdAt     DateTime            @default(now())
+    updatedAt     DateTime            @updatedAt
+    resolvedAt    DateTime?
+    closedAt      DateTime?
     // Relations
     createdBy     User                @relation("UserFeeds", fields: [userId], references: [id])
     assignments   FeedAssignment[]
@@ -125,12 +114,11 @@ model FeedComment {
 // ─────────────────────────────────────────────
 
 model FeedReaction {
-    id     String       @id @default(auto()) @map("_id") @db.ObjectId
-    feedId String       @db.ObjectId
-    userId String       @db.ObjectId
-    type   ReactionType
-
-    createdAt DateTime @default(now())
+    id         String   @id @default(auto()) @map("_id") @db.ObjectId
+    feedId     String   @db.ObjectId
+    userId     String   @db.ObjectId
+    isFavorite Boolean  @default(false)
+    createdAt  DateTime @default(now())
 
     feed Feed @relation(fields: [feedId], references: [id])
     user User @relation("UserFeedReactions", fields: [userId], references: [id])
