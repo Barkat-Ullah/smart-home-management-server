@@ -24,6 +24,9 @@ const feedFilterableFields = [
   'status',
   'type',
   'priority',
+  'isDeleted',
+  'isPinned',
+  'isLocked',
 ];
 
 const getFeedList = catchAsync(async (req: Request, res: Response) => {
@@ -122,6 +125,122 @@ const deleteFeed = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ── Assignment ────────────────────────────────────────
+
+const assignModerator = catchAsync(async (req: Request, res: Response) => {
+  const result = await feedService.assignModerator(req);
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Moderator assigned successfully',
+    data: result,
+  });
+});
+
+const removeModerator = catchAsync(async (req: Request, res: Response) => {
+  const result = await feedService.removeModerator(req);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Moderator removed successfully',
+    data: result,
+  });
+});
+
+const getFeedAssignments = catchAsync(async (req: Request, res: Response) => {
+  const result = await feedService.getFeedAssignments(req.params.id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Assignments retrieved successfully',
+    data: result,
+  });
+});
+
+// ── Comments ──────────────────────────────────────────
+
+const createComment = catchAsync(async (req: Request, res: Response) => {
+  const result = await feedService.createComment(req);
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Comment created successfully',
+    data: result,
+  });
+});
+
+const getFeedComments = catchAsync(async (req: Request, res: Response) => {
+  const options = pick(req.query, ['limit', 'page']);
+  const result = await feedService.getFeedComments(req.params.id, options);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Comments retrieved successfully',
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
+const updateComment = catchAsync(async (req: Request, res: Response) => {
+  const result = await feedService.updateComment(req);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Comment updated successfully',
+    data: result,
+  });
+});
+
+const deleteComment = catchAsync(async (req: Request, res: Response) => {
+  const result = await feedService.deleteComment(req);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Comment deleted successfully',
+    data: result,
+  });
+});
+
+const markCommentAsSolution = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await feedService.markCommentAsSolution(req);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Comment marked as solution',
+      data: result,
+    });
+  },
+);
+
+// ── Reactions ─────────────────────────────────────────
+
+const toggleReaction = catchAsync(async (req: Request, res: Response) => {
+  const result = await feedService.createReactionOnFeed(
+    req.user.id,
+    req.params.id,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: result.isFavorite
+      ? 'Added to favorites'
+      : 'Removed from favorites',
+    data: result,
+  });
+});
+// ── Status History ────────────────────────────────────
+
+const getFeedStatusHistory = catchAsync(async (req: Request, res: Response) => {
+  const result = await feedService.getFeedStatusHistory(req.params.id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Status history retrieved successfully',
+    data: result,
+  });
+});
+
 export const feedController = {
   createFeed,
   getFeedList,
@@ -129,8 +248,18 @@ export const feedController = {
   getMyFeed,
   updateFeed,
   changeFeedStatus,
-  toggleLockFeed,
   togglePinFeed,
+  toggleLockFeed,
   softDeleteFeed,
   deleteFeed,
+  assignModerator,
+  removeModerator,
+  getFeedAssignments,
+  createComment,
+  getFeedComments,
+  updateComment,
+  deleteComment,
+  markCommentAsSolution,
+  toggleReaction,
+  getFeedStatusHistory,
 };

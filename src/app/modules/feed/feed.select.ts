@@ -1,13 +1,5 @@
 import { Prisma } from '@prisma/client';
 
-/**
- * ✏️  MANUALLY EDITABLE SELECT
- *
- * • Scalar fields  → set to `true` (included) or `false` / remove line (excluded)
- * • Relation fields → uncomment and customize the nested select as needed
- *
- * This file is generated ONCE. The generator will never overwrite it.
- */
 export const feedSelect = {
   id: true,
   userId: true,
@@ -25,10 +17,80 @@ export const feedSelect = {
   updatedAt: true,
   resolvedAt: true,
   closedAt: true,
-  files: true, // ← NEW
-  createdBy: { select: { id: true, fullName: true, email: true, image: true } }, // ← uncomment to include relation
-  // assignments: { select: { id: true } }, // ← uncomment to include relation
-  // comments: { select: { id: true } }, // ← uncomment to include relation
-  // reactions: { select: { id: true } }, // ← uncomment to include relation
-  // statusHistory: { select: { id: true } }, // ← uncomment to include relation
+  files: true,
+  _count: {
+    select: {
+      reactions: true,
+      comments: true,
+    },
+  },
+  createdBy: {
+    select: { id: true, fullName: true, email: true, image: true },
+  },
+  reactions: {
+    select: {
+      id: true,
+      isFavorite: true,
+      user: {
+        select: { id: true, fullName: true, image: true },
+      },
+    },
+  },
+  comments: {
+    where: { isDeleted: false, parentId: null },
+    orderBy: { createdAt: 'asc' as const },
+    select: {
+      id: true,
+      content: true,
+      isEdited: true,
+      isSolution: true,
+      attachments: true,
+      createdAt: true,
+      author: {
+        select: { id: true, fullName: true, image: true },
+      },
+      replies: {
+        where: { isDeleted: false },
+        orderBy: { createdAt: 'asc' as const },
+        select: {
+          id: true,
+          content: true,
+          isEdited: true,
+          attachments: true,
+          createdAt: true,
+          author: {
+            select: { id: true, fullName: true, email: true, image: true },
+          },
+        },
+      },
+    },
+  },
+  assignments: {
+    where: { isActive: true },
+    select: {
+      id: true,
+      note: true,
+      assignedAt: true,
+      isActive: true,
+      moderator: {
+        select: { id: true, fullName: true, email: true, image: true },
+      },
+      assignedByUser: {
+        select: { id: true, fullName: true },
+      },
+    },
+  },
+  statusHistory: {
+    orderBy: { createdAt: 'desc' as const },
+    select: {
+      id: true,
+      fromStatus: true,
+      toStatus: true,
+      note: true,
+      createdAt: true,
+      changedByUser: {
+        select: { id: true, fullName: true, image: true },
+      },
+    },
+  },
 } satisfies Prisma.FeedSelect;

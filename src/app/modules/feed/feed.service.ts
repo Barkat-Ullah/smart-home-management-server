@@ -67,6 +67,9 @@ type IFeedFilterRequest = {
   status?: string;
   type?: string;
   priority?: string;
+  isDeleted?: string;
+  isPinned?: string;
+  isLocked?: string;
 };
 
 const getFeedList = async (
@@ -122,21 +125,7 @@ const getFeedList = async (
     take: limit,
     where: whereConditions,
     orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      type: true,
-      status: true,
-      priority: true,
-      tags: true,
-      viewCount: true,
-      createdAt: true,
-      files: true,
-      createdBy: {
-        select: { id: true, fullName: true, email: true, image: true },
-      },
-    },
+    select: feedSelect,
   });
 
   const total = await prisma.feed.count({ where: whereConditions });
@@ -257,7 +246,6 @@ const updateFeed = async (req: Request) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Feed not found');
   }
 
-
   if (existingFeed.isLocked) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
@@ -267,9 +255,7 @@ const updateFeed = async (req: Request) => {
 
   const updatedData = {
     ...data,
-    files: uploaded.length
-      ? [...uploaded]
-      : existingFeed.files,
+    files: uploaded.length ? [...uploaded] : existingFeed.files,
   };
 
   const result = await prisma.feed.update({
@@ -377,7 +363,272 @@ const deleteFeed = async (id: string) => {
   return { message: 'Feed deleted successfully' };
 };
 
+// -------------------------------------------------------
+// reaction on feed Feed
+// -------------------------------------------------------
+
+const createReactionOnFeed = async (userId: string, feedId: string) => {
+  const feed = await prisma.feed.findUnique({
+    where: {
+      id: feedId,
+    },
+  });
+
+  if (!feed) {
+    throw new ApiError(404, 'Article not found');
+  }
+  const existingFavorite = await prisma.feedReaction.findFirst({
+    where: {
+      userId,
+      feedId,
+    },
+  });
+
+  if (existingFavorite) {
+    await prisma.feedReaction.delete({
+      where: { id: existingFavorite.id },
+    });
+    return {
+      feedId,
+      isFavorite: false,
+      data: {
+        id: existingFavorite.id,
+        userId: existingFavorite.userId,
+        feedId: existingFavorite.feedId,
+        isFavorite: false,
+        createdAt: existingFavorite.createdAt,
+        updatedAt: new Date(),
+      },
+    };
+  } else {
+    const newFavorite = await prisma.feedReaction.create({
+      data: {
+        userId,
+        feedId,
+        isFavorite: true,
+      },
+    });
+
+    return {
+      feedId,
+      isFavorite: true,
+      data: newFavorite,
+    };
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+// ASSIGNMENT
+// ═══════════════════════════════════════════════════════
+
+const assignModerator = async (req: Request) => {
+  const { id: feedId } = req.params;
+  const { moderatorId, note } = req.body;
+  const assignedBy = req.user.id;
+
+  const feed = await prisma.feed.findUnique({ where: { id: feedId } });
+  if (!feed) throw new ApiError(httpStatus.NOT_FOUND, 'Feed not found');
+
+  // deactivate existing active assignment for same moderator
+  await prisma.feedAssignment.updateMany({
+    where: { feedId, moderatorId, isActive: true },
+    data: { isActive: false, removedAt: new Date() },
+  });
+
+  const result = await prisma.feedAssignment.create({
+    data: { feedId, moderatorId, assignedBy, note, isActive: true },
+    include: {
+      moderator: { select: { id: true, fullName: true, image: true } },
+      assignedByUser: { select: { id: true, fullName: true } },
+    },
+  });
+
+  // auto move status to UnderReview
+  await prisma.feed.update({
+    where: { id: feedId },
+    data: { status: 'UnderReview' },
+  });
+
+  return result;
+};
+
+const removeModerator = async (req: Request) => {
+  const { id: feedId, moderatorId } = req.params;
+
+  const assignment = await prisma.feedAssignment.findFirst({
+    where: { feedId, moderatorId, isActive: true },
+  });
+  if (!assignment)
+    throw new ApiError(httpStatus.NOT_FOUND, 'Active assignment not found');
+
+  const result = await prisma.feedAssignment.update({
+    where: { id: assignment.id },
+    data: { isActive: false, removedAt: new Date() },
+  });
+  return result;
+};
+
+const getFeedAssignments = async (feedId: string) => {
+  return prisma.feedAssignment.findMany({
+    where: { feedId },
+    orderBy: { assignedAt: 'desc' },
+    include: {
+      moderator: { select: { id: true, fullName: true, image: true } },
+      assignedByUser: { select: { id: true, fullName: true } },
+    },
+  });
+};
+
+// ═══════════════════════════════════════════════════════
+// COMMENTS
+// ═══════════════════════════════════════════════════════
+
+const createComment = async (req: Request) => {
+  const { id: feedId } = req.params;
+  const { content, parentId, attachments } = req.body;
+  const userId = req.user.id;
+
+  const feed = await prisma.feed.findUnique({ where: { id: feedId } });
+  if (!feed) throw new ApiError(httpStatus.NOT_FOUND, 'Feed not found');
+  if ((feed as any).isLocked)
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Feed is locked — comments disabled',
+    );
+
+  if (parentId) {
+    const parentComment = await prisma.feedComment.findUnique({
+      where: { id: parentId },
+    });
+    if (!parentComment)
+      throw new ApiError(httpStatus.NOT_FOUND, 'Parent comment not found');
+  }
+
+  const result = await prisma.feedComment.create({
+    data: {
+      feedId,
+      userId,
+      content,
+      parentId: parentId || null,
+      attachments: attachments || [],
+    },
+    include: {
+      author: { select: { id: true, fullName: true, image: true } },
+      replies: {
+        where: { isDeleted: false },
+        include: {
+          author: { select: { id: true, fullName: true, image: true } },
+        },
+      },
+    },
+  });
+  return result;
+};
+
+const getFeedComments = async (feedId: string, options: IPaginationOptions) => {
+  const { page, limit, skip } = paginationHelper.calculatePagination(options);
+
+  const result = await prisma.feedComment.findMany({
+    skip,
+    take: limit,
+    where: { feedId, parentId: null, isDeleted: false }, // top-level only
+    orderBy: { createdAt: 'asc' },
+    include: {
+      author: { select: { id: true, fullName: true, image: true } },
+      replies: {
+        where: { isDeleted: false },
+        orderBy: { createdAt: 'asc' },
+        include: {
+          author: { select: { id: true, fullName: true, image: true } },
+        },
+      },
+    },
+  });
+
+  const total = await prisma.feedComment.count({
+    where: { feedId, parentId: null, isDeleted: false },
+  });
+  return { meta: { total, page, limit }, data: result };
+};
+
+const updateComment = async (req: Request) => {
+  const { commentId } = req.params;
+  const { content } = req.body;
+  const userId = req.user.id;
+
+  const comment = await prisma.feedComment.findUnique({
+    where: { id: commentId },
+  });
+  if (!comment) throw new ApiError(httpStatus.NOT_FOUND, 'Comment not found');
+  if ((comment as any).userId !== userId)
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'You can only edit your own comments',
+    );
+
+  return prisma.feedComment.update({
+    where: { id: commentId },
+    data: { content, isEdited: true },
+    include: { author: { select: { id: true, fullName: true, image: true } } },
+  });
+};
+
+const deleteComment = async (req: Request) => {
+  const { commentId } = req.params;
+  const userId = req.user.id;
+
+  const comment = await prisma.feedComment.findUnique({
+    where: { id: commentId },
+  });
+  if (!comment) throw new ApiError(httpStatus.NOT_FOUND, 'Comment not found');
+  if ((comment as any).userId !== userId)
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'You can only delete your own comments',
+    );
+
+  return prisma.feedComment.update({
+    where: { id: commentId },
+    data: { isDeleted: true },
+  });
+};
+
+const markCommentAsSolution = async (req: Request) => {
+  const { id: feedId, commentId } = req.params;
+  const userId = req.user.id;
+
+  const feed = await prisma.feed.findUnique({ where: { id: feedId } });
+  if (!feed) throw new ApiError(httpStatus.NOT_FOUND, 'Feed not found');
+  if ((feed as any).userId !== userId)
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Only the feed owner can mark a solution',
+    );
+
+  // unmark existing solution
+  await prisma.feedComment.updateMany({
+    where: { feedId, isSolution: true },
+    data: { isSolution: false },
+  });
+
+  return prisma.feedComment.update({
+    where: { id: commentId },
+    data: { isSolution: true },
+  });
+};
+
+const getFeedStatusHistory = async (feedId: string) => {
+  return prisma.feedStatusHistory.findMany({
+    where: { feedId },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      changedByUser: { select: { id: true, fullName: true, image: true } },
+    },
+  });
+};
+
 export const feedService = {
+  //feed
   createFeed,
   getFeedList,
   getFeedById,
@@ -388,4 +639,18 @@ export const feedService = {
   toggleLockFeed,
   togglePinFeed,
   changeFeedStatus,
+  //reaction
+  createReactionOnFeed,
+  // assignment
+  assignModerator,
+  removeModerator,
+  getFeedAssignments,
+  // comments
+  createComment,
+  getFeedComments,
+  updateComment,
+  deleteComment,
+  markCommentAsSolution,
+  //history
+  getFeedStatusHistory,
 };
