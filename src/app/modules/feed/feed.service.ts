@@ -120,6 +120,17 @@ const getFeedList = async (
 
   const whereConditions: Prisma.FeedWhereInput = { AND: andConditions };
 
+  const favoriteFeed = await prisma.feedReaction.findMany({
+    where: {
+      userId,
+    },
+    select: {
+      feedId: true,
+    },
+  });
+
+  const favorFeedIds = new Set(favoriteFeed.map(f => f.feedId));
+
   const result = await prisma.feed.findMany({
     skip,
     take: limit,
@@ -128,14 +139,19 @@ const getFeedList = async (
     select: feedSelect,
   });
 
+  const formatted = result.map(feed => ({
+    ...feed,
+    isFavorite: favorFeedIds.has(feed.id),
+  }));
+
   const total = await prisma.feed.count({ where: whereConditions });
-  return { meta: { total, page, limit }, data: result };
+  return { meta: { total, page, limit }, data: formatted };
 };
 
 // -------------------------------------------------------
 // get Feed by id (increments viewCount)
 // -------------------------------------------------------
-const getFeedById = async (id: string) => {
+const getFeedById = async (userId: string, id: string) => {
   const result = await prisma.feed.findUnique({
     where: { id },
     select: feedSelect,
@@ -144,13 +160,27 @@ const getFeedById = async (id: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Feed not found');
   }
 
+  const favoriteFeed = await prisma.feedReaction.findMany({
+    where: {
+      userId,
+    },
+    select: {
+      feedId: true,
+    },
+  });
+
+  const favorFeedIds = new Set(favoriteFeed.map(f => f.feedId));
+
   // increment view count
   await prisma.feed.update({
     where: { id },
     data: { viewCount: { increment: 1 } },
   });
 
-  return result;
+  return {
+    ...result,
+    isFavorite: favorFeedIds.has(result.id),
+  };
 };
 
 // -------------------------------------------------------
@@ -191,6 +221,17 @@ const getMyFeed = async (
     andConditions.push(...buildFilterConditions(filterData));
   }
 
+  const favoriteFeed = await prisma.feedReaction.findMany({
+    where: {
+      userId,
+    },
+    select: {
+      feedId: true,
+    },
+  });
+
+  const favorFeedIds = new Set(favoriteFeed.map(f => f.feedId));
+
   const whereConditions: Prisma.FeedWhereInput = { AND: andConditions };
 
   const result = await prisma.feed.findMany({
@@ -201,8 +242,13 @@ const getMyFeed = async (
     select: feedSelect,
   });
 
+  const formatted = result.map(feed => ({
+    ...feed,
+    isFavorite: favorFeedIds.has(feed.id),
+  }));
+
   const total = await prisma.feed.count({ where: whereConditions });
-  return { meta: { total, page, limit }, data: result };
+  return { meta: { total, page, limit }, data: formatted };
 };
 
 // -------------------------------------------------------
@@ -363,60 +409,6 @@ const deleteFeed = async (id: string) => {
   return { message: 'Feed deleted successfully' };
 };
 
-// -------------------------------------------------------
-// reaction on feed Feed
-// -------------------------------------------------------
-
-const createReactionOnFeed = async (userId: string, feedId: string) => {
-  const feed = await prisma.feed.findUnique({
-    where: {
-      id: feedId,
-    },
-  });
-
-  if (!feed) {
-    throw new ApiError(404, 'Article not found');
-  }
-  const existingFavorite = await prisma.feedReaction.findFirst({
-    where: {
-      userId,
-      feedId,
-    },
-  });
-
-  if (existingFavorite) {
-    await prisma.feedReaction.delete({
-      where: { id: existingFavorite.id },
-    });
-    return {
-      feedId,
-      isFavorite: false,
-      data: {
-        id: existingFavorite.id,
-        userId: existingFavorite.userId,
-        feedId: existingFavorite.feedId,
-        isFavorite: false,
-        createdAt: existingFavorite.createdAt,
-        updatedAt: new Date(),
-      },
-    };
-  } else {
-    const newFavorite = await prisma.feedReaction.create({
-      data: {
-        userId,
-        feedId,
-        isFavorite: true,
-      },
-    });
-
-    return {
-      feedId,
-      isFavorite: true,
-      data: newFavorite,
-    };
-  }
-};
-
 // ═══════════════════════════════════════════════════════
 // ASSIGNMENT
 // ═══════════════════════════════════════════════════════
@@ -479,14 +471,102 @@ const getFeedAssignments = async (feedId: string) => {
   });
 };
 
+// -------------------------------------------------------
+// reaction on feed Feed
+// -------------------------------------------------------
+
+const createReactionOnFeed = async (userId: string, feedId: string) => {
+  const feed = await prisma.feed.findUnique({
+    where: {
+      id: feedId,
+    },
+  });
+
+  if (!feed) {
+    throw new ApiError(404, 'Article not found');
+  }
+  const existingFavorite = await prisma.feedReaction.findFirst({
+    where: {
+      userId,
+      feedId,
+    },
+  });
+
+  if (existingFavorite) {
+    await prisma.feedReaction.delete({
+      where: { id: existingFavorite.id },
+    });
+    return {
+      feedId,
+      isFavorite: false,
+      data: {
+        id: existingFavorite.id,
+        userId: existingFavorite.userId,
+        feedId: existingFavorite.feedId,
+        isFavorite: false,
+        createdAt: existingFavorite.createdAt,
+        updatedAt: new Date(),
+      },
+    };
+  } else {
+    const newFavorite = await prisma.feedReaction.create({
+      data: {
+        userId,
+        feedId,
+        isFavorite: true,
+      },
+    });
+
+    return {
+      feedId,
+      isFavorite: true,
+      data: newFavorite,
+    };
+  }
+};
+
 // ═══════════════════════════════════════════════════════
 // COMMENTS
 // ═══════════════════════════════════════════════════════
 
 const createComment = async (req: Request) => {
   const { id: feedId } = req.params;
-  const { content, parentId, attachments } = req.body;
+  const { content, parentId } = req.body;
   const userId = req.user.id;
+
+  const files = req.files as
+    | { [fieldname: string]: Express.Multer.File[] }
+    | undefined;
+
+  const uploaded: string[] = [];
+
+  if (files?.files) {
+    for (const file of files.files) {
+      const ext = file.originalname.split('.').pop()?.toLowerCase();
+
+      let fileType: 'image' | 'video' | 'pdf' = 'pdf';
+
+      if (['jpg', 'jpeg', 'png', 'webp', 'heic'].includes(ext || ''))
+        fileType = 'image';
+      else if (['mp4', 'mov', 'avi', 'webm'].includes(ext || ''))
+        fileType = 'video';
+
+      const upload = await fileUploader.uploadToCloudinaryWithType(
+        file,
+        fileType,
+      );
+
+      uploaded.push(upload.Location);
+    }
+  }
+
+  const existingFeed = await prisma.feed.findUnique({
+    where: { id: feedId },
+  });
+
+  if (!existingFeed) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Feed not found');
+  }
 
   const feed = await prisma.feed.findUnique({ where: { id: feedId } });
   if (!feed) throw new ApiError(httpStatus.NOT_FOUND, 'Feed not found');
@@ -510,7 +590,7 @@ const createComment = async (req: Request) => {
       userId,
       content,
       parentId: parentId || null,
-      attachments: attachments || [],
+      attachments: uploaded.length ? [...uploaded] : existingFeed.files,
     },
     include: {
       author: { select: { id: true, fullName: true, image: true } },

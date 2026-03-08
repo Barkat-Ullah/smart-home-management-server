@@ -27,15 +27,6 @@ export const feedSelect = {
   createdBy: {
     select: { id: true, fullName: true, email: true, image: true },
   },
-  reactions: {
-    select: {
-      id: true,
-      isFavorite: true,
-      user: {
-        select: { id: true, fullName: true, image: true },
-      },
-    },
-  },
   comments: {
     where: { isDeleted: false, parentId: null },
     orderBy: { createdAt: 'asc' as const },
