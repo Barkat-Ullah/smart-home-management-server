@@ -67,7 +67,6 @@ model WeeklyMealPlan {
     endDate    DateTime // Sunday of the week
     status     WeeklyPlanStatus @default(Active)
     notes      String?
-
     isDeleted   Boolean   @default(false)
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt

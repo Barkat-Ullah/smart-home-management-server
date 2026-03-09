@@ -12,6 +12,8 @@ import { memoryRoutes } from "../modules/memory/memory.routes";
 import { feedRoutes } from "../modules/feed/feed.routes";
 import { familyMemberRoutes } from "../modules/familyMember/familyMember.routes";
 import { childRoutes } from "../modules/child/child.routes";
+import { eventRoutes } from "../modules/event/event.routes";
+
 
 const router = express.Router();
 
@@ -73,6 +75,10 @@ const moduleRoutes = [
   {
     path: "/child",
     route: childRoutes,
+  },
+  {
+    path: "/events",
+    route: eventRoutes,
   },
 ];
 

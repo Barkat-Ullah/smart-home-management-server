@@ -50,19 +50,19 @@ model Event {
     userId          String        @db.ObjectId
     title           String
     description     String?
-    location        String? // physical or online location
-    meetingLink     String? // for virtual events
+    location        String?
+    meetingLink     String?
     category        EventCategory
     type            EventType
     priority        EventPriority @default(Medium)
     status          EventStatus   @default(Upcoming)
     eventDate       DateTime
-    eventTime       String? // stored as "HH:mm" e.g. "09:30"
+    eventTime       String?
     // Reminder
-    reminderMinutes Int? // remind X minutes before e.g. 30, 60
+    reminderMinutes Int?
     isReminderSent  Boolean       @default(false)
-    files           String[] // attachment URLs
-    notes           String? // internal notes
+    files           String?
+    notes           String?
     isDeleted       Boolean       @default(false)
     createdAt       DateTime      @default(now())
     updatedAt       DateTime      @updatedAt

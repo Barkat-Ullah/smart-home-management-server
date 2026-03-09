@@ -62,17 +62,17 @@ const createUser = async (req: Request) => {
     select: { fullName: true },
   });
 
-await emailSender(
-  data.email,
-  welcomeEmailTemplate({
-    fullName: data.fullName,
-    email: data.email,
-    password: userPass,
-    role: targetRole,
-    createdByName: creator?.fullName || 'Admin',
-  }),
-  `Welcome to Smart Home — Your ${targetRole} Account`,
-);
+  await emailSender(
+    data.email,
+    welcomeEmailTemplate({
+      fullName: data.fullName,
+      email: data.email,
+      password: userPass,
+      role: targetRole,
+      createdByName: creator?.fullName || 'Admin',
+    }),
+    `Welcome to Smart Home — Your ${targetRole} Account`,
+  );
 
   return result;
 };
