@@ -7,7 +7,7 @@ import { prisma } from '../utils/prisma';
 
 interface ExtendedWebSocket extends WebSocket {
   userId?: string;
-  role?: 'USER';
+  role?: 'USER' | 'ADMIN' | 'MODERATOR' | 'CAREGIVER';
 }
 
 export const onlineUsers = new Set<string>();

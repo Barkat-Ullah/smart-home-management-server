@@ -20,5 +20,5 @@ export const memorySelect = {
   updatedAt: true,
   // sharedWith: { select: { id: true, } }, // ← uncomment to include relation
   createdBy: { select: { id: true, fullName: true, image: true } }, // ← uncomment to include relation
-  relatedTo: { select: { id: true, fullName: true, image: true } }, // ← uncomment to include relation
+  relatedTo: { select: { id: true, fullName: true, files: true } }, // ← uncomment to include relation
 } satisfies Prisma.MemorySelect;

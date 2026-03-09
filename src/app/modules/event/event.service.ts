@@ -229,12 +229,7 @@ const toggleStatusEvent = async (req: Request) => {
   if (!existingEvent) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Event not found');
   }
-  if ((existingEvent as any).isDeleted) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      'Cannot toggle status of a deleted event',
-    );
-  }
+
 
   const currentStatus = (existingEvent as any).status as EventStatus;
 
@@ -257,7 +252,6 @@ const toggleStatusEvent = async (req: Request) => {
     statusTimestamps.completedAt = new Date();
   }
   if (currentStatus === EventStatus.Completed) {
-    // cycling back from Completed → clear timestamp
     statusTimestamps.completedAt = null;
   }
 
