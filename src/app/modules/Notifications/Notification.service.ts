@@ -19,13 +19,9 @@ const subscribe: RequestHandler = (req, res, _next) => {
 
   addSSEClient(userId, res);
 
-  const heartbeat = setInterval(() => {
-    res.write(`: ping\n\n`);
-  }, 30000);
-
   req.on('close', () => {
-    clearInterval(heartbeat);
-    removeSSEClient(userId);
+    removeSSEClient(userId, res);
+    console.log(`SSE disconnected: ${userId}`);
   });
 };
 type SendNotificationParams = {

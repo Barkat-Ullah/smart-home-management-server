@@ -2,7 +2,7 @@ import { NotifyType } from '@prisma/client';
 import ApiError from '../errors/AppError';
 import { prisma } from '../utils/prisma';
 import admin from 'firebase-admin';
-import { sendSSEToUser, sendSSEToUsers } from './sse';
+import { sendSSEToUser } from './sse';
 
 interface CreateNotificationParams {
   receiverId: string;
