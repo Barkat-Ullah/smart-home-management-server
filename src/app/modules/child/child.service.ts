@@ -1,0 +1,251 @@
+import httpStatus from 'http-status';
+import { Prisma } from '@prisma/client';
+import prisma from '../../utils/prisma';
+import { IPaginationOptions } from '../../interface/pagination.type';
+import { paginationHelper } from '../../utils/calculatePagination';
+import ApiError from '../../errors/AppError';
+import { Request } from 'express';
+import { handleFileUploads } from '../../utils/handleFile';
+import { childSelect } from './child.select';
+import { buildFilterConditions } from './child.utils';
+import { fileUploader } from '../../utils/fileUploader';
+
+// -------------------------------------------------------
+// create Child
+// -------------------------------------------------------
+const createChild = async (req: Request) => {
+  const userId = req.user.id;
+  const data = req.body;
+  const files = req.files as
+    | { [fieldname: string]: Express.Multer.File[] }
+    | undefined;
+
+  const uploadedFiles = await handleFileUploads(files);
+  const addedData = { ...data, ...uploadedFiles, userId };
+  const result = await prisma.child.create({
+    data: addedData,
+    select: childSelect,
+  });
+  return result;
+};
+
+// -------------------------------------------------------
+// get all Child
+// -------------------------------------------------------
+type IChildFilterRequest = {
+  searchTerm?: string;
+  id?: string;
+  createdAt?: string;
+  status?: string;
+};
+
+const childSearchAbleFields = ['fullName', 'email'];
+
+const getChildList = async (
+  options: IPaginationOptions,
+  filters: IChildFilterRequest,
+) => {
+  const { page, limit, skip } = paginationHelper.calculatePagination(options);
+  const { searchTerm, ...filterData } = filters;
+
+  const andConditions: Prisma.ChildWhereInput[] = [];
+
+  if (searchTerm) {
+    andConditions.push({
+      OR: childSearchAbleFields.map(field => ({
+        [field]: { contains: searchTerm, mode: 'insensitive' },
+      })),
+    });
+  }
+
+  if (Object.keys(filterData).length) {
+    andConditions.push(...buildFilterConditions(filterData));
+  }
+
+  const whereConditions: Prisma.ChildWhereInput =
+    andConditions.length > 0 ? { AND: andConditions } : {};
+
+  const result = await prisma.child.findMany({
+    skip,
+    take: limit,
+    where: whereConditions,
+    orderBy: { createdAt: 'desc' },
+    select: childSelect,
+  });
+
+  const total = await prisma.child.count({ where: whereConditions });
+
+  return { meta: { total, page, limit }, data: result };
+};
+
+// -------------------------------------------------------
+// get Child by id
+// -------------------------------------------------------
+const getChildById = async (id: string) => {
+  const result = await prisma.child.findUnique({
+    where: { id },
+    select: childSelect,
+  });
+  if (!result) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Child not found');
+  }
+  return result;
+};
+
+// -------------------------------------------------------
+// get my Child
+// -------------------------------------------------------
+const getMyChild = async (
+  req: Request,
+  options: IPaginationOptions,
+  filters: IChildFilterRequest,
+) => {
+  const userId = req.user.id;
+  const { page, limit, skip } = paginationHelper.calculatePagination(options);
+  const { searchTerm, ...filterData } = filters;
+
+  const andConditions: Prisma.ChildWhereInput[] = [
+    { userId },
+    { isDeleted: false },
+  ];
+
+  if (searchTerm) {
+    andConditions.push({
+      OR: childSearchAbleFields.map(field => ({
+        [field]: { contains: searchTerm, mode: 'insensitive' },
+      })),
+    });
+  }
+
+  if (Object.keys(filterData).length) {
+    andConditions.push(...buildFilterConditions(filterData));
+  }
+
+  const whereConditions: Prisma.ChildWhereInput = { AND: andConditions };
+
+  const result = await prisma.child.findMany({
+    skip,
+    take: limit,
+    where: whereConditions,
+    orderBy: { createdAt: 'desc' },
+    select: childSelect,
+  });
+
+  const total = await prisma.child.count({ where: whereConditions });
+
+  return { meta: { total, page, limit }, data: result };
+};
+
+// -------------------------------------------------------
+// update Child
+// -------------------------------------------------------
+const updateChild = async (req: Request) => {
+  const { id } = req.params;
+  const data = req.body;
+  const uploaded: string[] = [];
+
+  const files = req.files as
+    | { [fieldname: string]: Express.Multer.File[] }
+    | undefined;
+
+  if (files?.files) {
+    for (const file of files.files) {
+      const ext = file.originalname.split('.').pop()?.toLowerCase();
+
+      let fileType: 'image' | 'video' | 'pdf' = 'pdf';
+
+      if (['jpg', 'jpeg', 'png', 'webp', 'heic'].includes(ext || ''))
+        fileType = 'image';
+      else if (['mp4', 'mov', 'avi', 'webm'].includes(ext || ''))
+        fileType = 'video';
+
+      const upload = await fileUploader.uploadToCloudinaryWithType(
+        file,
+        fileType,
+      );
+
+      uploaded.push(upload.Location);
+    }
+  }
+
+  const existingChild = await prisma.child.findUnique({ where: { id } });
+  if (!existingChild) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Child not found');
+  }
+  const updateData = {
+    ...data,
+    files: uploaded.length ? [...uploaded] : existingChild.files,
+  };
+
+  const result = await prisma.child.update({
+    where: { id },
+    data: updateData,
+    select: childSelect,
+  });
+
+  return result;
+};
+
+// -------------------------------------------------------
+// toggle status Child
+// -------------------------------------------------------
+const toggleStatusChild = async (id: string) => {
+  const existingChild = await prisma.child.findUnique({ where: { id } });
+  if (!existingChild) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Child not found');
+  }
+
+  // TODO: define your status enum toggle logic below
+  // Example for enum: { ACTIVE -> INACTIVE, INACTIVE -> ACTIVE }
+  const currentStatus = (existingChild as any).status;
+  // // const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+  // const result = await prisma.child.update({
+  //   where: { id },
+  //   data: { status: currentStatus /* replace with newStatus */ },
+  //   select: childSelect,
+  // });
+
+  return null;
+};
+
+// -------------------------------------------------------
+// soft delete Child
+// -------------------------------------------------------
+const softDeleteChild = async (id: string) => {
+  const existingChild = await prisma.child.findUnique({ where: { id } });
+  if (!existingChild) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Child not found');
+  }
+  if ((existingChild as any).isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Child is already deleted');
+  }
+  const result = await prisma.child.update({
+    where: { id },
+    data: { isDeleted: true },
+    select: childSelect,
+  });
+  return result;
+};
+
+// -------------------------------------------------------
+// hard delete Child
+// -------------------------------------------------------
+const deleteChild = async (id: string) => {
+  const existingChild = await prisma.child.findUnique({ where: { id } });
+  if (!existingChild) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Child not found');
+  }
+  const result = await prisma.child.delete({ where: { id } });
+  return result;
+};
+
+export const childService = {
+  createChild,
+  getChildList,
+  getChildById,
+  getMyChild,
+  updateChild,
+  toggleStatusChild,
+  softDeleteChild,
+  deleteChild,
+};

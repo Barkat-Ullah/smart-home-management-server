@@ -855,3 +855,114 @@ export const generateAdminCustomEmail = (
 </body>
 </html>`;
 };
+
+export const welcomeEmailTemplate = ({
+  fullName,
+  email,
+  password,
+  role,
+  createdByName,
+}: {
+  fullName: string;
+  email: string;
+  password: string;
+  role: string;
+  createdByName: string;
+}) =>
+  baseWrapper(`
+    <!-- ── BADGE BAR ── -->
+    <tr>
+      <td class="badge-bar" style="background:rgba(0,212,255,0.07);border-left:1px solid #1e2d3d;border-right:1px solid #1e2d3d;padding:12px 40px;border-bottom:1px solid rgba(0,212,255,0.15);">
+        <p style="margin:0;font-size:11px;color:#00d4ff;text-transform:uppercase;letter-spacing:2px;font-weight:600;">
+          👤&nbsp;&nbsp;New Account Created — ${role}
+        </p>
+      </td>
+    </tr>
+
+    <!-- ── BODY ── -->
+    <tr>
+      <td class="email-body" style="background:#111927;padding:36px 40px;border-left:1px solid #1e2d3d;border-right:1px solid #1e2d3d;">
+
+        <p style="margin:0 0 4px;font-size:13px;color:#4a7a8a;">Welcome,</p>
+        <h2 class="greeting-name" style="margin:0 0 24px;font-size:22px;color:#e8f4f8;font-weight:700;">
+          ${fullName} 👋
+        </h2>
+
+        <div style="height:1px;background:linear-gradient(90deg,#00d4ff60,transparent);margin-bottom:24px;"></div>
+
+        <p class="email-para" style="margin:0 0 20px;font-size:14px;color:#7a9bae;line-height:1.75;">
+          <strong style="color:#e8f4f8;">${createdByName}</strong> has added you as a
+          <strong style="color:#00d4ff;">${role}</strong> on the SmartHome platform.
+          Your account is ready — use the credentials below to log in and get started.
+        </p>
+
+        <!-- Credentials Box -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0"
+          style="background:#0d1824;border-radius:10px;margin-bottom:24px;overflow:hidden;">
+          <tr>
+            <td colspan="2" style="background:rgba(0,212,255,0.08);padding:12px 20px;border-bottom:1px solid #1e2d3d;">
+              <p style="margin:0;font-size:10px;color:#4a7a8a;text-transform:uppercase;letter-spacing:2px;font-weight:700;">
+                🔐 Your Login Credentials
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td class="info-label" style="padding:14px 20px;border-bottom:1px solid #1e2d3d;font-size:12px;color:#4a7a8a;text-transform:uppercase;letter-spacing:1px;width:100px;vertical-align:middle;">
+              📧 Email
+            </td>
+            <td class="info-value" style="padding:14px 20px;border-bottom:1px solid #1e2d3d;font-size:14px;color:#00d4ff;font-weight:700;word-break:break-word;vertical-align:middle;">
+              ${email}
+            </td>
+          </tr>
+          <tr>
+            <td class="info-label" style="padding:14px 20px;font-size:12px;color:#4a7a8a;text-transform:uppercase;letter-spacing:1px;width:100px;vertical-align:middle;">
+              🔑 Password
+            </td>
+            <td class="info-value" style="padding:14px 20px;font-size:14px;color:#00d4ff;font-weight:700;font-family:'Courier New',monospace;vertical-align:middle;">
+              ${password}
+            </td>
+          </tr>
+        </table>
+
+        <!-- Warning -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+          <tr>
+            <td style="background:#0d1824;border-radius:10px;padding:16px 20px;border-left:3px solid #f59e0b;">
+              <p style="margin:0;font-size:13px;color:#5a8a9a;line-height:1.65;">
+                ⚠️&nbsp;
+                <strong style="color:#f59e0b;">Security Notice:</strong>
+                <span style="color:#8ab4c4;">Please change your password immediately after your first login to keep your account secure.</span>
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <!-- CTA -->
+        <div style="text-align:center;margin:0 0 28px;">
+          <a class="cta-btn" href="${process.env.FRONTEND_URL}/login"
+            style="background:linear-gradient(135deg,#00d4ff,#0099bb);color:#0b0f1a;text-decoration:none;font-weight:700;padding:13px 34px;border-radius:8px;font-size:14px;display:inline-block;letter-spacing:0.3px;">
+            Login to SmartHome →
+          </a>
+        </div>
+
+        <div style="height:1px;background:linear-gradient(90deg,transparent,#1e2d3d,transparent);margin-bottom:24px;"></div>
+
+        <!-- Sent by -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="vertical-align:middle;">
+              <span style="font-size:18px;vertical-align:middle;margin-right:8px;">👤</span>
+              <span style="font-size:13px;color:#5a8a9a;vertical-align:middle;">Added by&nbsp;</span>
+              <span style="font-size:13px;color:#00d4ff;font-weight:600;vertical-align:middle;">${createdByName}</span>
+            </td>
+            <td style="text-align:right;vertical-align:middle;">
+              <span style="font-size:11px;color:#2a4a5a;background:#0d1520;padding:4px 12px;border-radius:20px;border:1px solid #5a8a9a;">
+                SmartHome Platform
+              </span>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  `);

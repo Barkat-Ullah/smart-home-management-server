@@ -28,7 +28,7 @@ model Child {
     emergencyContact  String? // phone number or relation
     medicineRoutine   Json? // recurring medicine schedule (flexible)
     // Additional useful fields
-    image             String? // cloud storage URL
+    files             String? // cloud storage URL
     about             String? // short bio / special notes
     schoolName        String?
     classGrade        String? // "Class 5" or "Grade 3"

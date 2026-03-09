@@ -4,24 +4,23 @@ import validateRequest from '../../middlewares/validateRequest';
 import { userController } from './user.controller';
 import { userValidation } from './user.validation';
 import { fileUploader } from '../../utils/fileUploader';
+import { UserRoleEnum } from '@prisma/client';
 
 const router = express.Router();
 
 router.post(
   '/',
-  auth(),
-  fileUploader.upload.fields([
-    { name: 'image', maxCount: 1 },
-    { name: 'video', maxCount: 1 },
-    { name: 'pdf', maxCount: 1 },
-    { name: 'files', maxCount: 1 },
-  ]),
+  auth(UserRoleEnum.ADMIN,UserRoleEnum.USER),
   validateRequest(userValidation.createSchema),
   userController.createUser,
 );
 
-
 router.get('/', auth(), userController.getUserList);
+router.get(
+  '/create-user',
+  auth(UserRoleEnum.ADMIN, UserRoleEnum.USER),
+  userController.fetchCareGiver,
+);
 router.get('/my', auth(), userController.getMyProfile);
 router.get('/:id', auth(), userController.getUserById);
 

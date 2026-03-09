@@ -11,24 +11,111 @@ import ApiError from '../../errors/AppError';
 import {
   generateAdminCustomEmail,
   IAdminMailPayload,
+  welcomeEmailTemplate,
 } from '../../utils/allmailformat';
+import bcrypt from 'bcrypt';
 
 // -------------------------------------------------------
 // create User
 // -------------------------------------------------------
-const createUser = async (req: Request) => {
-  const userId = req.user.id;
-  const data = req.body;
-  const files = req.files as
-    | { [fieldname: string]: Express.Multer.File[] }
-    | undefined;
 
-  const uploadedFiles = await handleFileUploads(files);
-  const addedData = { ...data, ...uploadedFiles, userId };
+const canCreateRole: Record<string, UserRoleEnum[]> = {
+  [UserRoleEnum.ADMIN]: [UserRoleEnum.MODERATOR, UserRoleEnum.CAREGIVER],
+  [UserRoleEnum.USER]: [UserRoleEnum.CAREGIVER],
+};
+
+const createUser = async (req: Request) => {
+  const creatorId = req.user.id;
+  const creatorRole = req.user.role as UserRoleEnum;
+  const data = req.body;
+  const targetRole = data.role as UserRoleEnum;
+
+  // permission check
+  const allowed = canCreateRole[creatorRole] || [];
+  if (!allowed.includes(targetRole)) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      `${creatorRole} cannot create a ${targetRole}`,
+    );
+  }
+
+  // email unique check
+  const existing = await prisma.user.findUnique({
+    where: { email: data.email },
+  });
+  if (existing)
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already exists');
+
+  // password generate
+  const userPass = data.password;
+
+  const hashedPassword = await bcrypt.hash(userPass, 12);
+
   const result = await prisma.user.create({
-    data: addedData,
+    data: { ...data, createdById: creatorId, password: hashedPassword },
     select: userSelect,
   });
+
+  // creator info
+  const creator = await prisma.user.findUnique({
+    where: { id: creatorId },
+    select: { fullName: true },
+  });
+
+await emailSender(
+  data.email,
+  welcomeEmailTemplate({
+    fullName: data.fullName,
+    email: data.email,
+    password: userPass,
+    role: targetRole,
+    createdByName: creator?.fullName || 'Admin',
+  }),
+  `Welcome to Smart Home — Your ${targetRole} Account`,
+);
+
+  return result;
+};
+
+// -------------------------------------------------------
+// User care giver
+// -------------------------------------------------------
+
+const getMyCareGiver = async (req: Request) => {
+  const userId = req.user.id;
+  const userRole = req.user.role as UserRoleEnum;
+
+  const roleFilter: UserRoleEnum[] =
+    userRole === UserRoleEnum.ADMIN
+      ? [UserRoleEnum.MODERATOR, UserRoleEnum.CAREGIVER]
+      : [UserRoleEnum.CAREGIVER];
+
+  const result = await prisma.user.findMany({
+    where: {
+      createdById: userId,
+      role: { in: roleFilter },
+      isDeleted: false,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      phoneNumber: true,
+      role: true,
+      status: true,
+      describe: true,
+      city: true,
+      address: true,
+      image: true,
+      bloodGroup: true,
+      gender: true,
+      allergies: true,
+      plan: true,
+      lastLoginAt: true,
+      createdAt: true,
+    },
+  });
+
   return result;
 };
 
@@ -84,66 +171,66 @@ const getUserList = async (
     });
   }
 
-if (Object.keys(filterData).length) {
-  Object.keys(filterData).forEach(key => {
-    const value = (filterData as any)[key];
-    if (value === '' || value === null || value === undefined) return;
+  if (Object.keys(filterData).length) {
+    Object.keys(filterData).forEach(key => {
+      const value = (filterData as any)[key];
+      if (value === '' || value === null || value === undefined) return;
 
-    // --- Date filter ---
-    if (key === 'createdAt') {
-      const parts = (value as string).split('-');
-      if (parts.length === 2) {
-        const year = parseInt(parts[0]);
-        const month = parseInt(parts[1]) - 1;
-        andConditions.push({
-          createdAt: {
-            gte: new Date(year, month, 1, 0, 0, 0, 0),
-            lte: new Date(year, month + 1, 0, 23, 59, 59, 999),
-          },
-        });
-      } else {
-        const start = new Date(value);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(value);
-        end.setHours(23, 59, 59, 999);
-        andConditions.push({ createdAt: { gte: start, lte: end } });
+      // --- Date filter ---
+      if (key === 'createdAt') {
+        const parts = (value as string).split('-');
+        if (parts.length === 2) {
+          const year = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          andConditions.push({
+            createdAt: {
+              gte: new Date(year, month, 1, 0, 0, 0, 0),
+              lte: new Date(year, month + 1, 0, 23, 59, 59, 999),
+            },
+          });
+        } else {
+          const start = new Date(value);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(value);
+          end.setHours(23, 59, 59, 999);
+          andConditions.push({ createdAt: { gte: start, lte: end } });
+        }
+        return;
       }
-      return;
-    }
 
-    // --- Enum array filters ---
-    if (['status', 'role', 'plan', 'gender'].includes(key)) {
-      andConditions.push({
-        [key]: { in: Array.isArray(value) ? value : [value] },
-      });
-      return;
-    }
+      // --- Enum array filters ---
+      if (['status', 'role', 'plan', 'gender'].includes(key)) {
+        andConditions.push({
+          [key]: { in: Array.isArray(value) ? value : [value] },
+        });
+        return;
+      }
 
-    // --- Boolean filters ---
-    if (['isEmailVerified', 'isOnline', 'isDeleted'].includes(key)) {
-      andConditions.push({ [key]: value === 'true' });
-      return;
-    }
+      // --- Boolean filters ---
+      if (['isEmailVerified', 'isOnline', 'isDeleted'].includes(key)) {
+        andConditions.push({ [key]: value === 'true' });
+        return;
+      }
 
-    // --- clientInfo JSON filters ---
-    if (['device', 'browser', 'os'].includes(key)) {
-      andConditions.push({
-        clientInfo: { string_contains: value },
-      } as any);
-      return;
-    }
+      // --- clientInfo JSON filters ---
+      if (['device', 'browser', 'os'].includes(key)) {
+        andConditions.push({
+          clientInfo: { string_contains: value },
+        } as any);
+        return;
+      }
 
-    // --- ipInfo JSON filters ---
-    if (['country', 'region', 'city', 'timezone', 'isp'].includes(key)) {
-      andConditions.push({
-        ipInfo: { string_contains: value },
-      } as any);
-      return;
-    }
+      // --- ipInfo JSON filters ---
+      if (['country', 'region', 'city', 'timezone', 'isp'].includes(key)) {
+        andConditions.push({
+          ipInfo: { string_contains: value },
+        } as any);
+        return;
+      }
 
-    andConditions.push({ [key]: value });
-  });
-}
+      andConditions.push({ [key]: value });
+    });
+  }
 
   const whereConditions: Prisma.UserWhereInput =
     andConditions.length > 0 ? { AND: andConditions } : {};
@@ -415,6 +502,7 @@ const sendMailToAllUsersFromDB = async (payload: IBulkMailPayload) => {
 
 export const userService = {
   createUser,
+  getMyCareGiver,
   getUserList,
   getUserById,
   getMyUser,

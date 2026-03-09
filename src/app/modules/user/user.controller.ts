@@ -15,6 +15,15 @@ const createUser = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const fetchCareGiver = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.getMyCareGiver(req);
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'User created successfully',
+    data: result,
+  });
+});
 
 // get all User
 const userFilterableFields = [
@@ -124,6 +133,7 @@ const deleteUser = catchAsync(async (req: Request, res: Response) => {
 
 export const userController = {
   createUser,
+  fetchCareGiver,
   getUserList,
   getUserById,
   getMyProfile,
