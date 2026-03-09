@@ -216,48 +216,66 @@ const updateEvent = async (req: Request) => {
 // -------------------------------------------------------
 // toggle status Event
 // -------------------------------------------------------
-const STATUS_CYCLE: EventStatus[] = [
-  EventStatus.Upcoming,
-  EventStatus.Ongoing,
-  EventStatus.Completed,
-];
 
 const toggleStatusEvent = async (req: Request) => {
   const { id } = req.params;
-  // const { status } = req.body;
+  const { status } = req.body;
+
   const existingEvent = await prisma.event.findUnique({ where: { id } });
   if (!existingEvent) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Event not found');
   }
-
-
-  const currentStatus = (existingEvent as any).status as EventStatus;
-
-  // Prevent toggling out of terminal states via this endpoint
-  if (
-    currentStatus === EventStatus.Cancelled ||
-    currentStatus === EventStatus.Postponed
-  ) {
+  if ((existingEvent as any).isDeleted) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      `Cannot cycle status from "${currentStatus}". Use the update endpoint instead.`,
+      'Cannot toggle status of a deleted event',
     );
   }
 
-  const currentIndex = STATUS_CYCLE.indexOf(currentStatus);
-  const nextStatus = STATUS_CYCLE[(currentIndex + 1) % STATUS_CYCLE.length];
+  // Validate the incoming status is a valid EventStatus
+  const validStatuses = Object.values(EventStatus);
+  if (!validStatuses.includes(status)) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Invalid status. Valid values: ${validStatuses.join(', ')}`,
+    );
+  }
+
+  const currentStatus = (existingEvent as any).status as EventStatus;
+  const newStatus = status as EventStatus;
 
   const statusTimestamps: Record<string, Date | null> = {};
-  if (nextStatus === EventStatus.Completed) {
+
+  if (
+    newStatus === EventStatus.Completed &&
+    currentStatus !== EventStatus.Completed
+  ) {
     statusTimestamps.completedAt = new Date();
   }
-  if (currentStatus === EventStatus.Completed) {
+  if (
+    newStatus === EventStatus.Cancelled &&
+    currentStatus !== EventStatus.Cancelled
+  ) {
+    statusTimestamps.cancelledAt = new Date();
+  }
+
+  // Clear timestamps if reverting
+  if (
+    newStatus !== EventStatus.Completed &&
+    currentStatus === EventStatus.Completed
+  ) {
     statusTimestamps.completedAt = null;
+  }
+  if (
+    newStatus !== EventStatus.Cancelled &&
+    currentStatus === EventStatus.Cancelled
+  ) {
+    statusTimestamps.cancelledAt = null;
   }
 
   const result = await prisma.event.update({
     where: { id },
-    data: { status: nextStatus, ...statusTimestamps },
+    data: { status: newStatus, ...statusTimestamps },
     select: eventSelect,
   });
 

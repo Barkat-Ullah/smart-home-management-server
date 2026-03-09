@@ -37,7 +37,7 @@ const loginWithOtpFromDB = async (
   clientInfo: IClientInfo | null | undefined,
   trackInfo: IPWhoInfo | null | undefined,
 ) => {
-  console.log({trackInfo})
+
   const userData = await insecurePrisma.user.findUnique({
     where: { email: payload.email },
   });

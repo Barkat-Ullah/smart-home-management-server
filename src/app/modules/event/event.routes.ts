@@ -40,7 +40,7 @@ router.put(
   eventController.updateEvent,
 );
 
-router.patch('/toggle-status/:id', auth(), eventController.toggleStatusEvent);
+router.patch('/status/:id', auth(), eventController.toggleStatusEvent);
 
 // ─── Delete / Restore ─────────────────────────────────
 router.delete('/soft-delete/:id', auth(), eventController.softDeleteEvent);
