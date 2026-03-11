@@ -13,6 +13,7 @@ import { feedRoutes } from "../modules/feed/feed.routes";
 import { familyMemberRoutes } from "../modules/familyMember/familyMember.routes";
 import { childRoutes } from "../modules/child/child.routes";
 import { eventRoutes } from "../modules/event/event.routes";
+import { financialRoutes } from '../modules/financial/financial.routes';
 
 
 const router = express.Router();
@@ -53,32 +54,36 @@ const moduleRoutes = [
   },
 
   {
-    path: "/inventors",
+    path: '/inventors',
     route: inventoryRoutes,
   },
 
   {
-    path: "/memory",
+    path: '/memory',
     route: memoryRoutes,
   },
 
   {
-    path: "/feeds",
+    path: '/feeds',
     route: feedRoutes,
   },
 
   {
-    path: "/family-members",
+    path: '/family-members',
     route: familyMemberRoutes,
   },
 
   {
-    path: "/child",
+    path: '/child',
     route: childRoutes,
   },
   {
-    path: "/events",
+    path: '/events',
     route: eventRoutes,
+  },
+  {
+    path: '/financial',
+    route: financialRoutes,
   },
 ];
 
