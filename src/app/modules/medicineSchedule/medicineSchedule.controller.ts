@@ -11,6 +11,7 @@ const scheduleFilterableFields = [
   'status',
   'medicineForm',
   'frequencyType',
+  'mealTiming',
   'prescriptionId',
   'createdAt',
 ];
@@ -176,7 +177,6 @@ const deleteMedicineSchedule = catchAsync(
   async (req: Request, res: Response) => {
     const result = await medicineScheduleService.deleteMedicineSchedule(
       req.params.id,
-      req.user.id,
     );
     sendResponse(res, {
       statusCode: httpStatus.OK,

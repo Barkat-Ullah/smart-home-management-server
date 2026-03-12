@@ -88,6 +88,7 @@ type IScheduleFilterRequest = {
   status?: string;
   medicineForm?: string;
   frequencyType?: string;
+  mealTiming?: string;
   prescriptionId?: string;
   createdAt?: string;
 };
@@ -293,7 +294,7 @@ const updateScheduleStatus = async (
 // -------------------------------------------------------
 // soft delete MedicineSchedule
 // -------------------------------------------------------
-const deleteMedicineSchedule = async (id: string, userId: string) => {
+const deleteMedicineSchedule = async (id: string) => {
   const existing = await prisma.medicineSchedule.findFirst({
     where: { id, isDeleted: false },
   });
@@ -301,9 +302,6 @@ const deleteMedicineSchedule = async (id: string, userId: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Medicine schedule not found');
   }
 
-  if (existing.userId !== userId) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
-  }
 
   const result = await prisma.medicineSchedule.update({
     where: { id },
