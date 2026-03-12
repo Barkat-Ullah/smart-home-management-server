@@ -126,7 +126,7 @@ const getFinancialProfileById = async (id: string) => {
       ...financialProfileSelect,
       transactions: { where: { isDeleted: false }, select: transactionSelect },
       budgets: { select: budgetSelect },
-      goals: { where: { isDeleted: false }, select: financialGoalSelect },
+      // goals: { where: { isDeleted: false }, select: financialGoalSelect },
     },
   });
   if (!result)
@@ -398,11 +398,11 @@ const updateTransaction = async (req: Request) => {
   const existing = await prisma.transaction.findUnique({ where: { id } });
   if (!existing)
     throw new ApiError(httpStatus.NOT_FOUND, 'Transaction not found');
-//   if ((existing as any).isDeleted)
-//     throw new ApiError(
-//       httpStatus.BAD_REQUEST,
-//       'Cannot update a deleted transaction',
-//     );
+  //   if ((existing as any).isDeleted)
+  //     throw new ApiError(
+  //       httpStatus.BAD_REQUEST,
+  //       'Cannot update a deleted transaction',
+  //     );
 
   const uploadedFiles = await handleFileUploads(files);
 
@@ -626,7 +626,7 @@ const createFinancialGoal = async (req: Request) => {
 
   const result = await prisma.financialGoal.create({
     data: {
-      userId, 
+      userId,
       title: data.title,
       targetAmount: data.targetAmount,
       savedAmount: data.savedAmount ?? 0,
@@ -735,8 +735,8 @@ const updateFinancialGoal = async (req: Request) => {
   const existing = await prisma.financialGoal.findUnique({ where: { id } });
   if (!existing)
     throw new ApiError(httpStatus.NOT_FOUND, 'Financial goal not found');
-//   if ((existing as any).isDeleted)
-//     throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot update a deleted goal');
+  //   if ((existing as any).isDeleted)
+  //     throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot update a deleted goal');
 
   const targetAmount = data.targetAmount ?? (existing as any).targetAmount;
   const savedAmount = data.savedAmount ?? (existing as any).savedAmount;
@@ -801,38 +801,38 @@ const getMySnapshot = async (req: Request) => {
   let startDate: Date;
   let endDate: Date;
 
-if (period === 'Weekly') {
-  const day = now.getUTCDay();
-  startDate = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() - day,
-      0,
-      0,
-      0,
-      0,
-    ),
-  );
-  endDate = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() - day + 6,
-      23,
-      59,
-      59,
-      999,
-    ),
-  );
-} else if (period === 'Yearly') {
-  startDate = new Date(Date.UTC(y, 0, 1, 0, 0, 0, 0));
-  endDate = new Date(Date.UTC(y, 11, 31, 23, 59, 59, 999));
-} else {
-  // Monthly
-  startDate = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0, 0));
-  endDate = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
-}
+  if (period === 'Weekly') {
+    const day = now.getUTCDay();
+    startDate = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() - day,
+        0,
+        0,
+        0,
+        0,
+      ),
+    );
+    endDate = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() - day + 6,
+        23,
+        59,
+        59,
+        999,
+      ),
+    );
+  } else if (period === 'Yearly') {
+    startDate = new Date(Date.UTC(y, 0, 1, 0, 0, 0, 0));
+    endDate = new Date(Date.UTC(y, 11, 31, 23, 59, 59, 999));
+  } else {
+    // Monthly
+    startDate = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0, 0));
+    endDate = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+  }
   // Aggregate transactions in range
   const transactions = await prisma.transaction.findMany({
     where: {

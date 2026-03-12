@@ -7,14 +7,17 @@ import { paymentRoutes } from '../modules/payment/payment.routes';
 import { userRoutes } from '../modules/user/user.routes';
 import { analyticsrouter } from '../modules/user/analytics/analytics.routes';
 import { authRouters } from '../modules/auth/auth.routes';
-import { inventoryRoutes } from "../modules/inventory/inventory.routes";
-import { memoryRoutes } from "../modules/memory/memory.routes";
-import { feedRoutes } from "../modules/feed/feed.routes";
-import { familyMemberRoutes } from "../modules/familyMember/familyMember.routes";
-import { childRoutes } from "../modules/child/child.routes";
-import { eventRoutes } from "../modules/event/event.routes";
+import { inventoryRoutes } from '../modules/inventory/inventory.routes';
+import { memoryRoutes } from '../modules/memory/memory.routes';
+import { feedRoutes } from '../modules/feed/feed.routes';
+import { familyMemberRoutes } from '../modules/familyMember/familyMember.routes';
+import { childRoutes } from '../modules/child/child.routes';
+import { eventRoutes } from '../modules/event/event.routes';
 import { financialRoutes } from '../modules/financial/financial.routes';
-
+import { prescriptionRoutes } from '../modules/prescription/prescription.routes';
+import { reminderRoutes } from '../modules/medicineReminder/medicineReminder.routes';
+import { doseLogRoutes } from '../modules/doseLog/doseLog.routes';
+import { medicineScheduleRoutes } from '../modules/medicineSchedule/medicineSchedule.routes';
 
 const router = express.Router();
 
@@ -23,7 +26,6 @@ const moduleRoutes = [
     path: '/auth',
     route: authRouters,
   },
-
   {
     path: '/users',
     route: userRoutes,
@@ -52,27 +54,22 @@ const moduleRoutes = [
     path: '/payments',
     route: paymentRoutes,
   },
-
   {
     path: '/inventors',
     route: inventoryRoutes,
   },
-
   {
     path: '/memory',
     route: memoryRoutes,
   },
-
   {
     path: '/feeds',
     route: feedRoutes,
   },
-
   {
     path: '/family-members',
     route: familyMemberRoutes,
   },
-
   {
     path: '/child',
     route: childRoutes,
@@ -85,6 +82,13 @@ const moduleRoutes = [
     path: '/financial',
     route: financialRoutes,
   },
+  {
+    path: '/prescriptions',
+    route: prescriptionRoutes,
+  },
+  { path: '/schedules', route: medicineScheduleRoutes },
+  { path: '/doses', route: doseLogRoutes },
+  { path: '/reminders', route: reminderRoutes },
 ];
 
 moduleRoutes.forEach(route => router.use(route.path, route.route));
