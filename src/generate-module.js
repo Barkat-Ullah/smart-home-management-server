@@ -451,15 +451,16 @@ const get${Capitalized}List = async (
   const whereConditions: Prisma.${Capitalized}WhereInput =
     andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const result = await prisma.${moduleName}.findMany({
-    skip,
-    take: limit,
-    where: whereConditions,
-    orderBy: { createdAt: 'desc' },
-    select: ${moduleName}Select,
-  });
-
-  const total = await prisma.${moduleName}.count({ where: whereConditions });
+  const [result, total] = await Promise.all([
+      prisma.${moduleName}.findMany({
+      skip,
+      take: limit,
+      where: whereConditions,
+      orderBy: { createdAt: 'desc' },
+      select: ${moduleName}Select,
+    }),
+    prisma.${moduleName}.count({ where: whereConditions }),
+  ]);
 
   return { meta: { total, page, limit }, data: result };
 };
@@ -507,15 +508,16 @@ const getMy${Capitalized} = async (
 
   const whereConditions: Prisma.${Capitalized}WhereInput = { AND: andConditions };
 
-  const result = await prisma.${moduleName}.findMany({
-    skip,
-    take: limit,
-    where: whereConditions,
-    orderBy: { createdAt: 'desc' },
-    select: ${moduleName}Select,
-  });
-
-  const total = await prisma.${moduleName}.count({ where: whereConditions });
+  const [result, total] = await Promise.all([
+      prisma.${moduleName}.findMany({
+      skip,
+      take: limit,
+      where: whereConditions,
+      orderBy: { createdAt: 'desc' },
+      select: ${moduleName}Select,
+    }),
+    prisma.${moduleName}.count({ where: whereConditions }),
+  ]);
 
   return { meta: { total, page, limit }, data: result };
 };
@@ -526,6 +528,11 @@ const getMy${Capitalized} = async (
 const update${Capitalized} = async (req: Request) => {
   const { id } = req.params;
   const data = req.body;
+  const files = req.files as
+    | { [fieldname: string]: Express.Multer.File[] }
+    | undefined;
+
+  const uploadedFiles = await handleFileUploads(files);
 
   const existing${Capitalized} = await prisma.${moduleName}.findUnique({ where: { id } });
   if (!existing${Capitalized}) {

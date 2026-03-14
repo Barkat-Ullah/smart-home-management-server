@@ -18,6 +18,7 @@ import { prescriptionRoutes } from '../modules/prescription/prescription.routes'
 import { reminderRoutes } from '../modules/medicineReminder/medicineReminder.routes';
 import { doseLogRoutes } from '../modules/doseLog/doseLog.routes';
 import { medicineScheduleRoutes } from '../modules/medicineSchedule/medicineSchedule.routes';
+import { mealRoutes } from '../modules/meal/meal.routes';
 
 const router = express.Router();
 
@@ -89,6 +90,10 @@ const moduleRoutes = [
   { path: '/schedules', route: medicineScheduleRoutes },
   { path: '/doses', route: doseLogRoutes },
   { path: '/reminders', route: reminderRoutes },
+  {
+    path: '/meals',
+    route: mealRoutes,
+  },
 ];
 
 moduleRoutes.forEach(route => router.use(route.path, route.route));
