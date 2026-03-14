@@ -113,7 +113,7 @@ const getMyMeals = async (
       skip,
       take: limit,
       where: whereConditions,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
       select: mealSelect,
     }),
     prisma.meal.count({ where: whereConditions }),
@@ -127,7 +127,7 @@ const getMyMeals = async (
 // -------------------------------------------------------
 const getMealById = async (id: string) => {
   const result = await prisma.meal.findFirst({
-    where: { id, isDeleted: false },
+    where: { id },
     select: mealSelect,
   });
 
@@ -152,7 +152,7 @@ const updateMeal = async (req: Request) => {
   const uploadedFiles = await handleFileUploads(files);
 
   const existing = await prisma.meal.findFirst({
-    where: { id, isDeleted: false },
+    where: { id },
   });
   if (!existing) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Meal not found');
