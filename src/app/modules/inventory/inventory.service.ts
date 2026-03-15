@@ -7,6 +7,12 @@ import ApiError from '../../errors/AppError';
 import { Request } from 'express';
 import { handleFileUploads } from '../../utils/handleFile';
 import { inventorySelect } from './inventory.select';
+import {
+  toUTCEndOfDay,
+  toUTCEndOfMonth,
+  toUTCStartOfDay,
+  toUTCStartOfMonth,
+} from '../event/event.utils';
 
 // -------------------------------------------------------
 // create Inventory
@@ -57,23 +63,26 @@ const getInventoryList = async (
       const value = (filterData as any)[key];
       if (value === '' || value === null || value === undefined) return;
 
-      if (key === 'createdAt' && value) {
+      if (key === 'createdAt') {
         const parts = (value as string).split('-');
+
         if (parts.length === 2) {
+          // Format: "YYYY-MM" →
           const year = parseInt(parts[0]);
           const month = parseInt(parts[1]) - 1;
-          const start = new Date(year, month, 1, 0, 0, 0, 0);
-          const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
           andConditions.push({
-            createdAt: { gte: start.toISOString(), lte: end.toISOString() },
+            createdAt: {
+              gte: toUTCStartOfMonth(year, month),
+              lte: toUTCEndOfMonth(year, month),
+            },
           });
-        } else {
-          const start = new Date(value);
-          start.setHours(0, 0, 0, 0);
-          const end = new Date(value);
-          end.setHours(23, 59, 59, 999);
+        } else if (parts.length === 3) {
+          // Format: "YYYY-MM-DD" →
           andConditions.push({
-            createdAt: { gte: start.toISOString(), lte: end.toISOString() },
+            createdAt: {
+              gte: toUTCStartOfDay(value),
+              lte: toUTCEndOfDay(value),
+            },
           });
         }
         return;

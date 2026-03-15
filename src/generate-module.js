@@ -626,6 +626,7 @@ export const ${moduleName}Service = {
     // ── utils ──────────────────────────────────────────────────
     utils: `
 import { Prisma } from '@prisma/client';
+import { toUTCEndOfDay, toUTCEndOfMonth, toUTCStartOfDay, toUTCStartOfMonth } from '../../utils/utcDate';
 
 export const buildFilterConditions = (
   filterData: Record<string, any>,
@@ -638,21 +639,24 @@ export const buildFilterConditions = (
 
     if (key === 'createdAt') {
       const parts = (value as string).split('-');
+
       if (parts.length === 2) {
+        // Format: "YYYY-MM" →
         const year = parseInt(parts[0]);
         const month = parseInt(parts[1]) - 1;
-        const start = new Date(year, month, 1, 0, 0, 0, 0);
-        const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
         conditions.push({
-          createdAt: { gte: start.toISOString(), lte: end.toISOString() },
+          createdAt: {
+            gte: toUTCStartOfMonth(year, month),
+            lte: toUTCEndOfMonth(year, month),
+          },
         });
-      } else {
-        const start = new Date(value);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(value);
-        end.setHours(23, 59, 59, 999);
+      } else if (parts.length === 3) {
+        // Format: "YYYY-MM-DD" →
         conditions.push({
-          createdAt: { gte: start.toISOString(), lte: end.toISOString() },
+          createdAt: {
+            gte: toUTCStartOfDay(value),
+            lte: toUTCEndOfDay(value),
+          },
         });
       }
       return;
@@ -662,6 +666,11 @@ export const buildFilterConditions = (
       conditions.push({
         [key]: { in: Array.isArray(value) ? value : [value] },
       });
+      return;
+    }
+
+    if (['isDeleted'].includes(key)) {
+       conditions.push({ [key]: value === 'true' });
       return;
     }
 
@@ -679,6 +688,7 @@ export const buildFilterConditions = (
 `.trim(),
 
     // ── routes ──────────────────────────────────────────────────
+    // ── routes ──────────────────────────────────────────────────
     routes: `
 import express from 'express';
 import auth from '../../middlewares/auth';
@@ -688,16 +698,17 @@ import { ${moduleName}Validation } from './${moduleName}.validation';
 import { fileUploader } from '../../utils/fileUploader';
 
 const router = express.Router();
-
-router.post(
-  '/',
-  auth(),
-  fileUploader.upload.fields([
+const fileUpload = fileUploader.upload.fields([
     { name: 'image', maxCount: 1 },
     { name: 'video', maxCount: 1 },
     { name: 'pdf', maxCount: 1 },
     { name: 'files', maxCount: 1 },
-  ]),
+  ]);
+
+router.post(
+  '/',
+  auth(),
+  fileUpload,
   validateRequest(${moduleName}Validation.createSchema),
   ${moduleName}Controller.create${Capitalized},
 );
@@ -711,6 +722,7 @@ router.get('/:id', auth(), ${moduleName}Controller.get${Capitalized}ById);
 router.put(
   '/:id',
   auth(),
+  fileUpload,
   validateRequest(${moduleName}Validation.updateSchema),
   ${moduleName}Controller.update${Capitalized},
 );
@@ -721,7 +733,7 @@ router.patch(
   ${moduleName}Controller.toggleStatus${Capitalized},
 );
 
-router.patch(
+router.delete(
   '/soft-delete/:id',
   auth(),
   ${moduleName}Controller.softDelete${Capitalized},

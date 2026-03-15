@@ -51,16 +51,16 @@ enum DeviceType {
 // ─────────────────────────────────────────────
 
 model Houseroom {
-    id        String        @id @default(auto()) @map("_id") @db.ObjectId
-    userId    String        @db.ObjectId
-    name      String
-    type      houseroomType
-    files     String?
-    isDefault Boolean       @default(false) // true = auto-created on registration
-    isDeleted Boolean       @default(false)
-    createdAt DateTime      @default(now())
-    updatedAt DateTime      @updatedAt
-
+    id           String           @id @default(auto()) @map("_id") @db.ObjectId
+    userId       String           @db.ObjectId
+    name         String
+    type         houseroomType
+    files        String?
+    isDefault    Boolean          @default(false) // true = auto-created on registration
+    isDeleted    Boolean          @default(false)
+    createdAt    DateTime         @default(now())
+    updatedAt    DateTime         @updatedAt
+    //relation
     owner        User             @relation("UserHouserooms", fields: [userId], references: [id])
     cameras      CctvCamera[]
     aircons      AirConditioner[]
@@ -74,25 +74,22 @@ model Houseroom {
 // ─────────────────────────────────────────────
 
 model CctvCamera {
-    id          String @id @default(auto()) @map("_id") @db.ObjectId
-    userId      String @db.ObjectId
-    houseroomId String @db.ObjectId
-
-    name      String // e.g. "Front Door Cam"
-    streamUrl String // RTSP or HLS stream URL e.g. "rtsp://192.168.1.10/stream"
-    username  String? // camera login (optional)
-    password  String? // camera login — encrypt this in production!
-    brand     String? // e.g. "Hikvision", "Dahua"
-    model     String? // e.g. "DS-2CD2143G2"
-    status    DeviceStatus @default(Offline)
-
-    isDeleted Boolean  @default(false)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
+    id          String       @id @default(auto()) @map("_id") @db.ObjectId
+    userId      String       @db.ObjectId
+    houseroomId String       @db.ObjectId
+    name        String // e.g. "Front Door Cam"
+    streamUrl   String // RTSP or HLS stream URL e.g. "rtsp://192.168.1.10/stream"
+    username    String? // camera login (optional)
+    password    String? // camera login — encrypt this in production!
+    brand       String? // e.g. "Hikvision", "Dahua"
+    model       String? // e.g. "DS-2CD2143G2"
+    status      DeviceStatus @default(Offline)
+    isDeleted   Boolean      @default(false)
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
     // Relations
-    owner     User      @relation("UserCameras", fields: [userId], references: [id])
-    houseroom Houseroom @relation(fields: [houseroomId], references: [id])
+    owner       User         @relation("UserCameras", fields: [userId], references: [id])
+    houseroom   Houseroom    @relation(fields: [houseroomId], references: [id])
 
     @@map("cctv_cameras")
 }
@@ -102,10 +99,9 @@ model CctvCamera {
 // ─────────────────────────────────────────────
 
 model AirConditioner {
-    id          String @id @default(auto()) @map("_id") @db.ObjectId
-    userId      String @db.ObjectId
-    houseroomId String @db.ObjectId
-
+    id          String       @id @default(auto()) @map("_id") @db.ObjectId
+    userId      String       @db.ObjectId
+    houseroomId String       @db.ObjectId
     name        String // e.g. "Bedhouseroom AC"
     brand       String? // e.g. "Samsung", "Gree"
     isOn        Boolean      @default(false)
@@ -114,14 +110,12 @@ model AirConditioner {
     fanSpeed    Int          @default(1) // 1-5
     mode        AcMode       @default(Cool)
     status      DeviceStatus @default(Offline)
-
-    isDeleted Boolean  @default(false)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
+    isDeleted   Boolean      @default(false)
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
     // Relations
-    owner     User      @relation("UserAircons", fields: [userId], references: [id])
-    houseroom Houseroom @relation(fields: [houseroomId], references: [id])
+    owner       User         @relation("UserAircons", fields: [userId], references: [id])
+    houseroom   Houseroom    @relation(fields: [houseroomId], references: [id])
 
     @@map("air_conditioners")
 }
@@ -147,10 +141,9 @@ model SmartDevice {
     createdAt   DateTime     @default(now())
     updatedAt   DateTime     @updatedAt
     lastSeenAt  DateTime? // last time device was online
-
     // Relations
-    owner     User      @relation("UserDevices", fields: [userId], references: [id])
-    houseroom Houseroom @relation(fields: [houseroomId], references: [id])
+    owner       User         @relation("UserDevices", fields: [userId], references: [id])
+    houseroom   Houseroom    @relation(fields: [houseroomId], references: [id])
 
     @@map("smart_devices")
 }

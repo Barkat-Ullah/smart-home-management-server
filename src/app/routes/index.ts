@@ -19,13 +19,18 @@ import { reminderRoutes } from '../modules/medicineReminder/medicineReminder.rou
 import { doseLogRoutes } from '../modules/doseLog/doseLog.routes';
 import { medicineScheduleRoutes } from '../modules/medicineSchedule/medicineSchedule.routes';
 import { mealRoutes } from '../modules/meal/meal.routes';
-import { weeklyMealPlanRoutes } from "../modules/weeklyMealPlan/weeklyMealPlan.routes";
-import { mealPlanDayRoutes } from "../modules/mealPlanDay/mealPlanDay.routes";
-import { mealPlanDayItemRoutes } from "../modules/mealPlanDayItem/mealPlanDayItem.routes";
+import { weeklyMealPlanRoutes } from '../modules/weeklyMealPlan/weeklyMealPlan.routes';
+import { mealPlanDayRoutes } from '../modules/mealPlanDay/mealPlanDay.routes';
+import { mealPlanDayItemRoutes } from '../modules/mealPlanDayItem/mealPlanDayItem.routes';
+import { aiRoutes } from '../ai/ai.routes';
 
 const router = express.Router();
 
 const moduleRoutes = [
+  {
+    path: '/ask',
+    route: aiRoutes,
+  },
   {
     path: '/auth',
     route: authRouters,
@@ -86,6 +91,7 @@ const moduleRoutes = [
     path: '/financial',
     route: financialRoutes,
   },
+  //*medicine management
   {
     path: '/prescriptions',
     route: prescriptionRoutes,
@@ -93,16 +99,15 @@ const moduleRoutes = [
   { path: '/schedules', route: medicineScheduleRoutes },
   { path: '/doses', route: doseLogRoutes },
   { path: '/reminders', route: reminderRoutes },
+  //*meal management
   {
     path: '/meals',
     route: mealRoutes,
   },
-
   {
     path: '/weekly-meal-plans',
     route: weeklyMealPlanRoutes,
   },
-
   {
     path: '/meal-plan-days',
     route: mealPlanDayRoutes,

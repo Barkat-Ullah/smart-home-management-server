@@ -1,0 +1,32 @@
+// model AiCache {
+//   id              String        @id @default(auto()) @map("_id") @db.ObjectId
+//   question        String
+//   answer          String
+//   embedding       Float[]
+//   usedCount       Int           @default(1)
+//   confidenceScore Float         @default(0)
+//   isApproved      Boolean       @default(true)
+//   version         Int           @default(1)
+//   expiresAt       DateTime?
+//   userId          String?
+//   feedbacks       AiFeedback[]
+//   createdAt       DateTime      @default(now())
+//   updatedAt       DateTime      @updatedAt
+// }
+
+// model AiFeedback {
+//   id          String   @id @default(auto()) @map("_id") @db.ObjectId
+//   cacheId     String   @db.ObjectId
+//   cache       AiCache  @relation(fields: [cacheId], references: [id], onDelete: Cascade)
+//   userId      String?
+//   vote        String   // "up" | "down"
+//   comment     String?
+//   createdAt   DateTime @default(now())
+// }
+
+// model RateLimit {
+//   id        String   @id @default(auto()) @map("_id") @db.ObjectId
+//   key       String   @unique  // ip or userId
+//   count     Int      @default(1)
+//   windowStart DateTime @default(now())
+// }

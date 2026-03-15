@@ -1,5 +1,11 @@
 import { FrequencyType, Prisma } from '@prisma/client';
 import { addDays, startOfDay, endOfDay, isAfter, isBefore } from 'date-fns';
+import {
+  toUTCEndOfDay,
+  toUTCEndOfMonth,
+  toUTCStartOfDay,
+  toUTCStartOfMonth,
+} from '../event/event.utils';
 
 // -------------------------------------------------------
 // Schedule filter conditions (same pattern as prescription.utils)
@@ -12,24 +18,26 @@ export const buildScheduleFilterConditions = (
   Object.keys(filterData).forEach(key => {
     const value = filterData[key];
     if (value === '' || value === null || value === undefined) return;
-
     if (key === 'createdAt') {
       const parts = (value as string).split('-');
+
       if (parts.length === 2) {
+        // Format: "YYYY-MM" →
         const year = parseInt(parts[0]);
         const month = parseInt(parts[1]) - 1;
-        const start = new Date(year, month, 1, 0, 0, 0, 0);
-        const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
         conditions.push({
-          createdAt: { gte: start.toISOString(), lte: end.toISOString() },
+          createdAt: {
+            gte: toUTCStartOfMonth(year, month),
+            lte: toUTCEndOfMonth(year, month),
+          },
         });
-      } else {
-        const start = new Date(value);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(value);
-        end.setHours(23, 59, 59, 999);
+      } else if (parts.length === 3) {
+        // Format: "YYYY-MM-DD" →
         conditions.push({
-          createdAt: { gte: start.toISOString(), lte: end.toISOString() },
+          createdAt: {
+            gte: toUTCStartOfDay(value),
+            lte: toUTCEndOfDay(value),
+          },
         });
       }
       return;

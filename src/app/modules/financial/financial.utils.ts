@@ -1,7 +1,8 @@
 import { Prisma } from '@prisma/client';
+import { toUTCEndOfDay, toUTCEndOfMonth, toUTCStartOfDay, toUTCStartOfMonth } from '../event/event.utils';
 
 // ─────────────────────────────────────────────
-// Generic financial filter builder
+// Financial Filter Builder
 // ─────────────────────────────────────────────
 export const buildFinancialFilterConditions = (
   filterData: Record<string, any>,
@@ -14,30 +15,27 @@ export const buildFinancialFilterConditions = (
     if (value === '' || value === null || value === undefined) return;
 
     // ── Date range filter ──────────────────────────────────
-    if (
-      key === 'date' ||
-      key === 'createdAt' ||
-      key === 'startDate' ||
-      key === 'targetDate'
-    ) {
+    if (['date', 'createdAt', 'startDate', 'targetDate'].includes(key)) {
       const parts = (value as string).split('-');
-      if (parts.length === 2 && key === 'createdAt') {
-        // "YYYY-MM" → month range
+
+      if (parts.length === 2) {
+        // Format: "YYYY-MM" →
         const year = parseInt(parts[0]);
         const month = parseInt(parts[1]) - 1;
         conditions.push({
           [key]: {
-            gte: new Date(year, month, 1, 0, 0, 0, 0),
-            lte: new Date(year, month + 1, 0, 23, 59, 59, 999),
+            gte: toUTCStartOfMonth(year, month),
+            lte: toUTCEndOfMonth(year, month),
           },
         });
-      } else {
-        // "YYYY-MM-DD" → single day
-        const start = new Date(value);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(value);
-        end.setHours(23, 59, 59, 999);
-        conditions.push({ [key]: { gte: start, lte: end } });
+      } else if (parts.length === 3) {
+        // Format: "YYYY-MM-DD" →
+        conditions.push({
+          [key]: {
+            gte: toUTCStartOfDay(value),
+            lte: toUTCEndOfDay(value),
+          },
+        });
       }
       return;
     }
@@ -79,7 +77,6 @@ export const buildFinancialFilterConditions = (
 
   return conditions;
 };
-
 // ─────────────────────────────────────────────
 // Recalculate & update FinancialProfile totals
 // after any transaction create/update/delete

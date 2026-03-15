@@ -1,5 +1,29 @@
 import { Prisma } from '@prisma/client';
 
+// ─────────────────────────────────────────────
+// Helper: UTC date
+// ─────────────────────────────────────────────
+export const toUTCStartOfDay = (dateStr: string): Date => {
+  const d = new Date(dateStr);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0));
+};
+
+export const toUTCEndOfDay = (dateStr: string): Date => {
+  const d = new Date(dateStr);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23, 59, 59, 999));
+};
+
+export const toUTCStartOfMonth = (year: number, month: number): Date => {
+  return new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+};
+
+export const toUTCEndOfMonth = (year: number, month: number): Date => {
+  return new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
+};
+
+// ─────────────────────────────────────────────
+// Main filter builder
+// ─────────────────────────────────────────────
 export const buildFilterConditions = (
   filterData: Record<string, any>,
 ): Prisma.EventWhereInput[] => {
@@ -9,26 +33,27 @@ export const buildFilterConditions = (
     const value = filterData[key];
     if (value === '' || value === null || value === undefined) return;
 
-    // ── Date range filters ──────────────────────────────────
+    // ── Date range filters ─────────────────────────────────
     if (key === 'createdAt' || key === 'eventDate') {
       const parts = (value as string).split('-');
-      if (parts.length === 2 && key === 'createdAt') {
-        // Format: "YYYY-MM" → full month range
+
+      if (parts.length === 2) {
+        // Format: "YYYY-MM" →
         const year = parseInt(parts[0]);
         const month = parseInt(parts[1]) - 1;
-        const start = new Date(year, month, 1, 0, 0, 0, 0);
-        const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
         conditions.push({
-          createdAt: { gte: start, lte: end },
+          [key]: {
+            gte: toUTCStartOfMonth(year, month),
+            lte: toUTCEndOfMonth(year, month),
+          },
         });
-      } else {
-        // Format: "YYYY-MM-DD" → single day
-        const start = new Date(value);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(value);
-        end.setHours(23, 59, 59, 999);
+      } else if (parts.length === 3) {
+        // Format: "YYYY-MM-DD" →
         conditions.push({
-          [key]: { gte: start, lte: end },
+          [key]: {
+            gte: toUTCStartOfDay(value),
+            lte: toUTCEndOfDay(value),
+          },
         });
       }
       return;
@@ -42,14 +67,14 @@ export const buildFilterConditions = (
       return;
     }
 
-    // ── Relation dot-notation (e.g. "createdBy.fullName") ──
+    // ── Relation dot-notation ──────────────────────────────
     if (key.includes('.')) {
       const [relation, field] = key.split('.');
       conditions.push({ [relation]: { [field]: value } });
       return;
     }
 
-    // ── Direct scalar field match ───────────────────────────
+    // ── Direct scalar field match ──────────────────────────
     conditions.push({ [key]: value });
   });
 

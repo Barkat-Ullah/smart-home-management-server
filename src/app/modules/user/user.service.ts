@@ -14,6 +14,12 @@ import {
   welcomeEmailTemplate,
 } from '../../utils/allmailformat';
 import bcrypt from 'bcrypt';
+import {
+  toUTCEndOfDay,
+  toUTCEndOfMonth,
+  toUTCStartOfDay,
+  toUTCStartOfMonth,
+} from '../event/event.utils';
 
 // -------------------------------------------------------
 // create User
@@ -177,26 +183,30 @@ const getUserList = async (
       if (value === '' || value === null || value === undefined) return;
 
       // --- Date filter ---
-      if (key === 'createdAt') {
-        const parts = (value as string).split('-');
-        if (parts.length === 2) {
-          const year = parseInt(parts[0]);
-          const month = parseInt(parts[1]) - 1;
-          andConditions.push({
-            createdAt: {
-              gte: new Date(year, month, 1, 0, 0, 0, 0),
-              lte: new Date(year, month + 1, 0, 23, 59, 59, 999),
-            },
-          });
-        } else {
-          const start = new Date(value);
-          start.setHours(0, 0, 0, 0);
-          const end = new Date(value);
-          end.setHours(23, 59, 59, 999);
-          andConditions.push({ createdAt: { gte: start, lte: end } });
-        }
-        return;
+    if (key === 'createdAt') {
+      const parts = (value as string).split('-');
+
+      if (parts.length === 2) {
+        // Format: "YYYY-MM" →
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1;
+        andConditions.push({
+          createdAt: {
+            gte: toUTCStartOfMonth(year, month),
+            lte: toUTCEndOfMonth(year, month),
+          },
+        });
+      } else if (parts.length === 3) {
+        // Format: "YYYY-MM-DD" →
+        andConditions.push({
+          createdAt: {
+            gte: toUTCStartOfDay(value),
+            lte: toUTCEndOfDay(value),
+          },
+        });
       }
+      return;
+    }
 
       // --- Enum array filters ---
       if (['status', 'role', 'plan', 'gender'].includes(key)) {
