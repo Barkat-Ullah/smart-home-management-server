@@ -23,6 +23,7 @@ import { weeklyMealPlanRoutes } from '../modules/weeklyMealPlan/weeklyMealPlan.r
 import { mealPlanDayRoutes } from '../modules/mealPlanDay/mealPlanDay.routes';
 import { mealPlanDayItemRoutes } from '../modules/mealPlanDayItem/mealPlanDayItem.routes';
 import { aiRoutes } from '../ai/ai.routes';
+import { articleRoutes } from "../modules/article/article.routes";
 
 const router = express.Router();
 
@@ -115,6 +116,10 @@ const moduleRoutes = [
   {
     path: '/meal-items',
     route: mealPlanDayItemRoutes,
+  },
+  {
+    path: "/article",
+    route: articleRoutes,
   },
 ];
 

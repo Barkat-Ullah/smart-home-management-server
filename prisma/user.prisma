@@ -85,6 +85,7 @@ model User {
   aircons                       AirConditioner[]    @relation("UserAircons")
   devices                       SmartDevice[]       @relation("UserDevices")
   userSubscriptions             UserSubscription[]  @relation("UserSubscriptions")
+  userSaveArticles              UserSaveArticle[]   @relation("UserUserSaveArticle")
 
   @@map("users")
 }
@@ -130,4 +131,61 @@ model Activity {
   user User @relation("UserActivity", fields: [userId], references: [id])
 
   @@map("activity")
+}
+
+model Article {
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  description     String
+  stage           StageEnum
+  activity        ActivitiesEnum
+  skill           String[]
+  image           String?
+  link            String?
+  files           String?
+  materials       String?
+  howToDoIt       String?
+  whatItHelpsWith String?
+  parentNote      String?
+  isKept          Boolean        @default(false)
+  isAutoPush      Boolean        @default(false)
+  status          ArticleStatus  @default(Pending)
+  isDeleted       Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@map("article")
+}
+
+model UserSaveArticle {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String  @db.ObjectId
+  articleId String  @db.ObjectId
+  isSave    Boolean @default(false)
+  user      User    @relation("UserUserSaveArticle", fields: [userId], references: [id])
+
+  @@map("userSaveArticle")
+}
+
+enum StageEnum {
+  Early
+  Emerging
+  Growing
+  General
+}
+
+enum ActivitiesEnum {
+  Communication
+  Daily_Routines
+  Calm_And_Explorer
+  Move_and_Play
+  Learning_and_skills
+  Cooking
+  Medicine
+  Daily_Life
+}
+
+enum ArticleStatus {
+  Pending
+  Complete
 }

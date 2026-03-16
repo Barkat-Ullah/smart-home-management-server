@@ -1,8 +1,5 @@
 // Query Builder in Prisma
 
-import httpStatus from 'http-status';
-import AppError from '../errors/AppError';
-
 type ExtractSelect<T> = T extends { findMany(args: { select: infer S }): any }
   ? S
   : never;
@@ -13,7 +10,7 @@ class QueryBuilder<
   private model: ModelDelegate;
   private query: Record<string, unknown>;
   private prismaQuery: any = {};
-  private primaryKeyField: string = 'id'; // Default primary key field
+  private primaryKeyField: string = 'id';
 
   constructor(model: ModelDelegate, query: Record<string, unknown>) {
     this.model = model;
