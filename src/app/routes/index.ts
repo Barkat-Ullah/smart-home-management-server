@@ -23,11 +23,11 @@ import { mealPlanDayRoutes } from '../modules/mealPlanDay/mealPlanDay.routes';
 import { mealPlanDayItemRoutes } from '../modules/mealPlanDayItem/mealPlanDayItem.routes';
 import { aiRoutes } from '../ai/ai.routes';
 import { articleRoutes } from '../modules/article/article.routes';
-import { notificationsRoute } from '../modules/notifications/notification.routes';
 import { houseroomRoutes } from '../modules/houseroom/houseroom.routes';
 import { smartDeviceRoutes } from '../modules/smartDevice/smartDevice.routes';
 import { airConditionerRoutes } from '../modules/airConditioner/airConditioner.routes';
 import { cctvCameraRoutes } from '../modules/cctvCamera/cctvCamera.routes';
+import { notificationsRoute } from '../modules/notifications/notification.routes';
 
 const router = express.Router();
 
