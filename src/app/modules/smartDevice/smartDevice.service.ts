@@ -21,8 +21,8 @@ const createSmartDevice = async (req: Request) => {
   });
   if (!houseroom)
     throw new AppError(httpStatus.NOT_FOUND, 'Houseroom not found');
-  if (houseroom.userId !== userId)
-    throw new AppError(httpStatus.FORBIDDEN, 'Access denied');
+  // if (houseroom.userId !== userId)
+  //   throw new AppError(httpStatus.FORBIDDEN, 'Access denied');
 
   const result = await prisma.smartDevice.create({
     data: { ...data, userId },
@@ -178,8 +178,8 @@ const updateSmartDevice = async (req: Request) => {
   const existing = await prisma.smartDevice.findUnique({ where: { id } });
   if (!existing)
     throw new AppError(httpStatus.NOT_FOUND, 'Smart device not found');
-  if (existing.userId !== userId)
-    throw new AppError(httpStatus.FORBIDDEN, 'Access denied');
+  // if (existing.userId !== userId)
+  //   throw new AppError(httpStatus.FORBIDDEN, 'Access denied');
 
   const result = await prisma.smartDevice.update({
     where: { id },

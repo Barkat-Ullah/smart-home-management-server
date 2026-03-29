@@ -11,11 +11,6 @@ export const rootHandler = (
   const data = {
     message: `🚀 Welcome to this project. Server is running on port ${config.port}`,
     version: '1.0.0',
-
-    developerContact: {
-      email: 'barkatullah585464@gmail.com',
-      website: 'https://barkat-rakib.vercel.app',
-    },
   };
 
   const html = `
@@ -84,19 +79,6 @@ export const rootHandler = (
       <div class="header">
         <h1>${data.message}</h1>
         <p>Version: <b>${data.version}</b></p>
-      </div>
-
-
-      <div class="section">
-        <h3><span>📞</span> Developer Contact</h3>
-        <ul>
-          <li><b>Email:</b> <a href="mailto:${data.developerContact.email}">${data.developerContact.email}</a></li>
-          <li><b>Website:</b> <a href="${data.developerContact.website}" target="_blank">${data.developerContact.website}</a></li>
-        </ul>
-      </div>
-
-      <div class="footer">
-        <p>Best Regards,<br><b>Developer Team</b></p>
       </div>
     </div>
   </body>

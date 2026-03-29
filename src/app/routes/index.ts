@@ -22,11 +22,12 @@ import { weeklyMealPlanRoutes } from '../modules/weeklyMealPlan/weeklyMealPlan.r
 import { mealPlanDayRoutes } from '../modules/mealPlanDay/mealPlanDay.routes';
 import { mealPlanDayItemRoutes } from '../modules/mealPlanDayItem/mealPlanDayItem.routes';
 import { aiRoutes } from '../ai/ai.routes';
-import { articleRoutes } from "../modules/article/article.routes";
+import { articleRoutes } from '../modules/article/article.routes';
 import { notificationsRoute } from '../modules/notifications/notification.routes';
-import { houseroomRoutes } from "../modules/houseroom/houseroom.routes";
-import { smartDeviceRoutes } from "../modules/smartDevice/smartDevice.routes";
-
+import { houseroomRoutes } from '../modules/houseroom/houseroom.routes';
+import { smartDeviceRoutes } from '../modules/smartDevice/smartDevice.routes';
+import { airConditionerRoutes } from '../modules/airConditioner/airConditioner.routes';
+import { cctvCameraRoutes } from '../modules/cctvCamera/cctvCamera.routes';
 
 const router = express.Router();
 
@@ -121,18 +122,25 @@ const moduleRoutes = [
     route: mealPlanDayItemRoutes,
   },
   {
-    path: "/article",
+    path: '/article',
     route: articleRoutes,
   },
-
+  //*house related
   {
-    path: "/houserooms",
+    path: '/houserooms',
     route: houseroomRoutes,
   },
-
   {
-    path: "/smartdevices",
+    path: '/smart-devices',
     route: smartDeviceRoutes,
+  },
+  {
+    path: '/air-conditioners',
+    route: airConditionerRoutes,
+  },
+  {
+    path: '/cctv-cameras',
+    route: cctvCameraRoutes,
   },
 ];
 

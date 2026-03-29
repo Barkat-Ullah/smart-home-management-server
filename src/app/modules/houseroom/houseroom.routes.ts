@@ -9,7 +9,7 @@ const router = express.Router();
 
 const fileUpload = fileUploader.upload.fields([{ name: 'files', maxCount: 1 }]);
 
-// POST   /houserooms          → create a new custom room
+// POST create a new custom room
 router.post(
   '/',
   auth(),
@@ -18,16 +18,16 @@ router.post(
   houseroomController.createHouseroom,
 );
 
-// GET    /houserooms           → admin: all rooms
+// GET admin: all rooms
 router.get('/', auth('ADMIN'), houseroomController.getHouseroomList);
 
-// GET    /houserooms/my        → current user's rooms
+// GET current user's rooms
 router.get('/my', auth(), houseroomController.getMyHouseroom);
 
-// GET    /houserooms/:id       → single room by id
+// GET single room by id
 router.get('/:id', auth(), houseroomController.getHouseroomById);
 
-// PUT    /houserooms/:id       → update room
+// PUT update room
 router.put(
   '/:id',
   auth(),
@@ -36,10 +36,10 @@ router.put(
   houseroomController.updateHouseroom,
 );
 
-// DELETE /houserooms/soft/:id  → soft delete (non-default rooms only)
+// DELETE soft delete (non-default rooms only)
 router.delete('/soft/:id', auth(), houseroomController.softDeleteHouseroom);
 
-// DELETE /houserooms/:id       → hard delete (admin / non-default rooms only)
+// DELETE hard delete (admin / non-default rooms only)
 router.delete('/:id', auth('ADMIN'), houseroomController.deleteHouseroom);
 
 export const houseroomRoutes = router;
