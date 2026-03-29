@@ -5,7 +5,6 @@ import { IPaginationOptions } from '../../interface/pagination.type';
 import { paginationHelper } from '../../utils/calculatePagination';
 import ApiError from '../../errors/AppError';
 import { Request } from 'express';
-import { handleFileUploads } from '../../utils/handleFile';
 import { feedSelect } from './feed.select';
 import { buildFilterConditions } from './feed.utils';
 import { fileUploader } from '../../utils/fileUploader';

@@ -4,13 +4,29 @@ import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import catchAsync from '../app/utils/catchAsync';
-import AppError from '../app/errors/AppError';
-
-import { prisma } from '../app/utils/prisma';
+import { insecurePrisma, prisma } from '../app/utils/prisma';
 import { fileUploader } from '../app/utils/fileUploader';
 import ApiError from '../app/errors/AppError';
+import helmet from 'helmet';
+import { createLogger, transports, format } from 'winston';
+const compression = require('compression');
+
+export const logger = createLogger({
+  format: format.combine(
+    format.timestamp(),
+    format.errors({ stack: true }),
+    format.json(),
+  ),
+  transports: [
+    new transports.Console(),
+    new transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new transports.File({ filename: 'logs/combined.log' }),
+  ],
+});
 
 export const setupMiddlewares = (app: Application): void => {
+  //helmet
+  app.use(helmet());
   // CORS
   app.use(
     cors({
@@ -29,11 +45,12 @@ export const setupMiddlewares = (app: Application): void => {
       credentials: true,
     }),
   );
-
+  //compression
+  app.use(compression());
   // Body parsers
-  app.use(express.json({ limit: '500mb' }));
+  app.use(express.json({ limit: '50kb' }));
   app.use(cookieParser());
-  app.use(express.urlencoded({ limit: '500mb', extended: true }));
+  app.use(express.urlencoded({ limit: '50kb', extended: true }));
 };
 
 // Rate limiter
@@ -56,8 +73,7 @@ export const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Apply limiter to main routes (in app/index.ts)
-console.log('✅ Middlewares setup complete');
+logger.info('Middlewares setup complete');
 
 export const notFound = (req: Request, res: Response, next: NextFunction) => {
   res.status(httpStatus.NOT_FOUND).json({
@@ -68,6 +84,27 @@ export const notFound = (req: Request, res: Response, next: NextFunction) => {
       message: 'Your requested path is not found!',
     },
   });
+};
+
+//requestLogger.ts
+
+export const requestLogger = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    logger.info({
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      duration: `${duration}ms`,
+      ip: req.ip,
+    });
+  });
+  next();
 };
 
 //only image upload
@@ -175,12 +212,21 @@ export const documentUpload = catchAsync(
   },
 );
 
-export const serverHealth = catchAsync(async (req: Request, res: Response) => {
-  await prisma.$connect();
-  res.status(httpStatus.OK).json({
+export const serverHealth = catchAsync(async (req, res) => {
+  let dbStatus = 'connected';
+
+  try {
+    await insecurePrisma.$connect();
+  } catch {
+    dbStatus = 'disconnected';
+  }
+
+  res.status(200).json({
     success: true,
-    message: '🟢 Server healthy',
+    message: 'Server healthy',
     timestamp: new Date().toISOString(),
-    db: 'Connected',
+    uptime: Math.floor(process.uptime()) + 's',
+    db: dbStatus,
+    environment: process.env.NODE_ENV || 'development',
   });
 });

@@ -17,18 +17,17 @@ model Subscription {
 }
 
 model UserSubscription {
-    id             String    @id @default(auto()) @map("_id") @db.ObjectId
-    subscriptionId String    @db.ObjectId
-    userId         String    @db.ObjectId
+    id             String        @id @default(auto()) @map("_id") @db.ObjectId
+    subscriptionId String        @db.ObjectId
+    userId         String        @unique @db.ObjectId
     amount         Int
     startDate      DateTime
     endDate        DateTime?
-
-    subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-    user         User         @relation("UserSubscriptions", fields: [userId], references: [id], onDelete: Cascade)
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    createdAt      DateTime      @default(now())
+    updatedAt      DateTime      @updatedAt
+    //relation
+    subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+    user           User?         @relation("UserSubscriptions", fields: [userId], references: [id], onDelete: Cascade)
 
     @@unique([userId, subscriptionId])
     @@map("userSubscription")

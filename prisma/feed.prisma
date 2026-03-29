@@ -12,12 +12,12 @@ enum FeedType {
 }
 
 enum FeedStatus {
-    Open // নতুন post, কেউ দেখেনি
-    UnderReview // Admin/Moderator দেখছে
-    InProgress // Moderator assigned, কাজ চলছে
-    Resolved // সমাধান হয়েছে
-    Closed // বন্ধ করা হয়েছে
-    Reopened // আবার খোলা হয়েছে
+    Open
+    UnderReview
+    InProgress
+    Resolved
+    Closed
+    Reopened
 }
 
 enum FeedPriority {
@@ -39,7 +39,7 @@ model Feed {
     type          FeedType            @default(Other)
     status        FeedStatus          @default(Open)
     priority      FeedPriority        @default(Low)
-    tags          String[] // e.g. ["payment", "login", "bug"]
+    tags          String[]
     files         String[]
     isDeleted     Boolean             @default(false)
     isPinned      Boolean             @default(false)
@@ -64,19 +64,18 @@ model Feed {
 // ─────────────────────────────────────────────
 
 model FeedAssignment {
-    id          String    @id @default(auto()) @map("_id") @db.ObjectId
-    feedId      String    @db.ObjectId
-    moderatorId String    @db.ObjectId
-    assignedBy  String    @db.ObjectId
-    note        String?
-    isActive    Boolean   @default(true)
-    assignedAt  DateTime  @default(now())
-    removedAt   DateTime?
-
+    id             String    @id @default(auto()) @map("_id") @db.ObjectId
+    feedId         String    @db.ObjectId
+    moderatorId    String    @db.ObjectId
+    assignedBy     String    @db.ObjectId
+    note           String?
+    isActive       Boolean   @default(true)
+    assignedAt     DateTime  @default(now())
+    removedAt      DateTime?
     // Relations
-    feed           Feed @relation(fields: [feedId], references: [id])
-    moderator      User @relation("ModeratorAssignments", fields: [moderatorId], references: [id])
-    assignedByUser User @relation("AdminAssignments", fields: [assignedBy], references: [id])
+    feed           Feed      @relation(fields: [feedId], references: [id])
+    moderator      User      @relation("ModeratorAssignments", fields: [moderatorId], references: [id])
+    assignedByUser User      @relation("AdminAssignments", fields: [assignedBy], references: [id])
 
     @@map("feed_assignments")
 }
@@ -86,25 +85,22 @@ model FeedAssignment {
 // ─────────────────────────────────────────────
 
 model FeedComment {
-    id          String   @id @default(auto()) @map("_id") @db.ObjectId
-    feedId      String   @db.ObjectId
-    userId      String   @db.ObjectId
-    parentId    String?  @db.ObjectId
+    id          String        @id @default(auto()) @map("_id") @db.ObjectId
+    feedId      String        @db.ObjectId
+    userId      String        @db.ObjectId
+    parentId    String?       @db.ObjectId
     content     String
     attachments String[]
-
-    isDeleted  Boolean @default(false)
-    isEdited   Boolean @default(false)
-    isSolution Boolean @default(false)
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
+    isDeleted   Boolean       @default(false)
+    isEdited    Boolean       @default(false)
+    isSolution  Boolean       @default(false)
+    createdAt   DateTime      @default(now())
+    updatedAt   DateTime      @updatedAt
     // Relations
-    feed    Feed          @relation(fields: [feedId], references: [id])
-    author  User          @relation("UserComments", fields: [userId], references: [id])
-    parent  FeedComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-    replies FeedComment[] @relation("CommentReplies")
+    feed        Feed          @relation(fields: [feedId], references: [id])
+    author      User          @relation("UserComments", fields: [userId], references: [id])
+    parent      FeedComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    replies     FeedComment[] @relation("CommentReplies")
 
     @@map("feed_comments")
 }
@@ -119,9 +115,9 @@ model FeedReaction {
     userId     String   @db.ObjectId
     isFavorite Boolean  @default(false)
     createdAt  DateTime @default(now())
-
-    feed Feed @relation(fields: [feedId], references: [id])
-    user User @relation("UserFeedReactions", fields: [userId], references: [id])
+    //relation
+    feed       Feed     @relation(fields: [feedId], references: [id])
+    user       User     @relation("UserFeedReactions", fields: [userId], references: [id])
 
     @@unique([feedId, userId])
     @@map("feed_reactions")
@@ -132,16 +128,16 @@ model FeedReaction {
 // ─────────────────────────────────────────────
 
 model FeedStatusHistory {
-    id         String     @id @default(auto()) @map("_id") @db.ObjectId
-    feedId     String     @db.ObjectId
-    changedBy  String     @db.ObjectId
-    fromStatus FeedStatus
-    toStatus   FeedStatus
-    note       String? // কেন status change হলো
-    createdAt  DateTime   @default(now())
-
-    feed          Feed @relation(fields: [feedId], references: [id])
-    changedByUser User @relation("StatusChanges", fields: [changedBy], references: [id])
+    id            String     @id @default(auto()) @map("_id") @db.ObjectId
+    feedId        String     @db.ObjectId
+    changedBy     String     @db.ObjectId
+    fromStatus    FeedStatus
+    toStatus      FeedStatus
+    note          String?
+    createdAt     DateTime   @default(now())
+    //relation
+    feed          Feed       @relation(fields: [feedId], references: [id])
+    changedByUser User       @relation("StatusChanges", fields: [changedBy], references: [id])
 
     @@map("feed_status_history")
 }

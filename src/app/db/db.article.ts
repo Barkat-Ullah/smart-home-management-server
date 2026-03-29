@@ -966,7 +966,7 @@ activities.forEach(act => {
 export async function seedActivities() {
   try {
     // console.log('🌱 Starting to seed activities...');
-    const existingActivityCount = await prisma.activity.count();
+    const existingActivityCount = await prisma.article.count();
     if (existingActivityCount > 0) {
       console.log('Activities already exist → skipping seed');
       return;
@@ -978,7 +978,7 @@ export async function seedActivities() {
     for (const activity of activities) {
       try {
         await prisma.article.create({
-          data: activity,
+          data: { ...activity, isKept: true },
         });
         successCount++;
         console.log(

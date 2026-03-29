@@ -1,9 +1,8 @@
 import catchAsync from '../../utils/catchAsync';
-import { prisma } from '../../utils/prisma';
 import sendResponse from '../../utils/sendResponse';
-import { notificationServices } from './Notification.service';
-
 import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { notificationServices } from './notification.service';
+
 
 const subscribe: RequestHandler = (
   req: Request,
@@ -15,7 +14,6 @@ const subscribe: RequestHandler = (
 
 const sendNotification = catchAsync(async (req: any, res: any) => {
   const notification = await notificationServices.sendSingleNotification(req);
-
   sendResponse(res, {
     statusCode: 200,
     success: true,

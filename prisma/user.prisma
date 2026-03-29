@@ -84,7 +84,7 @@ model User {
   cameras                       CctvCamera[]        @relation("UserCameras")
   aircons                       AirConditioner[]    @relation("UserAircons")
   devices                       SmartDevice[]       @relation("UserDevices")
-  userSubscriptions             UserSubscription[]  @relation("UserSubscriptions")
+  userSubscriptions             UserSubscription?  @relation("UserSubscriptions")
   userSaveArticles              UserSaveArticle[]   @relation("UserUserSaveArticle")
 
   @@map("users")
@@ -106,6 +106,7 @@ enum UserStatus {
 enum PLanType {
   Free
   Paid
+  Unlimited
 }
 
 model Logout {
@@ -189,3 +190,6 @@ enum ArticleStatus {
   Pending
   Complete
 }
+
+
+

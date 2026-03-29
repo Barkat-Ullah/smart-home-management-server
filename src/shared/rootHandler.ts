@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import os from 'os';
 import httpStatus from 'http-status';
 import config from '../config';
 
@@ -8,50 +7,11 @@ export const rootHandler = (
   res: Response,
   next: NextFunction,
 ) => {
-  const currentDateTime = new Date().toISOString();
-  const rawClientIp =
-    req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-  const serverPlatform = os.platform();
-  const serverUptime = os.uptime();
-  const totalMemory = os.totalmem();
-  const freeMemory = os.freemem();
-  const usedMemory = totalMemory - freeMemory;
-  const memoryUsagePercent = ((usedMemory / totalMemory) * 100).toFixed(2);
-  const cpuLoad = os.loadavg()[0].toFixed(2);
-
-  const isDev = process.env.NODE_ENV === 'development';
-
-  // Development: show full info, Production: mask sensitive info
-  const nodeVersion = isDev ? process.version : 'hidden';
-  const serverHostname = isDev ? os.hostname() : 'hidden';
-  const clientIp = isDev ? rawClientIp : 'xxx.xxx.xxx.xxx';
-  const memoryUsage = isDev
-    ? `${(usedMemory / 1024 / 1024).toFixed(2)} MB / ${(
-        totalMemory /
-        1024 /
-        1024
-      ).toFixed(2)} MB (${memoryUsagePercent}%)`
-    : `${memoryUsagePercent}%`;
-
-    //fun facts
+  //fun facts
   const data = {
     message: `🚀 Welcome to this project. Server is running on port ${config.port}`,
     version: '1.0.0',
-    clientDetails: {
-      ipAddress: clientIp,
-      accessedAt: isDev ? currentDateTime : 'unknown',
-    },
-    serverDetails: {
-      hostname: serverHostname,
-      platform: serverPlatform,
-      uptime: `${Math.floor(serverUptime / 60 / 60)} hours ${Math.floor(
-        (serverUptime / 60) % 60,
-      )} minutes`,
-      nodeVersion,
-      memoryUsage,
-      cpuLoad,
-      currentDateTime,
-    },
+
     developerContact: {
       email: 'barkatullah585464@gmail.com',
       website: 'https://barkat-rakib.vercel.app',
@@ -126,26 +86,6 @@ export const rootHandler = (
         <p>Version: <b>${data.version}</b></p>
       </div>
 
-      <div class="section">
-        <h3><span>📌</span> Client Details</h3>
-        <ul>
-          <li><b>IP Address:</b> ${data.clientDetails.ipAddress}</li>
-          <li><b>Accessed At:</b> ${data.clientDetails.accessedAt}</li>
-        </ul>
-      </div>
-
-      <div class="section">
-        <h3><span>🖥️</span> Server Details</h3>
-        <ul>
-          <li><b>Hostname:</b> ${data.serverDetails.hostname}</li>
-          <li><b>Platform:</b> ${data.serverDetails.platform}</li>
-          <li><b>Uptime:</b> ${data.serverDetails.uptime}</li>
-          <li><b>Node.js Version:</b> ${data.serverDetails.nodeVersion}</li>
-          <li><b>Memory Usage:</b> ${data.serverDetails.memoryUsage}</li>
-          <li><b>CPU Load:</b> ${data.serverDetails.cpuLoad}</li>
-          <li><b>Server Date-Time:</b> ${data.serverDetails.currentDateTime}</li>
-        </ul>
-      </div>
 
       <div class="section">
         <h3><span>📞</span> Developer Contact</h3>

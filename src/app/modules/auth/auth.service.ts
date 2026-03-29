@@ -9,7 +9,6 @@ import {
   UserRoleEnum,
   UserStatus,
 } from '@prisma/client';
-import { Response } from 'express';
 import {
   getOtpStatusMessage,
   otpExpiryTime,
@@ -18,7 +17,7 @@ import {
 import { generateToken } from '../../utils/generateToken';
 import { insecurePrisma, prisma } from '../../utils/prisma';
 import emailSender from '../../utils/sendMail';
-import { IClientInfo, IIPInfo } from '../../../types/ip.type';
+import { IClientInfo } from '../../../types/ip.type';
 
 import {
   otpVerificationEmail,

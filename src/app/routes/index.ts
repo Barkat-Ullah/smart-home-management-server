@@ -1,6 +1,5 @@
 import express from 'express';
 import { FollowRoutes } from '../modules/follow/follow.routes';
-import { notificationsRoute } from '../modules/Notifications/Notification.routes';
 import { subscriptionRoutes } from '../modules/subscription/subscription.routes';
 import { favoriteRoutes } from '../modules/favorite/favorite.routes';
 import { paymentRoutes } from '../modules/payment/payment.routes';
@@ -24,6 +23,10 @@ import { mealPlanDayRoutes } from '../modules/mealPlanDay/mealPlanDay.routes';
 import { mealPlanDayItemRoutes } from '../modules/mealPlanDayItem/mealPlanDayItem.routes';
 import { aiRoutes } from '../ai/ai.routes';
 import { articleRoutes } from "../modules/article/article.routes";
+import { notificationsRoute } from '../modules/notifications/notification.routes';
+import { houseroomRoutes } from "../modules/houseroom/houseroom.routes";
+import { smartDeviceRoutes } from "../modules/smartDevice/smartDevice.routes";
+
 
 const router = express.Router();
 
@@ -120,6 +123,16 @@ const moduleRoutes = [
   {
     path: "/article",
     route: articleRoutes,
+  },
+
+  {
+    path: "/houserooms",
+    route: houseroomRoutes,
+  },
+
+  {
+    path: "/smartdevices",
+    route: smartDeviceRoutes,
   },
 ];
 

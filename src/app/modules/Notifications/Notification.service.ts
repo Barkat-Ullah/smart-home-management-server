@@ -1,10 +1,9 @@
 import httpStatus from 'http-status';
-import admin from './firebaseAdmin';
 import AppError from '../../errors/AppError';
 import { prisma } from '../../utils/prisma';
-import { UserRoleEnum } from '@prisma/client';
-import { addSSEClient, removeSSEClient, sendSSEToUser } from '../../utils/sse';
-import { Request, Response, RequestHandler } from 'express';
+import { addSSEClient, removeSSEClient } from '../../utils/sse';
+import { RequestHandler } from 'express';
+import admin from './firebaseAdmin';
 
 const subscribe: RequestHandler = (req, res, _next) => {
   const userId = (req as any).user.id;
@@ -24,6 +23,7 @@ const subscribe: RequestHandler = (req, res, _next) => {
     console.log(`SSE disconnected: ${userId}`);
   });
 };
+
 type SendNotificationParams = {
   userId: string;
   senderId: string;

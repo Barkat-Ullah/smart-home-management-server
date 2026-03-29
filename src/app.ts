@@ -5,6 +5,7 @@ import {
   apiLimiter,
   documentUpload,
   notFound,
+  requestLogger,
   serverHealth,
   setupMiddlewares,
 } from './shared';
@@ -22,8 +23,9 @@ app.post(
 );
 
 setupMiddlewares(app);
-
-app.set('trust proxy', true);
+// Request logging
+app.use(requestLogger);
+app.set('trust proxy', 1);
 app.use('/api/v1', apiLimiter, router);
 
 // Upload route (after main routes, before error handler)
@@ -40,11 +42,12 @@ app.post(
 );
 
 // Root route (Better: JSON response with icon)
-//* app.get('/', (req: Request, res: Response) => {
+// app.get('/', (req, res) => {
 //   res.send({
 //     Message: 'The server is running. . .',
 //   });
 // });
+
 app.get('/', rootHandler);
 app.get('/health', serverHealth);
 

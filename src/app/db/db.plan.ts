@@ -1,96 +1,85 @@
-// import { DurationType, PlanTier, PrismaClient } from '@prisma/client';
+import { DurationType, PrismaClient } from '@prisma/client';
 
-// const prisma = new PrismaClient();
+const prisma = new PrismaClient();
 
-// const FEATURES = [
-//   'Add unlimited locations',
-//   'Upload up to 10 images per location',
-//   'Add 1 promotion/per location',
-// ];
+const FREE_FEATURES = [
+  // Family
+  'Family member profiles (up to 2)',
+  'Child profiles & health info (1 child)',
+  // Smart Home
+  'House rooms (6 default rooms)',
+  'Smart devices (up to 5)',
+  // Planning
+  'Events & reminders',
+  'Basic meal plan',
+  // Communication
+  'In-app notifications',
+  'Support feed access',
+];
 
-// async function seedSubscriptions() {
-//   const plans = [
-//     // ─── GOLD ───────────────────────────────────────
-//     {
-//       title: 'Gold - 1 Month',
-//       tier: PlanTier.Gold,
-//       amount: 98,
-//       duration: DurationType.Monthly,
-//       features: FEATURES,
-//       isLifeTime: false,
-//     },
-//     {
-//       title: 'Gold - 3 Months',
-//       tier: PlanTier.Gold,
-//       amount: 249,
-//       duration: DurationType.ThreeMonth,
-//       features: FEATURES,
-//       isLifeTime: false,
-//     },
-//     {
-//       title: 'Gold - 1 Year',
-//       tier: PlanTier.Gold,
-//       amount: 777,
-//       duration: DurationType.Yearly,
-//       features: FEATURES,
-//       isLifeTime: false,
-//     },
+const MONTHLY_FEATURES = [
+  // Family
+  'Unlimited family member profiles',
+  'Unlimited child profiles with health info',
+  'Caregiver management & assignment',
+  'Shared memories & photo albums',
+  // Smart Home
+  'Up to 8 rooms (6 default + 2 custom)',
+  'Unlimited smart devices with power tracking',
+  'CCTV live stream (HLS/RTSP)',
+  'AC smart control (Tuya, SwitchBot, Home Assistant)',
+  // Planning
+  'Events, reminders & recurrence scheduling',
+  'Full weekly meal plan with caregiver assignment',
+  'Medicine schedule & dose tracking',
+  'Refill alerts & missed dose logs',
+  'Finance management, budgets & goals',
+  'Household inventory tracking',
+  // Communication
+//   'FCM push notifications',
+  'Real-time 1-to-1 chat with file sharing',
+  'Admin broadcast reminders',
+];
 
-//     // ─── PLATINUM ────────────────────────────────────
-//     {
-//       title: 'Platinum - 1 Month',
-//       tier: PlanTier.Platinum,
-//       amount: 233,
-//       duration: DurationType.Monthly,
-//       features: FEATURES,
-//       isLifeTime: false,
-//     },
-//     {
-//       title: 'Platinum - 3 Months',
-//       tier: PlanTier.Platinum,
-//       amount: 594,
-//       duration: DurationType.ThreeMonth,
-//       features: FEATURES,
-//       isLifeTime: false,
-//     },
-//     {
-//       title: 'Platinum - 1 Year',
-//       tier: PlanTier.Platinum,
-//       amount: 1888,
-//       duration: DurationType.Yearly,
-//       features: FEATURES,
-//       isLifeTime: false,
-//     },
+const PLANS = [
+  {
+    title: 'Free Plan',
+    description: 'Core smart home features to get you started at no cost.',
+    amount: 0,
+    duration: DurationType.Freely,
+    features: FREE_FEATURES,
+  },
+  {
+    title: 'Monthly Plan',
+    description:
+      'Full access to all smart home management features on a monthly basis.',
+    amount: 9.99,
+    duration: DurationType.Monthly,
+    features: MONTHLY_FEATURES,
+  },
+];
 
-//     // ─── DIAMOND ─────────────────────────────────────
-//     {
-//       title: 'Diamond - Unlimited',
-//       tier: PlanTier.Diamond,
-//       amount: 4999,
-//       duration: DurationType.Unlimited,
-//       features: FEATURES,
-//       isLifeTime: true,
-//     },
-//   ];
+async function seedSubscriptions() {
+  console.log('🌱 Starting subscription seeding...');
 
-//   for (const plan of plans) {
-//     const existing = await prisma.subscription.findFirst({
-//       where: {
-//         tier: plan.tier,
-//         duration: plan.duration,
-//       },
-//     });
+  for (const plan of PLANS) {
+    const existing = await prisma.subscription.findFirst({
+      where: {
+        duration: plan.duration,
+        isDeleted: false,
+      },
+    });
 
-//     if (existing) {
-//       console.log(`⚠️  Already exists: ${plan.title}`);
-//       continue;
-//     }
+    if (existing) {
+      console.log(`⚠️  Already exists: ${plan.title}`);
+      continue;
+    }
 
-//     await prisma.subscription.create({ data: plan });
-//     console.log(`✅ Seeded: ${plan.title}`);
-//   }
+    await prisma.subscription.create({ data: plan });
+    console.log(`✅ Seeded: ${plan.title}`);
+  }
 
-//   console.log('🎉 Subscription seeding complete!');
-// }
+  console.log('🎉 Subscription seeding complete!');
+}
 
-// export default seedSubscriptions;
+export default seedSubscriptions;
