@@ -9,7 +9,7 @@ import { fileUploader } from '../app/utils/fileUploader';
 import ApiError from '../app/errors/AppError';
 import helmet from 'helmet';
 import { createLogger, transports, format } from 'winston';
-const compression = require('compression');
+import compression from 'compression';
 
 export const logger = createLogger({
   format: format.combine(
