@@ -88,15 +88,18 @@ const getEventList = async (
 // -------------------------------------------------------
 const getEventById = async (id: string) => {
   const result = await prisma.event.findUnique({
-    where: { id },
+    where: { id, isDeleted: false },
     select: eventSelect,
   });
   if (!result) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Event not found');
+    throw new ApiError(
+      httpStatus.NOT_FOUND,
+      'Event not found or has been deleted',
+    );
   }
-  if ((result as any).isDeleted) {
-    throw new ApiError(httpStatus.GONE, 'Event has been deleted');
-  }
+  // if ((result as any).isDeleted) {
+  //   throw new ApiError(httpStatus.GONE, 'Event has been deleted');
+  // }
   return result;
 };
 
@@ -156,13 +159,18 @@ const updateEvent = async (req: Request) => {
     | { [fieldname: string]: Express.Multer.File[] }
     | undefined;
 
-  const existingEvent = await prisma.event.findUnique({ where: { id } });
+  const existingEvent = await prisma.event.findUnique({
+    where: { id, isDeleted: false },
+  });
   if (!existingEvent) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Event not found');
+    throw new ApiError(
+      httpStatus.NOT_FOUND,
+      'Event not found or Cannot update a deleted event',
+    );
   }
-  if ((existingEvent as any).isDeleted) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot update a deleted event');
-  }
+  // if ((existingEvent as any).isDeleted) {
+  //   throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot update a deleted event');
+  // }
 
   const uploadedFiles = await handleFileUploads(files);
 
@@ -221,16 +229,21 @@ const toggleStatusEvent = async (req: Request) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  const existingEvent = await prisma.event.findUnique({ where: { id } });
+  const existingEvent = await prisma.event.findUnique({
+    where: { id, isDeleted: false },
+  });
   if (!existingEvent) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Event not found');
-  }
-  if ((existingEvent as any).isDeleted) {
     throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      'Cannot toggle status of a deleted event',
+      httpStatus.NOT_FOUND,
+      'Event not found or Cannot toggle status of a deleted event',
     );
   }
+  // if ((existingEvent as any).isDeleted) {
+  //   throw new ApiError(
+  //     httpStatus.BAD_REQUEST,
+  //     'Cannot toggle status of a deleted event',
+  //   );
+  // }
 
   // Validate the incoming status is a valid EventStatus
   const validStatuses = Object.values(EventStatus);
@@ -286,13 +299,18 @@ const toggleStatusEvent = async (req: Request) => {
 // soft delete Event
 // -------------------------------------------------------
 const softDeleteEvent = async (id: string) => {
-  const existingEvent = await prisma.event.findUnique({ where: { id } });
+  const existingEvent = await prisma.event.findUnique({
+    where: { id, isDeleted: false },
+  });
   if (!existingEvent) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Event not found');
+    throw new ApiError(
+      httpStatus.NOT_FOUND,
+      'Event not found or Event is already deleted',
+    );
   }
-  if ((existingEvent as any).isDeleted) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Event is already deleted');
-  }
+  // if ((existingEvent as any).isDeleted) {
+  //   throw new ApiError(httpStatus.BAD_REQUEST, 'Event is already deleted');
+  // }
   const result = await prisma.event.update({
     where: { id },
     data: { isDeleted: true },
@@ -305,13 +323,18 @@ const softDeleteEvent = async (id: string) => {
 // restore soft-deleted Event
 // -------------------------------------------------------
 const restoreEvent = async (id: string) => {
-  const existingEvent = await prisma.event.findUnique({ where: { id } });
+  const existingEvent = await prisma.event.findUnique({
+    where: { id, isDeleted: false },
+  });
   if (!existingEvent) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Event not found');
+    throw new ApiError(
+      httpStatus.NOT_FOUND,
+      'Event not found or Event is not deleted',
+    );
   }
-  if (!(existingEvent as any).isDeleted) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Event is not deleted');
-  }
+  // if (!(existingEvent as any).isDeleted) {
+  //   throw new ApiError(httpStatus.BAD_REQUEST, 'Event is not deleted');
+  // }
   const result = await prisma.event.update({
     where: { id },
     data: { isDeleted: false },
