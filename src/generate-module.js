@@ -584,12 +584,9 @@ const toggleStatus${Capitalized} = async (id: string) => {
 // soft delete ${Capitalized}
 // -------------------------------------------------------
 const softDelete${Capitalized} = async (id: string) => {
-  const existing${Capitalized} = await prisma.${moduleName}.findUnique({ where: { id } });
+  const existing${Capitalized} = await prisma.${moduleName}.findUnique({ where: { id , isDeleted: false} });
   if (!existing${Capitalized}) {
-    throw new ApiError(httpStatus.NOT_FOUND, '${Capitalized} not found');
-  }
-  if ((existing${Capitalized} as any).isDeleted) {
-    throw new ApiError(httpStatus.BAD_REQUEST, '${Capitalized} is already deleted');
+    throw new ApiError(httpStatus.NOT_FOUND, '${Capitalized} not found or ${Capitalized} is already deleted');
   }
   const result = await prisma.${moduleName}.update({
     where: { id },

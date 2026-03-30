@@ -28,10 +28,15 @@ import { smartDeviceRoutes } from '../modules/smartDevice/smartDevice.routes';
 import { airConditionerRoutes } from '../modules/airConditioner/airConditioner.routes';
 import { cctvCameraRoutes } from '../modules/cctvCamera/cctvCamera.routes';
 import { notificationsRoute } from '../modules/notifications/notification.routes';
+import { cvRoute } from '../cv/cv.route';
 
 const router = express.Router();
 
 const moduleRoutes = [
+  {
+    path: '/cv',
+    route: cvRoute,
+  },
   {
     path: '/ask',
     route: aiRoutes,

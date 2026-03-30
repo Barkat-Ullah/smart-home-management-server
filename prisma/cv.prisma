@@ -1,0 +1,30 @@
+model CvChunk {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    content   String
+    embedding Float[]
+    source    String   @default("cv")
+    createdAt DateTime @default(now())
+
+    @@map("cv_chunks")
+}
+
+model ChatSession {
+    id        String        @id @default(auto()) @map("_id") @db.ObjectId
+    sessionId String        @unique
+    messages  ChatMessage[]
+    createdAt DateTime      @default(now())
+    updatedAt DateTime      @updatedAt
+
+    @@map("chat_sessions")
+}
+
+model ChatMessage {
+    id        String      @id @default(auto()) @map("_id") @db.ObjectId
+    role      String
+    content   String
+    sessionId String
+    session   ChatSession @relation(fields: [sessionId], references: [sessionId])
+    createdAt DateTime    @default(now())
+
+    @@map("chat_messages")
+}
