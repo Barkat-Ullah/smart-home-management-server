@@ -1,4 +1,3 @@
-
 import prisma from '../utils/prisma';
 import { chatModel } from './gemini';
 import { findRelevantChunks } from './rag.service';
@@ -15,7 +14,7 @@ export async function chat(
   const previousMessages = await prisma.chatMessage.findMany({
     where: { sessionId },
     orderBy: { createdAt: 'asc' },
-    take: 10,
+    take: 20,
   });
 
   // 3. Format history for Gemini
@@ -31,7 +30,12 @@ export async function chat(
       maxOutputTokens: 1024,
       temperature: 0.7,
     },
-    systemInstruction: `You are a helpful assistant. Answer questions strictly based on the CV information provided below.
+    // Fix: systemInstruction must be an object, not a plain string
+    systemInstruction: {
+      role: 'user',
+      parts: [
+        {
+          text: `You are a helpful assistant. Answer questions strictly based on the CV information provided below.
 
 Relevant CV context:
 ${context}
@@ -41,6 +45,9 @@ Instructions:
 - If the information is not found in the CV, respond with "This information is not available in the CV"
 - Keep answers concise and clear
 - Reply in the same language the user asks in (English or Bengali)`,
+        },
+      ],
+    },
   });
 
   // 5. Send message to Gemini

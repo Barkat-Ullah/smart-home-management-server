@@ -1,0 +1,152 @@
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T05:50:27.599Z"}
+{"level":"info","message":{"duration":"8ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T05:55:08.539Z"}
+{"level":"info","message":{"duration":"2ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T05:55:52.921Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T05:57:39.013Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T05:57:50.162Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T05:57:53.140Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T05:57:55.619Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T05:57:57.887Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T05:58:07.112Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T05:58:47.767Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T05:59:00.081Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T05:59:01.819Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:00:29.796Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:00:32.794Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:00:39.156Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:00:43.088Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:00:48.293Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:00:49.651Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:00:54.890Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:05:06.605Z"}
+{"level":"info","message":{"duration":"13ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:05:21.133Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:06:30.804Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:07:56.634Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:08:00.882Z"}
+{"level":"info","message":{"duration":"13ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:08:05.742Z"}
+{"level":"info","message":{"duration":"2ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:08:08.465Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:09:53.224Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:09:55.534Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:13:59.943Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:16:49.289Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:16:52.523Z"}
+{"level":"info","message":{"duration":"13ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:17:01.158Z"}
+{"level":"info","message":{"duration":"2ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:17:03.132Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:17:42.374Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:17:46.101Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:17:49.626Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:17:54.258Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:17:57.608Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:18:27.033Z"}
+{"level":"info","message":{"duration":"8ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:18:42.464Z"}
+{"level":"info","message":{"duration":"4ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:18:44.150Z"}
+{"level":"info","message":{"duration":"3ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:18:45.639Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:18:54.858Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:19:19.534Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:19:23.604Z"}
+{"level":"info","message":{"duration":"10ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:19:26.839Z"}
+{"level":"info","message":{"duration":"2ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:19:28.060Z"}
+{"level":"info","message":{"duration":"6ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:19:28.968Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:21:29.283Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:21:35.290Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:21:37.287Z"}
+{"level":"info","message":{"duration":"12ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:21:45.855Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:22:21.618Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:22:28.462Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:22:32.733Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:22:34.087Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:22:41.604Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:22:45.053Z"}
+{"level":"info","message":{"duration":"12ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:22:49.039Z"}
+{"level":"info","message":{"duration":"4ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:22:50.579Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:23:06.173Z"}
+{"level":"info","message":{"duration":"8ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:23:10.479Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:25:31.368Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:26:18.498Z"}
+{"level":"info","message":{"duration":"8ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:26:37.405Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:27:33.466Z"}
+{"level":"info","message":{"duration":"12ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:27:43.307Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:27:58.009Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:28:02.198Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:31:16.421Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:31:20.395Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:31:22.175Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:31:23.894Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:31:29.201Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:32:41.783Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:32:46.272Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:33:15.619Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:33:22.778Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:33:25.273Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:33:27.057Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:33:30.407Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:35:17.690Z"}
+{"level":"info","message":{"duration":"2607ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:35:39.593Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:36:18.013Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:37:41.591Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:38:21.828Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:38:33.529Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:38:46.707Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:39:07.934Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:39:14.448Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:39:18.361Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:39:34.802Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:40:07.739Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:40:09.949Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:40:11.769Z"}
+{"level":"info","message":{"duration":"39958ms","ip":"::1","method":"POST","status":200,"url":"/api/v1/cv/upload"},"timestamp":"2026-03-30T06:41:05.490Z"}
+{"level":"info","message":{"duration":"6296ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/chat"},"timestamp":"2026-03-30T06:52:10.227Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:53:38.070Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:54:13.865Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T06:57:38.535Z"}
+{"level":"info","message":{"duration":"22349ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/chat"},"timestamp":"2026-03-30T06:58:05.170Z"}
+{"level":"info","message":{"duration":"7215ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/chat"},"timestamp":"2026-03-30T08:00:48.472Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T08:02:52.788Z"}
+{"level":"info","message":{"duration":"1810ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/chat"},"timestamp":"2026-03-30T08:03:49.612Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T08:04:53.298Z"}
+{"level":"info","message":{"duration":"1905ms","ip":"::1","method":"POST","status":500,"url":"/api/v1/cv/chat"},"timestamp":"2026-03-30T08:05:04.925Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-30T08:07:09.195Z"}
+{"level":"info","message":{"duration":"9182ms","ip":"::1","method":"POST","status":200,"url":"/api/v1/cv/chat"},"timestamp":"2026-03-30T08:07:25.753Z"}
+{"level":"info","message":{"duration":"82ms","ip":"::1","method":"GET","status":200,"url":"/api/v1/cv/history/test-session-001"},"timestamp":"2026-03-30T08:09:07.478Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-03-31T08:58:44.032Z"}
+{"level":"info","message":{"duration":"115ms","ip":"::1","method":"GET","status":200,"url":"/api/v1/cv/history/test-session-001"},"timestamp":"2026-03-31T09:25:05.192Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T03:02:29.546Z"}
+{"level":"info","message":{"duration":"2769ms","ip":"::1","method":"POST","status":200,"url":"/api/v1/ask"},"timestamp":"2026-04-06T03:03:11.023Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:21:59.802Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:24:55.075Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:25:03.868Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:28:18.510Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:28:20.579Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:28:29.212Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:28:32.723Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:28:47.243Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:28:50.601Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:28:53.224Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:29:01.185Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:29:58.212Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:30:02.500Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:30:10.119Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:30:13.403Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:30:16.874Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:31:31.916Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:31:39.590Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:31:47.541Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:31:50.046Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:31:52.978Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:32:02.324Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:32:05.479Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:33:27.724Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:33:30.774Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:33:33.907Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:33:37.851Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:33:41.568Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:33:48.857Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:33:55.220Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:33:58.178Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:34:15.352Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:34:18.374Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:34:26.654Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:35:01.966Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:35:05.729Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:35:12.111Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:35:18.470Z"}
+{"level":"info","message":"Middlewares setup complete","timestamp":"2026-04-06T04:35:22.680Z"}

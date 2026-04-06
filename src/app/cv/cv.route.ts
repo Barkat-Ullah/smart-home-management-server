@@ -4,11 +4,12 @@ import { chat } from './chat.service';
 import prisma from '../utils/prisma';
 import multer from 'multer';
 import { chunkText, saveChunks } from './embedding.service';
-import pdfParse from 'pdf-parse';
+// import pdfParse from 'pdf-parse';
 
-const pdf = pdfParse as unknown as (
-  buffer: Buffer,
-) => Promise<{ text: string }>;
+// const pdf = pdfParse as unknown as (
+//   buffer: Buffer,
+// ) => Promise<{ text: string }>;
+import pdfParse from '@cedrugs/pdf-parse';
 
 const router = Router();
 const upload = multer({
@@ -26,8 +27,8 @@ router.post(
         res.status(400).json({ error: 'Please upload a valid PDF file' });
         return;
       }
-
-      const parsed = await pdf(req.file.buffer);
+      const parsed = await pdfParse(req.file.buffer);
+      // console.log(parsed)
       const text = parsed.text;
 
       if (!text.trim()) {

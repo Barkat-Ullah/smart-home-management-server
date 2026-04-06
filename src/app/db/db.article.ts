@@ -968,7 +968,7 @@ export async function seedActivities() {
     // console.log('🌱 Starting to seed activities...');
     const existingActivityCount = await prisma.article.count();
     if (existingActivityCount > 0) {
-      console.log('Activities already exist → skipping seed');
+      // console.log('Activities already exist → skipping seed');
       return;
     }
 

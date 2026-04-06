@@ -64,15 +64,16 @@ const getMemoryList = async (
   const whereConditions: Prisma.MemoryWhereInput =
     andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const result = await prisma.memory.findMany({
-    skip,
-    take: limit,
-    where: whereConditions,
-    orderBy: { createdAt: 'desc' },
-    select: memorySelect,
-  });
-
-  const total = await prisma.memory.count({ where: whereConditions });
+  const [result, total] = await Promise.all([
+    prisma.memory.findMany({
+      skip,
+      take: limit,
+      where: whereConditions,
+      orderBy: { createdAt: 'desc' },
+      select: memorySelect,
+    }),
+    prisma.memory.count({ where: whereConditions }),
+  ]);
   return { meta: { total, page, limit }, data: result };
 };
 
@@ -118,15 +119,16 @@ const getMyMemory = async (
 
   const whereConditions: Prisma.MemoryWhereInput = { AND: andConditions };
 
-  const result = await prisma.memory.findMany({
-    skip,
-    take: limit,
-    where: whereConditions,
-    orderBy: { createdAt: 'desc' },
-    select: memorySelect,
-  });
-
-  const total = await prisma.memory.count({ where: whereConditions });
+  const [result, total] = await Promise.all([
+    prisma.memory.findMany({
+      skip,
+      take: limit,
+      where: whereConditions,
+      orderBy: { createdAt: 'desc' },
+      select: memorySelect,
+    }),
+    prisma.memory.count({ where: whereConditions }),
+  ]);
 
   return { meta: { total, page, limit }, data: result };
 };

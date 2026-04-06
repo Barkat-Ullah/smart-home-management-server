@@ -30,6 +30,7 @@ import { cctvCameraRoutes } from '../modules/cctvCamera/cctvCamera.routes';
 import { notificationsRoute } from '../modules/notifications/notification.routes';
 import { cvRoute } from '../cv/cv.route';
 
+
 const router = express.Router();
 
 const moduleRoutes = [
@@ -147,6 +148,7 @@ const moduleRoutes = [
     path: '/cctv-cameras',
     route: cctvCameraRoutes,
   },
+
 ];
 
 moduleRoutes.forEach(route => router.use(route.path, route.route));

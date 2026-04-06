@@ -1,5 +1,5 @@
 import httpStatus from 'http-status';
-import { Prisma, UserRoleEnum } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import prisma from '../../utils/prisma';
 import { IPaginationOptions } from '../../interface/pagination.type';
 import { paginationHelper } from '../../utils/calculatePagination';
@@ -22,6 +22,7 @@ const VALID_ACTIVITIES = [
   'Move_and_Play',
   'Learning_and_skills',
 ] as const;
+
 const VALID_BLOG_TYPES: ArticleBlogType[] = [
   'child',
   'cooking',

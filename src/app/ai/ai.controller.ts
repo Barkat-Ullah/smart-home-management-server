@@ -24,11 +24,13 @@ export async function askGroq(req: Request, res: Response) {
     });
 
     const answer = response.choices[0].message.content;
+    const models = await groq.models.list();
 
     return res.status(200).json({
       success: true,
       question: text,
       answer,
+      // models,
     });
   } catch (err: any) {
     console.error('Groq error:', err);

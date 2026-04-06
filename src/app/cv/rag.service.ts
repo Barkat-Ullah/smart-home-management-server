@@ -1,4 +1,3 @@
-
 import prisma from '../utils/prisma';
 import { createEmbedding } from './embedding.service';
 

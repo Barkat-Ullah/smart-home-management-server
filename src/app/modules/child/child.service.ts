@@ -65,15 +65,16 @@ const getChildList = async (
   const whereConditions: Prisma.ChildWhereInput =
     andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const result = await prisma.child.findMany({
-    skip,
-    take: limit,
-    where: whereConditions,
-    orderBy: { createdAt: 'desc' },
-    select: childSelect,
-  });
-
-  const total = await prisma.child.count({ where: whereConditions });
+  const [result, total] = await Promise.all([
+    prisma.child.findMany({
+      skip,
+      take: limit,
+      where: whereConditions,
+      orderBy: { createdAt: 'desc' },
+      select: childSelect,
+    }),
+    prisma.child.count({ where: whereConditions }),
+  ]);
 
   return { meta: { total, page, limit }, data: result };
 };
@@ -123,15 +124,16 @@ const getMyChild = async (
 
   const whereConditions: Prisma.ChildWhereInput = { AND: andConditions };
 
-  const result = await prisma.child.findMany({
-    skip,
-    take: limit,
-    where: whereConditions,
-    orderBy: { createdAt: 'desc' },
-    select: childSelect,
-  });
-
-  const total = await prisma.child.count({ where: whereConditions });
+  const [result, total] = await Promise.all([
+    prisma.child.findMany({
+      skip,
+      take: limit,
+      where: whereConditions,
+      orderBy: { createdAt: 'desc' },
+      select: childSelect,
+    }),
+    prisma.child.count({ where: whereConditions }),
+  ]);
 
   return { meta: { total, page, limit }, data: result };
 };

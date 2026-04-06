@@ -104,15 +104,16 @@ const getPaymentList = async (
   const whereConditions: Prisma.PaymentWhereInput =
     andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const result = await prisma.payment.findMany({
-    skip,
-    take: limit,
-    where: whereConditions,
-    orderBy: { createdAt: 'desc' },
-    select: paymentSelect,
-  });
-
-  const total = await prisma.payment.count({ where: whereConditions });
+  const [result, total] = await Promise.all([
+    prisma.payment.findMany({
+      skip,
+      take: limit,
+      where: whereConditions,
+      orderBy: { createdAt: 'desc' },
+      select: paymentSelect,
+    }),
+    prisma.payment.count({ where: whereConditions }),
+  ]);
 
   return { meta: { total, page, limit }, data: result };
 };
@@ -192,15 +193,16 @@ const getMyPayment = async (
 
   const whereConditions: Prisma.PaymentWhereInput = { AND: andConditions };
 
-  const result = await prisma.payment.findMany({
-    skip,
-    take: limit,
-    where: whereConditions,
-    orderBy: { createdAt: 'desc' },
-    select: paymentSelect,
-  });
-
-  const total = await prisma.payment.count({ where: whereConditions });
+  const [result, total] = await Promise.all([
+    prisma.payment.findMany({
+      skip,
+      take: limit,
+      where: whereConditions,
+      orderBy: { createdAt: 'desc' },
+      select: paymentSelect,
+    }),
+    prisma.payment.count({ where: whereConditions }),
+  ]);
 
   return { meta: { total, page, limit }, data: result };
 };

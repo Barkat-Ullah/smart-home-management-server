@@ -60,7 +60,7 @@ const PLANS = [
 ];
 
 async function seedSubscriptions() {
-  console.log('🌱 Starting subscription seeding...');
+  // console.log('🌱 Starting subscription seeding...');
 
   for (const plan of PLANS) {
     const existing = await prisma.subscription.findFirst({
@@ -71,7 +71,7 @@ async function seedSubscriptions() {
     });
 
     if (existing) {
-      console.log(`⚠️  Already exists: ${plan.title}`);
+      // console.log(`⚠️  Already exists: ${plan.title}`);
       continue;
     }
 
@@ -79,7 +79,7 @@ async function seedSubscriptions() {
     console.log(`✅ Seeded: ${plan.title}`);
   }
 
-  console.log('🎉 Subscription seeding complete!');
+  // console.log('🎉 Subscription seeding complete!');
 }
 
 export default seedSubscriptions;

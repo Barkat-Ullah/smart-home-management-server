@@ -28,3 +28,21 @@ model ChatMessage {
 
     @@map("chat_messages")
 }
+
+
+model Test {
+    id          String     @id @default(auto()) @map("_id") @db.ObjectId
+    title       String
+    description String
+    status      TestStatus
+    isDeleted   Boolean    @default(false)
+    createdAt   DateTime   @default(now())
+    updatedAt   DateTime   @updatedAt
+
+    @@map("rest")
+}
+
+enum TestStatus {
+    Pending
+    Complete
+}

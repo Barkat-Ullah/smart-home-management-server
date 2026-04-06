@@ -27,9 +27,9 @@ async function main() {
     });
 
     // WebSocket setup (after listen)
-    console.log('🔌 Setting up WebSocket...');
+    // console.log('🔌 Setting up WebSocket...');
     // await setupWebSocket(server);
-    console.log('✅ WebSocket setup complete!');
+    // console.log('✅ WebSocket setup complete!');
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
