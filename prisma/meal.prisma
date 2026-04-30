@@ -37,17 +37,16 @@ enum MealPlanDayStatus {
 // ─────────────────────────────────────────────
 
 model Meal {
-    id          String   @id @default(auto()) @map("_id") @db.ObjectId
-    userId      String   @db.ObjectId
-    title       String
-    description String?
-    ingredients String[] // e.g. ["rice", "chicken", "oil"]
-    files       String?
-    prepMinutes Int? // preparation time in minutes
-    isDeleted   Boolean  @default(false)
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
-
+    id               String            @id @default(auto()) @map("_id") @db.ObjectId
+    userId           String            @db.ObjectId
+    title            String
+    description      String?
+    ingredients      String[] // e.g. ["rice", "chicken", "oil"]
+    files            String?
+    prepMinutes      Int? // preparation time in minutes
+    isDeleted        Boolean           @default(false)
+    createdAt        DateTime          @default(now())
+    updatedAt        DateTime          @updatedAt
     // Relations
     createdBy        User              @relation("UserMeals", fields: [userId], references: [id])
     mealPlanDayItems MealPlanDayItem[]
@@ -71,10 +70,9 @@ model WeeklyMealPlan {
     createdAt   DateTime         @default(now())
     updatedAt   DateTime         @updatedAt
     completedAt DateTime?
-
     // Relations
-    createdBy User          @relation("UserWeeklyMealPlans", fields: [userId], references: [id])
-    days      MealPlanDay[]
+    createdBy   User             @relation("UserWeeklyMealPlans", fields: [userId], references: [id])
+    days        MealPlanDay[]
 
     @@unique([userId, weekNumber]) // each week is unique per user
     @@map("weekly_meal_plans")
@@ -110,22 +108,20 @@ model MealPlanDay {
 // ─────────────────────────────────────────────
 
 model MealPlanDayItem {
-    id          String    @id @default(auto()) @map("_id") @db.ObjectId
-    planDayId   String    @db.ObjectId
-    mealId      String?   @db.ObjectId // pick from existing Meal, null if custom
+    id          String      @id @default(auto()) @map("_id") @db.ObjectId
+    planDayId   String      @db.ObjectId
+    mealId      String?     @db.ObjectId // pick from existing Meal, null if custom
     mealTime    MealTime
     customTitle String? // quick entry without linking a Meal record
-    servings    Int       @default(1)
-    isCompleted Boolean   @default(false)
+    servings    Int         @default(1)
+    isCompleted Boolean     @default(false)
     completedAt DateTime?
     notes       String?
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
     // Relations
-    planDay MealPlanDay @relation(fields: [planDayId], references: [id])
-    meal    Meal?       @relation(fields: [mealId], references: [id])
+    planDay     MealPlanDay @relation(fields: [planDayId], references: [id])
+    meal        Meal?       @relation(fields: [mealId], references: [id])
 
     @@map("meal_plan_day_items")
 }

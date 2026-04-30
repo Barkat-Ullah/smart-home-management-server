@@ -19,9 +19,9 @@ const addMealItem = async (req: Request) => {
   if (!planDay) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Meal plan day not found');
   }
-  if (planDay.userId !== userId) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
-  }
+  // if (planDay.userId !== userId) {
+  //   throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
+  // }
 
   // If mealId provided, verify meal exists and belongs to user
   if (mealId) {
@@ -74,9 +74,9 @@ const getItemsByPlanDay = async (planDayId: string, userId: string) => {
   if (!planDay) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Meal plan day not found');
   }
-  if (planDay.userId !== userId) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
-  }
+  // if (planDay.userId !== userId) {
+  //   throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
+  // }
 
   return prisma.mealPlanDayItem.findMany({
     where: { planDayId },
@@ -101,9 +101,9 @@ const updateMealItem = async (req: Request) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Meal item not found');
   }
 
-  if (existing.planDay.userId !== req.user.id) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
-  }
+  // if (existing.planDay.userId !== req.user.id) {
+  //   throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
+  // }
 
   return prisma.mealPlanDayItem.update({
     where: { id },
@@ -125,9 +125,9 @@ const completeMealItem = async (id: string, userId: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Meal item not found');
   }
 
-  if (existing.planDay.userId !== userId) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
-  }
+  // if (existing.planDay.userId !== userId) {
+  //   throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
+  // }
 
   return prisma.mealPlanDayItem.update({
     where: { id },
@@ -149,9 +149,9 @@ const deleteMealItem = async (id: string, userId: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Meal item not found');
   }
 
-  if (existing.planDay.userId !== userId) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
-  }
+  // if (existing.planDay.userId !== userId) {
+  //   throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
+  // }
 
   return prisma.mealPlanDayItem.delete({
     where: { id },

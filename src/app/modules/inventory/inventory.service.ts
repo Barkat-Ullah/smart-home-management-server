@@ -5,7 +5,6 @@ import { IPaginationOptions } from '../../interface/pagination.type';
 import { paginationHelper } from '../../utils/calculatePagination';
 import ApiError from '../../errors/AppError';
 import { Request } from 'express';
-import { handleFileUploads } from '../../utils/handleFile';
 import { inventorySelect } from './inventory.select';
 import {
   toUTCEndOfDay,
@@ -39,7 +38,7 @@ type IInventoryFilterRequest = {
   status?: string;
 };
 
-const inventorySearchAbleFields = ['fullName', 'email'];
+const inventorySearchAbleFields = ['title', 'location'];
 
 const getInventoryList = async (
   options: IPaginationOptions,

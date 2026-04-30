@@ -75,7 +75,7 @@ export const apiLimiter = rateLimit({
 
 logger.info('Middlewares setup complete');
 
-export const notFound = (req: Request, res: Response, next: NextFunction) => {
+export const notFound = (req: Request, res: Response, _next: NextFunction) => {
   res.status(httpStatus.NOT_FOUND).json({
     success: false,
     message: 'API NOT FOUND! please check on router',
@@ -212,7 +212,7 @@ export const documentUpload = catchAsync(
   },
 );
 
-export const serverHealth = catchAsync(async (req, res) => {
+export const serverHealth = catchAsync(async (_req, res) => {
   let dbStatus = 'connected';
 
   try {

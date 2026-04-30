@@ -4,17 +4,13 @@ import { chat } from './chat.service';
 import prisma from '../utils/prisma';
 import multer from 'multer';
 import { chunkText, saveChunks } from './embedding.service';
-// import pdfParse from 'pdf-parse';
 
-// const pdf = pdfParse as unknown as (
-//   buffer: Buffer,
-// ) => Promise<{ text: string }>;
 import pdfParse from '@cedrugs/pdf-parse';
 
 const router = Router();
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB limit
+  limits: { fileSize: 50 * 1024 * 1024 },
 });
 
 // POST /cv/upload — upload and process PDF

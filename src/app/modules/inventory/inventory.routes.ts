@@ -3,7 +3,6 @@ import auth from '../../middlewares/auth';
 import validateRequest from '../../middlewares/validateRequest';
 import { inventoryController } from './inventory.controller';
 import { inventoryValidation } from './inventory.validation';
-import { fileUploader } from '../../utils/fileUploader';
 
 const router = express.Router();
 
