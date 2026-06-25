@@ -88,6 +88,11 @@ model User {
   userSubscriptions             UserSubscription?  @relation("UserSubscriptions")
   userSaveArticles              UserSaveArticle[]   @relation("UserUserSaveArticle")
 
+  @@index([email])
+  @@index([role, status, isDeleted])
+  @@index([createdById])
+  @@index([plan, isDeleted])
+  @@index([createdAt(sort: Desc)])
   @@map("users")
 }
 
@@ -133,6 +138,7 @@ model Activity {
 
   user User @relation("UserActivity", fields: [userId], references: [id])
 
+  @@index([userId, createdAt(sort: Desc)])
   @@map("activity")
 }
 
@@ -157,6 +163,9 @@ model Article {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
+  @@index([stage, activity, status])
+  @@index([isDeleted])
+  @@index([createdAt(sort: Desc)])
   @@map("article")
 }
 
@@ -167,6 +176,7 @@ model UserSaveArticle {
   isSave    Boolean @default(false)
   user      User    @relation("UserUserSaveArticle", fields: [userId], references: [id])
 
+  @@index([userId, articleId])
   @@map("userSaveArticle")
 }
 

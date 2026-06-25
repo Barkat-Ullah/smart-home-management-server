@@ -56,6 +56,11 @@ model Feed {
     reactions     FeedReaction[]
     statusHistory FeedStatusHistory[]
 
+    @@index([userId, status, isDeleted])
+    @@index([userId, type])
+    @@index([status, priority])
+    @@index([createdAt(sort: Desc)])
+    @@index([isPinned, createdAt(sort: Desc)])
     @@map("feeds")
 }
 
@@ -77,6 +82,8 @@ model FeedAssignment {
     moderator      User      @relation("ModeratorAssignments", fields: [moderatorId], references: [id])
     assignedByUser User      @relation("AdminAssignments", fields: [assignedBy], references: [id])
 
+    @@index([feedId, isActive])
+    @@index([moderatorId, isActive])
     @@map("feed_assignments")
 }
 
@@ -102,6 +109,9 @@ model FeedComment {
     parent      FeedComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
     replies     FeedComment[] @relation("CommentReplies")
 
+    @@index([feedId, createdAt(sort: Desc)])
+    @@index([userId])
+    @@index([parentId])
     @@map("feed_comments")
 }
 
@@ -119,6 +129,8 @@ model FeedReaction {
     feed       Feed     @relation(fields: [feedId], references: [id])
     user       User     @relation("UserFeedReactions", fields: [userId], references: [id])
 
+    @@index([feedId])
+    @@index([userId])
     @@unique([feedId, userId])
     @@map("feed_reactions")
 }
@@ -139,5 +151,6 @@ model FeedStatusHistory {
     feed          Feed       @relation(fields: [feedId], references: [id])
     changedByUser User       @relation("StatusChanges", fields: [changedBy], references: [id])
 
+    @@index([feedId, createdAt(sort: Desc)])
     @@map("feed_status_history")
 }

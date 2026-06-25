@@ -43,5 +43,8 @@ model Child {
     // Relations
     createdBy User @relation("CreatedChildren", fields: [userId], references: [id])
 
+    @@index([userId, isDeleted])
+    @@index([userId, isActive])
+    @@index([createdAt(sort: Desc)])
     @@map("children")
 }

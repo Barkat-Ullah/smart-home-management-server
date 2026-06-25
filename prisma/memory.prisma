@@ -16,6 +16,9 @@ model Memory {
     createdBy User          @relation("UsersharedMemory", fields: [userId], references: [id])
     relatedTo FamilyMember? @relation(fields: [relatedPersonId], references: [id])
 
+    @@index([userId, memoryOf])
+    @@index([userId, createdAt(sort: Desc)])
+    @@index([relatedPersonId])
     @@map("memory")
 }
 
@@ -34,5 +37,7 @@ model MemoryShare {
     memory           Memory   @relation(fields: [memoryId], references: [id])
     user             User     @relation(fields: [sharedWithUserId], references: [id])
 
+    @@index([memoryId])
+    @@index([sharedWithUserId])
     @@map("memory_share")
 }

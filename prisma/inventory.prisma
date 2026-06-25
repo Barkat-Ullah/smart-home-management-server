@@ -12,6 +12,10 @@ model Inventory {
 
     user User @relation("UserInventory", fields: [userId], references: [id])
 
+    @@index([userId, isDeleted])
+    @@index([userId, status])
+    @@index([userId, category])
+    @@index([createdAt(sort: Desc)])
     @@map("inventory")
 }
 

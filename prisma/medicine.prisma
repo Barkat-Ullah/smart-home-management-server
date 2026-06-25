@@ -67,6 +67,8 @@ model Prescription {
     createdBy    User               @relation("UserPrescriptions", fields: [userId], references: [id])
     medicines    MedicineSchedule[]
 
+    @@index([userId])
+    @@index([userId, createdAt(sort: Desc)])
     @@map("prescriptions")
 }
 
@@ -106,6 +108,9 @@ model MedicineSchedule {
     doseLogs       DoseLog[]
     reminders      MedicineReminder[]
 
+    @@index([userId, status, startDate])
+    @@index([userId, prescriptionId])
+    @@index([status, startDate, endDate])
     @@map("medicine_schedules")
 }
 
@@ -128,6 +133,9 @@ model DoseLog {
     schedule    MedicineSchedule @relation(fields: [scheduleId], references: [id])
     loggedBy    User             @relation("UserDoseLogs", fields: [userId], references: [id])
 
+    @@index([scheduleId, scheduledAt(sort: Desc)])
+    @@index([userId, scheduledAt(sort: Desc)])
+    @@index([scheduleId, status])
     @@map("dose_logs")
 }
 
@@ -156,5 +164,8 @@ model MedicineReminder {
     schedule   MedicineSchedule @relation(fields: [scheduleId], references: [id])
     user       User             @relation("UserMedicineReminders", fields: [userId], references: [id])
 
+    @@index([scheduleId, remindAt])
+    @@index([userId, status])
+    @@index([remindAt, status])
     @@map("medicine_reminders")
 }

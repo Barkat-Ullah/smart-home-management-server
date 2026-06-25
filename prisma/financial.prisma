@@ -87,6 +87,8 @@ model FinancialProfile {
     budgets         Budget[]
     salaryInfo      SalaryInfo?
 
+    @@index([userId, isDeleted])
+    @@index([userId, year, month])
     @@unique([userId, month, year])
     @@map("financial_profiles")
 }
@@ -142,6 +144,11 @@ model Transaction {
     user             User             @relation("UserTransactions", fields: [userId], references: [id])
     financialProfile FinancialProfile @relation(fields: [financialProfileId], references: [id])
 
+    @@index([userId, date(sort: Desc)])
+    @@index([userId, type])
+    @@index([userId, category])
+    @@index([financialProfileId])
+    @@index([userId, date(sort: Desc), type])
     @@map("transactions")
 }
 
@@ -168,6 +175,8 @@ model Budget {
     user             User             @relation("UserBudgets", fields: [userId], references: [id])
     financialProfile FinancialProfile @relation(fields: [financialProfileId], references: [id])
 
+    @@index([userId, month, year])
+    @@index([financialProfileId])
     @@unique([userId, category, month, year])
     @@map("budgets")
 }
@@ -195,6 +204,8 @@ model FinancialGoal {
 
     user User @relation("UserGoals", fields: [userId], references: [id])
 
+    @@index([userId, status])
+    @@index([userId, targetDate])
     @@map("financial_goals")
 }
 
@@ -225,5 +236,7 @@ model FinancialSnapshot {
 
     user User @relation("UserSnapshots", fields: [userId], references: [id])
 
+    @@index([userId, period, startDate])
+    @@index([userId, startDate(sort: Desc)])
     @@map("financial")
 }

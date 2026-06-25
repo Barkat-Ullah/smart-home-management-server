@@ -51,6 +51,8 @@ model Meal {
     createdBy        User              @relation("UserMeals", fields: [userId], references: [id])
     mealPlanDayItems MealPlanDayItem[]
 
+    @@index([userId, isDeleted])
+    @@index([createdAt(sort: Desc)])
     @@map("meals")
 }
 
@@ -74,6 +76,8 @@ model WeeklyMealPlan {
     createdBy   User             @relation("UserWeeklyMealPlans", fields: [userId], references: [id])
     days        MealPlanDay[]
 
+    @@index([userId, startDate, endDate])
+    @@index([userId, status])
     @@unique([userId, weekNumber]) // each week is unique per user
     @@map("weekly_meal_plans")
 }
@@ -99,6 +103,9 @@ model MealPlanDay {
     createdBy    User              @relation("UserMealPlanDays", fields: [userId], references: [id])
     mealItems    MealPlanDayItem[]
 
+    @@index([userId, date])
+    @@index([userId, caregiverId])
+    @@index([weeklyPlanId])
     @@unique([weeklyPlanId, day]) // each day appears only once per plan
     @@map("meal_plan_days")
 }
@@ -123,5 +130,7 @@ model MealPlanDayItem {
     planDay     MealPlanDay @relation(fields: [planDayId], references: [id])
     meal        Meal?       @relation(fields: [mealId], references: [id])
 
+    @@index([planDayId, mealTime])
+    @@index([mealId])
     @@map("meal_plan_day_items")
 }

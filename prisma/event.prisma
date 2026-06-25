@@ -72,5 +72,11 @@ model Event {
     // Relations
     createdBy User @relation("UserEvents", fields: [userId], references: [id])
 
+    @@index([userId, isDeleted])
+    @@index([userId, eventDate])
+    @@index([userId, status])
+    @@index([userId, category])
+    @@index([eventDate(sort: Desc)])
+    @@index([status, eventDate])
     @@map("events")
 }

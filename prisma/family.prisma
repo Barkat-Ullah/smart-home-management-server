@@ -21,6 +21,9 @@ model FamilyMember {
     createdBy User     @relation("UserFamilyMember", fields: [userId], references: [id])
     memories  Memory[]
 
+    @@index([userId, isDeleted])
+    @@index([userId, status])
+    @@index([createdAt(sort: Desc)])
     @@map("familyMember")
 }
 

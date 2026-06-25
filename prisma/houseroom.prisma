@@ -66,6 +66,8 @@ model Houseroom {
     aircons      AirConditioner[]
     smartDevices SmartDevice[]
 
+    @@index([userId, isDeleted])
+    @@index([userId, type])
     @@map("houserooms")
 }
 
@@ -91,6 +93,8 @@ model CctvCamera {
     owner       User         @relation("UserCameras", fields: [userId], references: [id])
     houseroom   Houseroom    @relation(fields: [houseroomId], references: [id])
 
+    @@index([userId, houseroomId])
+    @@index([userId, status])
     @@map("cctv_cameras")
 }
 
@@ -117,6 +121,8 @@ model AirConditioner {
     owner       User         @relation("UserAircons", fields: [userId], references: [id])
     houseroom   Houseroom    @relation(fields: [houseroomId], references: [id])
 
+    @@index([userId, houseroomId])
+    @@index([userId, status])
     @@map("air_conditioners")
 }
 
@@ -145,5 +151,8 @@ model SmartDevice {
     owner       User         @relation("UserDevices", fields: [userId], references: [id])
     houseroom   Houseroom    @relation(fields: [houseroomId], references: [id])
 
+    @@index([userId, houseroomId])
+    @@index([userId, status])
+    @@index([userId, type])
     @@map("smart_devices")
 }

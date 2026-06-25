@@ -10,6 +10,8 @@ model Room {
   receiver User   @relation("RoomReceiver", fields: [receiverId], references: [id])
   chat     Chat[]
 
+  @@index([senderId, receiverId])
+  @@index([receiverId])
   @@map("rooms")
 }
 
@@ -32,5 +34,8 @@ model Chat {
   sender   User @relation("ChatSender", fields: [senderId], references: [id])
   receiver User @relation("ChatReceiver", fields: [receiverId], references: [id])
 
+  @@index([roomId, createdAt(sort: Desc)])
+  @@index([senderId, receiverId])
+  @@index([roomId, isRead])
   @@map("chats")
 }

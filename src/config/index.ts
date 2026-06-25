@@ -19,6 +19,8 @@ export default {
     access_expires_in: process.env.JWT_ACCESS_EXPIRES_IN,
     refresh_secret: process.env.JWT_REFRESH_SECRET,
     refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN,
+    api_access_token: process.env.API_ACCESS_TOKEN,
+    api_key: process.env.API_KEY,
   },
   do_space: {
     endpoints: process.env.DO_SPACE_ENDPOINT,

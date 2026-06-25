@@ -2,14 +2,13 @@ model favorite {
   id        String @id @default(auto()) @map("_id") @db.ObjectId
   userId    String @db.ObjectId
   articleId String @db.ObjectId
-
   isFavorite Boolean @default(false)
-
-  // article Test @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  user User @relation("UserCreator", fields: [userId], references: [id])
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  //relation
+  // article Test @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user User @relation("UserCreator", fields: [userId], references: [id])
+ 
 
   @@map("love_react")
 }
