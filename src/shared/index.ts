@@ -4,7 +4,7 @@ import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import catchAsync from '../app/utils/catchAsync';
-import { insecurePrisma, prisma } from '../app/utils/prisma';
+import { insecurePrisma } from '../app/utils/prisma';
 import { fileUploader } from '../app/utils/fileUploader';
 import ApiError from '../app/errors/AppError';
 import helmet from 'helmet';

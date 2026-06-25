@@ -12,8 +12,8 @@ type TupleHasDuplicate<T extends readonly unknown[]> = T extends [
   ...infer R,
 ]
   ? F extends R[number]
-    ? true
-    : TupleHasDuplicate<R>
+  ? true
+  : TupleHasDuplicate<R>
   : false;
 
 type NoDuplicates<T extends readonly unknown[]> =

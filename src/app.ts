@@ -11,6 +11,7 @@ import {
 } from './shared';
 import { rootHandler } from './shared/rootHandler';
 import { fileUploader } from './app/utils/fileUploader';
+import auth from './app/middlewares/auth';
 // import { StripeWebHook } from './app/utils/StripeUtils';
 
 const app: Application = express();
@@ -31,7 +32,7 @@ app.use('/api/v1', apiLimiter, router);
 // Upload route (after main routes, before error handler)
 app.post(
   '/api/v1/upload-document',
-  // auth(),
+  auth(),
   fileUploader.upload.fields([
     { name: 'image', maxCount: 1 },
     { name: 'video', maxCount: 1 },

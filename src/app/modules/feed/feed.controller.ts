@@ -43,7 +43,7 @@ const getFeedList = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getFeedById = catchAsync(async (req: Request, res: Response) => {
-  const result = await feedService.getFeedById(req.user.id,req.params.id);
+  const result = await feedService.getFeedById(req.user.id, req.params.id);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

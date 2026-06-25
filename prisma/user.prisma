@@ -28,6 +28,7 @@ model User {
   ipInfo                        Json?
   trackInfo                     Json?
   lastLoginAt                   DateTime?
+  lastLogoutAt                  DateTime?  // ← ADD THIS
   createdAt                     DateTime            @default(now())
   updatedAt                     DateTime            @updatedAt
   //RELATION
@@ -118,6 +119,7 @@ model Logout {
 
   user User @relation("Logout", fields: [userId], references: [id])
 
+  @@index([userId, logoutAt(sort: Desc)])
   @@map("Logout")
 }
 

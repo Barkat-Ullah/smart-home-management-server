@@ -21,6 +21,8 @@ import {
   toUTCStartOfMonth,
 } from '../event/event.utils';
 
+const BCRYPT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 12;
+
 // -------------------------------------------------------
 // create User
 // -------------------------------------------------------
@@ -55,7 +57,7 @@ const createUser = async (req: Request) => {
   // password generate
   const userPass = data.password;
 
-  const hashedPassword = await bcrypt.hash(userPass, 12);
+  const hashedPassword = await bcrypt.hash(userPass, BCRYPT_ROUNDS);
 
   const result = await prisma.user.create({
     data: { ...data, createdById: creatorId, password: hashedPassword },
@@ -183,30 +185,30 @@ const getUserList = async (
       if (value === '' || value === null || value === undefined) return;
 
       // --- Date filter ---
-    if (key === 'createdAt') {
-      const parts = (value as string).split('-');
+      if (key === 'createdAt') {
+        const parts = (value as string).split('-');
 
-      if (parts.length === 2) {
-        // Format: "YYYY-MM" →
-        const year = parseInt(parts[0]);
-        const month = parseInt(parts[1]) - 1;
-        andConditions.push({
-          createdAt: {
-            gte: toUTCStartOfMonth(year, month),
-            lte: toUTCEndOfMonth(year, month),
-          },
-        });
-      } else if (parts.length === 3) {
-        // Format: "YYYY-MM-DD" →
-        andConditions.push({
-          createdAt: {
-            gte: toUTCStartOfDay(value),
-            lte: toUTCEndOfDay(value),
-          },
-        });
+        if (parts.length === 2) {
+          // Format: "YYYY-MM" →
+          const year = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          andConditions.push({
+            createdAt: {
+              gte: toUTCStartOfMonth(year, month),
+              lte: toUTCEndOfMonth(year, month),
+            },
+          });
+        } else if (parts.length === 3) {
+          // Format: "YYYY-MM-DD" →
+          andConditions.push({
+            createdAt: {
+              gte: toUTCStartOfDay(value),
+              lte: toUTCEndOfDay(value),
+            },
+          });
+        }
+        return;
       }
-      return;
-    }
 
       // --- Enum array filters ---
       if (['status', 'role', 'plan', 'gender'].includes(key)) {
