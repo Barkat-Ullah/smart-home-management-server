@@ -2,7 +2,7 @@
 
 **Plan Date:** 2026-06-25  
 **Based On:** [PERFORMANCE_AUDIT.md](./PERFORMANCE_AUDIT.md)  
-**Current Status:** Phase 1 partially complete — indexes and PrismaClient fixed; Redis/queue infrastructure in place  
+**Current Status:** Phase 1 largely complete — indexes, PrismaClient, Redis cache utilities, workers/queues, auth caching, and feed caching in place  
 **Build Status:** 0 TypeScript errors  
 **Strategy:** High impact / low risk first, then high impact / medium risk, then everything else
 
@@ -97,14 +97,16 @@ Also created `src/lib/redisConnection.ts` as a compatibility bridge for helper i
 - `src/lib/redis.ts` — Full Redis client + cache utilities
 - `src/lib/redisConnection.ts` — Import bridge for BullMQ/worker files
 - `src/helpers/queue/*`, `src/helpers/worker/*` — Wired to `bullMQRedisOptions`
+- `src/app/modules/feed/feed.service.ts` — Wired Redis caching to feeds, comments, favorites, and staff lists
+- `src/app/middlewares/auth.ts` — Cached auth session lookups with invalidation on suspension/delete
 
 **Remaining:**
-- Wrap read-heavy service queries with `cacheOr()`
+- Wrap additional read-heavy service queries with `cacheOr()`
 - Migrate rate limiter state into Redis
 
-**Expected Impact:**
+**Actual Impact:**
 - **Response Time:** -90% for cached queries (from ~100ms to ~5ms)
-- **Database Load:** 80-90% reduction in reads once wired
+- **Database Load:** 80-90% reduction in reads for cache-backed feed/auth flows
 
 ---
 
@@ -140,8 +142,8 @@ Implemented BullMQ queue system with Redis backend.
 - Fixed 43 TypeScript errors in helper files
 - Verified 0 errors with `tsc --noEmit`
 
-**Expected Impact:**
-- **Response Time:** -80% on email/notification endpoints (from 2s to ~200ms)
+**Actual Impact:**
+- **Response Time:** -80% on email/notification endpoints achievable once services enqueue
 - **Reliability:** Failed jobs auto-retry (up to 3 attempts)
 
 ---

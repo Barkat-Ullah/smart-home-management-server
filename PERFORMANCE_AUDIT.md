@@ -133,6 +133,12 @@ while (hasMore) { /* fetch + process batch */ }
 
 ---
 
+### 3.9 ✅ FIXED: Auth Middleware Cache Invalidation on Status Change
+**File:** `src/app/middlewares/auth.ts`, `src/app/modules/user/user.service.ts`
+**Fix:** Auth session validation is cached under `auth-session:<userId>`. `toggleStatusUser` invalidates this key after changing suspension status, so suspended users cannot reuse a stale cached session.
+
+---
+
 ### 3.2 🔴 OPEN: SSE Implementation Without Heartbeat or Cleanup
 **Fix Needed:** Review `src/app/utils/sse.ts` (if exists) or notification SSE subscriptions.
 
@@ -247,8 +253,9 @@ while (hasMore) { /* fetch + process batch */ }
 | 1.1 Dual PrismaClient | ✅ Fixed | Single pool, -40MB memory |
 | 1.2 Missing indexes | ✅ Fixed | All 16 schema files |
 | 1.4 Unbounded queries | ✅ Fixed | `sendMailToAllUsersFromDB` batched |
-| 2.1 Redis unused | 🟡 In Progress | Client + utilities ready, not wired to queries |
-| 3.1 No queue system | 🟡 In Progress | Workers/queues exist, not wired to auth yet |
+| 2.1 Redis unused | 🟡 In Progress | Query caching + feed/auth middleware caching added |
+| 3.1 No queue system | 🟡 In Progress | Workers/queues exist, auth still sync-email |
+| 3.9 Auth cache invalidation | ✅ Fixed | `auth-session` cache cleared on status change |
 | All other items | 🔴 Open | Listed above |
 
 ---

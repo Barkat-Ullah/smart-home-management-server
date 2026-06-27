@@ -2,24 +2,35 @@ import prisma from '../../../utils/prisma';
 
 // Logout frequency per user (for bar/line chart)
 export const getUserLogoutStats = async (userId?: string) => {
-  const where = userId ? { userId } : {};
+  const where: any = userId ? { userId } : {};
 
   const logouts = await prisma.logout.findMany({
     where,
     select: {
       userId: true,
       logoutAt: true,
-      user: { select: { fullName: true, email: true } },
     },
     orderBy: { logoutAt: 'asc' },
   });
 
-  // Group by userId
-  const grouped: Record<string, { user: any; count: number; dates: string[] }> =
-    {};
+  const userIds = [...new Set(logouts.map(l => l.userId))];
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, fullName: true, email: true },
+  });
+
+  const userMap = new Map(users.map(u => [u.id, u]));
+
+  const grouped: Record<string, { user: { fullName: string; email: string }; count: number; dates: string[] }> = {};
   for (const log of logouts) {
     if (!grouped[log.userId]) {
-      grouped[log.userId] = { user: log.user, count: 0, dates: [] };
+      const found = userMap.get(log.userId);
+      grouped[log.userId] = {
+        user: found ? { fullName: found.fullName, email: found.email } : { fullName: '', email: '' },
+        count: 0,
+        dates: [],
+      };
     }
     grouped[log.userId].count++;
     grouped[log.userId].dates.push(log.logoutAt.toISOString());
@@ -68,11 +79,29 @@ export const getAdminDashboardStats = async () => {
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-  const newUsers = await prisma.user.groupBy({
-    by: ['createdAt'],
+  const raw = await prisma.user.findMany({
     where: { createdAt: { gte: sixMonthsAgo } },
-    _count: true,
+    select: { createdAt: true },
   });
+
+  const monthly = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - (5 - i));
+    return {
+      month: d.toLocaleString('default', { month: 'short' }),
+      year: d.getFullYear(),
+      count: 0,
+    };
+  });
+
+  for (const u of raw) {
+    const m = u.createdAt.getMonth();
+    const y = u.createdAt.getFullYear();
+    const bucket = monthly.find(x => x.month === new Date(y, m).toLocaleString('default', { month: 'short' }) && x.year === y);
+    if (bucket) bucket.count++;
+  }
+
+  const newUsers = monthly.map(({ year, ...rest }) => rest);
 
   return {
     totalUsers,

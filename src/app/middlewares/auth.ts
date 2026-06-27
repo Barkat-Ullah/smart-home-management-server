@@ -6,6 +6,7 @@ import AppError from '../errors/AppError';
 import { verifyToken } from '../utils/verifyToken';
 import { UserRoleEnum, UserStatus } from '@prisma/client';
 import { insecurePrisma } from '../utils/prisma';
+import { TTL, cacheOr, CacheKeys } from '../../lib/redis';
 
 type TupleHasDuplicate<T extends readonly unknown[]> = T extends [
   infer F,
@@ -18,6 +19,14 @@ type TupleHasDuplicate<T extends readonly unknown[]> = T extends [
 
 type NoDuplicates<T extends readonly unknown[]> =
   TupleHasDuplicate<T> extends true ? never : T;
+
+type CachedAuthSession = {
+  lastLogoutAt: string | null;
+  isDeleted: boolean;
+  isEmailVerified: boolean;
+  status: UserStatus;
+  image: string | null;
+};
 
 const auth = <T extends readonly (UserRoleEnum | 'ANY')[]>(
   ...roles: NoDuplicates<T> extends never ? never : T
@@ -34,14 +43,50 @@ const auth = <T extends readonly (UserRoleEnum | 'ANY')[]>(
         config.jwt.access_secret as Secret,
       );
 
-      const lastLogout = await insecurePrisma.logout.findFirst({
-        where: { userId: verifyUserToken.id },
-        orderBy: { logoutAt: 'desc' },
-      });
+      const cacheKey = CacheKeys.single('auth-session', verifyUserToken.id);
+
+      const loadSession = async () => {
+        const lastLogout = await insecurePrisma.logout.findFirst({
+          where: { userId: verifyUserToken.id },
+          orderBy: { logoutAt: 'desc' },
+        });
+
+        const user = await insecurePrisma.user.findUnique({
+          where: { id: verifyUserToken.id },
+          select: {
+            isDeleted: true,
+            isEmailVerified: true,
+            status: true,
+            image: true,
+          },
+        });
+
+        if (!user) {
+          return null;
+        }
+
+        return {
+          lastLogoutAt: lastLogout?.logoutAt ?? null,
+          isDeleted: user.isDeleted,
+          isEmailVerified: user.isEmailVerified,
+          status: user.status,
+          image: user.image,
+        } as CachedAuthSession;
+      };
+
+      const session = await cacheOr<CachedAuthSession | null>(
+        cacheKey,
+        TTL.SHORT,
+        loadSession,
+      );
+
+      if (!session) {
+        throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
+      }
 
       if (
-        lastLogout &&
-        new Date(lastLogout.logoutAt) > new Date(verifyUserToken.iat! * 1000)
+        session.lastLogoutAt &&
+        new Date(session.lastLogoutAt) > new Date(verifyUserToken.iat! * 1000)
       ) {
         throw new AppError(
           httpStatus.UNAUTHORIZED,
@@ -49,25 +94,18 @@ const auth = <T extends readonly (UserRoleEnum | 'ANY')[]>(
         );
       }
 
-      const user = await insecurePrisma.user.findUnique({
-        where: { id: verifyUserToken.id },
-      });
-
-      if (!user) {
-        throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
-      }
-      if (user.isDeleted) {
+      if (session.isDeleted) {
         throw new AppError(httpStatus.UNAUTHORIZED, 'You are deleted!');
       }
-      if (!user.isEmailVerified) {
+      if (!session.isEmailVerified) {
         throw new AppError(httpStatus.UNAUTHORIZED, 'You are not verified!');
       }
-      if (user.status === UserStatus.SUSPENDED) {
+      if (session.status === UserStatus.SUSPENDED) {
         throw new AppError(httpStatus.UNAUTHORIZED, 'You are suspended!');
       }
 
-      if (user?.image) {
-        verifyUserToken.image = user.image;
+      if (session.image) {
+        verifyUserToken.image = session.image;
       }
 
       req.user = verifyUserToken;

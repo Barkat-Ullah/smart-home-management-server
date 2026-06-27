@@ -20,6 +20,7 @@ import {
   toUTCStartOfDay,
   toUTCStartOfMonth,
 } from '../event/event.utils';
+import { CacheKeys, invalidateKeys } from '../../../lib/redis';
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 12;
 
@@ -370,11 +371,15 @@ const toggleStatusUser = async (id: string) => {
 
   const newStatus = existingUser.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
 
-  return prisma.user.update({
+  const result = await prisma.user.update({
     where: { id },
     data: { status: newStatus },
     select: userSelect,
   });
+
+  await invalidateKeys(CacheKeys.single('auth-session', id));
+
+  return result;
 };
 
 // -------------------------------------------------------
@@ -393,6 +398,8 @@ const softDeleteUser = async (id: string) => {
     data: { isDeleted: true },
     select: userSelect,
   });
+
+  await invalidateKeys(CacheKeys.single('auth-session', id));
   return result;
 };
 
@@ -405,6 +412,7 @@ const deleteUser = async (id: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
   const result = await prisma.user.delete({ where: { id } });
+  await invalidateKeys(CacheKeys.single('auth-session', id));
   return result;
 };
 

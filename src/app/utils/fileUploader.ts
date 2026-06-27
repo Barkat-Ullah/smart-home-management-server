@@ -216,18 +216,14 @@ const uploadToCloudinaryWithType = async (
       uploadOptions,
       (error, result) => {
         if (error) {
-          if (error) {
-            console.error(`Error uploading ${fileType} to Cloudinary:`, error);
-            console.error('Error details:', JSON.stringify(error, null, 2));
-            return reject(error);
-          }
+          console.error(`Error uploading ${fileType} to Cloudinary:`, error);
           return reject(error);
         }
 
         resolve({
           Location: result?.secure_url || '',
           public_id: result?.public_id || '',
-          resource_type: result?.resource_type || fileType || 'video',
+          resource_type: result?.resource_type || fileType,
         });
       },
     );
@@ -334,9 +330,10 @@ const uploadToZenexCloudWithType = async (
   const endpoint = (
     process.env.ZENEX_ENDPOINT || 'http://vault.zenexcloud.com:9000'
   ).replace(/\/$/, '');
-  const accessKeyId = process.env.ZENEX_ACCESS_KEY || '7SnO9zrkvWEacOSREMXI';
-  const secretAccessKey =
-    process.env.ZENEX_SECRET_KEY || '3SoY01MKsJqyGwlIuYVcPuMQrkMc3OjGco46Bkx9';
+  const accessKeyId = process.env.ZENEX_ACCESS_KEY;
+  if (!accessKeyId) throw new Error('ZENEX_ACCESS_KEY is required');
+  const secretAccessKey = process.env.ZENEX_SECRET_KEY;
+  if (!secretAccessKey) throw new Error('ZENEX_SECRET_KEY is required');
   const bucket = process.env.ZENEX_BUCKET;
 
   if (!bucket) {
