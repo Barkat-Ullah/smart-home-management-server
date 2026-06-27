@@ -1,39 +1,6 @@
+import { apiAccessTokenMiddleware, apiKeyMiddleware } from '../middlewares/secureApi';
+import * as Routes from './imports';
 import express from 'express';
-import { FollowRoutes } from '../modules/follow/follow.routes';
-import { subscriptionRoutes } from '../modules/subscription/subscription.routes';
-import { favoriteRoutes } from '../modules/favorite/favorite.routes';
-import { paymentRoutes } from '../modules/payment/payment.routes';
-import { userRoutes } from '../modules/user/user.routes';
-import { analyticsrouter } from '../modules/user/analytics/analytics.routes';
-import { authRouters } from '../modules/auth/auth.routes';
-import { inventoryRoutes } from '../modules/inventory/inventory.routes';
-import { memoryRoutes } from '../modules/memory/memory.routes';
-import { feedRoutes } from '../modules/feed/feed.routes';
-import { familyMemberRoutes } from '../modules/familyMember/familyMember.routes';
-import { childRoutes } from '../modules/child/child.routes';
-import { eventRoutes } from '../modules/event/event.routes';
-import { financialRoutes } from '../modules/financial/financial.routes';
-import { prescriptionRoutes } from '../modules/prescription/prescription.routes';
-import { reminderRoutes } from '../modules/medicineReminder/medicineReminder.routes';
-import { doseLogRoutes } from '../modules/doseLog/doseLog.routes';
-import { medicineScheduleRoutes } from '../modules/medicineSchedule/medicineSchedule.routes';
-import { mealRoutes } from '../modules/meal/meal.routes';
-import { weeklyMealPlanRoutes } from '../modules/weeklyMealPlan/weeklyMealPlan.routes';
-import { mealPlanDayRoutes } from '../modules/mealPlanDay/mealPlanDay.routes';
-import { mealPlanDayItemRoutes } from '../modules/mealPlanDayItem/mealPlanDayItem.routes';
-import { aiRoutes } from '../ai/ai.routes';
-import { articleRoutes } from '../modules/article/article.routes';
-import { houseroomRoutes } from '../modules/houseroom/houseroom.routes';
-import { smartDeviceRoutes } from '../modules/smartDevice/smartDevice.routes';
-import { airConditionerRoutes } from '../modules/airConditioner/airConditioner.routes';
-import { cctvCameraRoutes } from '../modules/cctvCamera/cctvCamera.routes';
-import { notificationsRoute } from '../modules/notifications/notification.routes';
-import { cvRoute } from '../cv/cv.route';
-import {
-  apiAccessTokenMiddleware,
-  apiKeyMiddleware,
-} from '../middlewares/secureApi';
-
 const router = express.Router();
 
 const secureApiLayer = [apiKeyMiddleware, apiAccessTokenMiddleware];
@@ -50,152 +17,152 @@ type ModuleRoute = {
 const moduleRoutes: ModuleRoute[] = [
   {
     path: '/cv',
-    route: cvRoute,
+    route: Routes.cvRoute,
     secure: true,
   },
   {
     path: '/ask',
-    route: aiRoutes,
+    route: Routes.aiRoutes,
     secure: true,
   },
   {
     path: '/auth',
-    route: authRouters,
+    route: Routes.authRouters,
     secure: false, // public — login/register needs no token
   },
   {
     path: '/users',
-    route: userRoutes,
+    route: Routes.userRoutes,
     secure: true,
   },
   {
     path: '/analytics',
-    route: analyticsrouter,
+    route: Routes.analyticsrouter,
     secure: true,
   },
   {
     path: '/follow',
-    route: FollowRoutes,
+    route: Routes.FollowRoutes,
     secure: true,
   },
   {
     path: '/notifications',
-    route: notificationsRoute,
+    route: Routes.notificationsRoute,
     secure: true,
   },
   {
     path: '/subscription',
-    route: subscriptionRoutes,
+    route: Routes.subscriptionRoutes,
     secure: true,
   },
   {
     path: '/favorite',
-    route: favoriteRoutes,
+    route: Routes.favoriteRoutes,
     secure: true,
   },
   {
     path: '/payments',
-    route: paymentRoutes,
+    route: Routes.paymentRoutes,
     secure: true,
   },
   {
     path: '/inventors',
-    route: inventoryRoutes,
+    route: Routes.inventoryRoutes,
     secure: true,
   },
   {
     path: '/memory',
-    route: memoryRoutes,
+    route: Routes.memoryRoutes,
     secure: true,
   },
   {
     path: '/feeds',
-    route: feedRoutes,
+    route: Routes.feedRoutes,
     secure: true,
   },
   {
     path: '/family-members',
-    route: familyMemberRoutes,
+    route: Routes.familyMemberRoutes,
     secure: true,
   },
   {
     path: '/child',
-    route: childRoutes,
+    route: Routes.childRoutes,
     secure: true,
   },
   {
     path: '/events',
-    route: eventRoutes,
+    route: Routes.eventRoutes,
     secure: true,
   },
   {
     path: '/financial',
-    route: financialRoutes,
+    route: Routes.financialRoutes,
     secure: true,
   },
   {
     path: '/prescriptions',
-    route: prescriptionRoutes,
+    route: Routes.prescriptionRoutes,
     secure: true,
   },
   {
     path: '/schedules',
-    route: medicineScheduleRoutes,
+    route: Routes.medicineScheduleRoutes,
     secure: true,
   },
   {
     path: '/doses',
-    route: doseLogRoutes,
+    route: Routes.doseLogRoutes,
     secure: true,
   },
   {
     path: '/reminders',
-    route: reminderRoutes,
+    route: Routes.reminderRoutes,
     secure: true,
   },
   {
     path: '/meals',
-    route: mealRoutes,
+    route: Routes.mealRoutes,
     secure: true,
   },
   {
     path: '/weekly-meal-plans',
-    route: weeklyMealPlanRoutes,
+    route: Routes.weeklyMealPlanRoutes,
     secure: true,
   },
   {
     path: '/meal-plan-days',
-    route: mealPlanDayRoutes,
+    route: Routes.mealPlanDayRoutes,
     secure: true,
   },
   {
     path: '/meal-items',
-    route: mealPlanDayItemRoutes,
+    route: Routes.mealPlanDayItemRoutes,
     secure: true,
   },
   {
     path: '/article',
-    route: articleRoutes,
+    route: Routes.articleRoutes,
     secure: false, // public — articles readable without token
   },
   {
     path: '/houserooms',
-    route: houseroomRoutes,
+    route: Routes.houseroomRoutes,
     secure: true,
   },
   {
     path: '/smart-devices',
-    route: smartDeviceRoutes,
+    route: Routes.smartDeviceRoutes,
     secure: true,
   },
   {
     path: '/air-conditioners',
-    route: airConditionerRoutes,
+    route: Routes.airConditionerRoutes,
     secure: true,
   },
   {
     path: '/cctv-cameras',
-    route: cctvCameraRoutes,
+    route: Routes.cctvCameraRoutes,
     secure: true,
   },
 ];

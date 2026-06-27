@@ -12,6 +12,7 @@ model Subscription {
     userSubscriptions UserSubscription[]
     payment           Payment[]
 
+    @@index([isDeleted])
     @@map("subscription")
 }
 
@@ -28,6 +29,8 @@ model UserSubscription {
     subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
     user           User?         @relation("UserSubscriptions", fields: [userId], references: [id], onDelete: Cascade)
 
+    @@index([subscriptionId])
+    @@index([endDate])
     @@unique([userId, subscriptionId])
     @@map("userSubscription")
 }

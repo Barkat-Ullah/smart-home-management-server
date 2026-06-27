@@ -88,7 +88,6 @@ model User {
   userSubscriptions             UserSubscription?  @relation("UserSubscriptions")
   userSaveArticles              UserSaveArticle[]   @relation("UserUserSaveArticle")
 
-  @@index([email])
   @@index([role, status, isDeleted])
   @@index([createdById])
   @@index([plan, isDeleted])

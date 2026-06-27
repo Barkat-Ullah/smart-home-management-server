@@ -12,6 +12,7 @@ import {
 import { rootHandler } from './shared/rootHandler';
 import { fileUploader } from './app/utils/fileUploader';
 import auth from './app/middlewares/auth';
+import { bullBoard, bullBoardBasePath } from './helpers/queueMonitor/bullBoard';
 // import { StripeWebHook } from './app/utils/StripeUtils';
 
 const app: Application = express();
@@ -24,6 +25,7 @@ app.post(
 );
 
 setupMiddlewares(app);
+app.use(bullBoardBasePath, bullBoard);
 // Request logging
 app.use(requestLogger);
 app.set('trust proxy', 1);

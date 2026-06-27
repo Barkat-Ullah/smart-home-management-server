@@ -5,6 +5,8 @@ model CvChunk {
     source    String   @default("cv")
     createdAt DateTime @default(now())
 
+    @@index([source])
+    @@index([createdAt(sort: Desc)])
     @@map("cv_chunks")
 }
 
@@ -15,6 +17,7 @@ model ChatSession {
     createdAt DateTime      @default(now())
     updatedAt DateTime      @updatedAt
 
+    @@index([createdAt(sort: Desc)])
     @@map("chat_sessions")
 }
 
@@ -26,6 +29,8 @@ model ChatMessage {
     session   ChatSession @relation(fields: [sessionId], references: [sessionId])
     createdAt DateTime    @default(now())
 
+    @@index([sessionId, createdAt(sort: Asc)])
+    @@index([sessionId, role])
     @@map("chat_messages")
 }
 
@@ -39,6 +44,8 @@ model Test {
     createdAt   DateTime   @default(now())
     updatedAt   DateTime   @updatedAt
 
+    @@index([status, isDeleted])
+    @@index([createdAt(sort: Desc)])
     @@map("rest")
 }
 

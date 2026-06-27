@@ -10,5 +10,7 @@ model favorite {
   user User @relation("UserCreator", fields: [userId], references: [id])
  
 
+  @@index([userId, isFavorite])
+  @@index([articleId])
   @@map("love_react")
 }
