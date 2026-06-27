@@ -1,7 +1,10 @@
 import { Job, Worker } from "bullmq";
-import { inviteStudentEmail } from "../../email/inviteViaEmail";
 import emailSender from "../emailSender/emailSender";
 import { createWorker } from "./workerFactory";
+
+const inviteStudentEmail = (info: { studentEmail: string; className: string; schoolName: string }) => {
+  return `<h1>Welcome to ${info.className} at ${info.schoolName}</h1><p>Dear Student, you have been invited.</p>`;
+};
 
 export const emailWorker: Worker = createWorker(
   "mail-queue",

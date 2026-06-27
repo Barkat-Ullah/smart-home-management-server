@@ -479,36 +479,57 @@ const sendMailToSelectedUsersFromDB = async (
 
 // ── 3. All Users ──
 const sendMailToAllUsersFromDB = async (payload: IBulkMailPayload) => {
-  const users = await prisma.user.findMany({
-    where: { isDeleted: false },
-    select: { id: true, fullName: true, email: true },
-  });
+  let sent = 0;
+  let failed = 0;
+  let total = 0;
 
-  if (!users.length) {
+  const BATCH_SIZE = 200;
+  let page = 1;
+  let hasMore = true;
+
+  while (hasMore) {
+    const skip = (page - 1) * BATCH_SIZE;
+
+    const users = await prisma.user.findMany({
+      where: { isDeleted: false },
+      select: { id: true, fullName: true, email: true },
+      take: BATCH_SIZE,
+      skip,
+    });
+
+    if (users.length === 0) hasMore = false;
+
+    total += users.length;
+
+    const results = await Promise.allSettled(
+      users.map(async user => {
+        const html = generateAdminCustomEmail({
+          toName: user.fullName,
+          toEmail: user.email,
+          subject: payload.subject,
+          body: payload.body,
+          adminName: payload.adminName,
+          priority: payload.priority ?? 'normal',
+        });
+        await emailSender(user.email, html, payload.subject);
+        return user.email;
+      }),
+    );
+
+    sent += results.filter(r => r.status === 'fulfilled').length;
+    failed += results.filter(r => r.status === 'rejected').length;
+
+    if (users.length < BATCH_SIZE) hasMore = false;
+    page += 1;
+  }
+
+  if (total === 0) {
     throw new ApiError(httpStatus.NOT_FOUND, 'No users found');
   }
 
-  const results = await Promise.allSettled(
-    users.map(async user => {
-      const html = generateAdminCustomEmail({
-        toName: user.fullName,
-        toEmail: user.email,
-        subject: payload.subject,
-        body: payload.body,
-        adminName: payload.adminName,
-        priority: payload.priority ?? 'normal',
-      });
-      await emailSender(user.email, html, payload.subject);
-      return user.email;
-    }),
-  );
-
-  const sent = results.filter(r => r.status === 'fulfilled').length;
-  const failed = results.filter(r => r.status === 'rejected').length;
-
   return {
-    message: `Broadcast email sent to ${sent}/${users.length} users`,
-    data: { sent, failed, total: users.length },
+    message: `Broadcast email sent to ${sent}/${total} users`,
+    data: { sent, failed, total },
   };
 };
 

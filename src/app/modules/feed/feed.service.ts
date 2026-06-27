@@ -12,6 +12,7 @@ import {
   createBulkNotifications,
   createNotification,
 } from '../../utils/notify';
+import { handleFileUploads } from '../../utils/handleFile';
 
 // -------------------------------------------------------
 // create Feed
@@ -24,31 +25,10 @@ const createFeed = async (req: Request) => {
     | { [fieldname: string]: Express.Multer.File[] }
     | undefined;
 
-  const uploaded: string[] = [];
-
-  if (files?.files) {
-    for (const file of files.files) {
-      const ext = file.originalname.split('.').pop()?.toLowerCase();
-
-      let fileType: 'image' | 'video' | 'pdf' = 'pdf';
-
-      if (['jpg', 'jpeg', 'png', 'webp', 'heic'].includes(ext || ''))
-        fileType = 'image';
-      else if (['mp4', 'mov', 'avi', 'webm'].includes(ext || ''))
-        fileType = 'video';
-
-      const upload = await fileUploader.uploadToCloudinaryWithType(
-        file,
-        fileType,
-      );
-
-      uploaded.push(upload.Location);
-    }
-  }
-
+  const uploadedFiles = await handleFileUploads(files);
   const addedData = {
     ...data,
-    files: uploaded,
+    files: uploadedFiles.files,
     userId,
   };
 
@@ -361,57 +341,31 @@ const updateFeed = async (req: Request) => {
     | { [fieldname: string]: Express.Multer.File[] }
     | undefined;
 
-  const uploaded: string[] = [];
-
-  if (files?.files) {
-    for (const file of files.files) {
-      const ext = file.originalname.split('.').pop()?.toLowerCase();
-
-      let fileType: 'image' | 'video' | 'pdf' = 'pdf';
-
-      if (['jpg', 'jpeg', 'png', 'webp', 'heic'].includes(ext || ''))
-        fileType = 'image';
-      else if (['mp4', 'mov', 'avi', 'webm'].includes(ext || ''))
-        fileType = 'video';
-
-      const upload = await fileUploader.uploadToCloudinaryWithType(
-        file,
-        fileType,
-      );
-
-      uploaded.push(upload.Location);
-    }
-  }
-
-  const existingFeed = await prisma.feed.findUnique({
-    where: { id },
-  });
+  // Run file upload & DB fetch in parallel
+  const [uploadedFiles, existingFeed] = await Promise.all([
+    handleFileUploads(files),
+    prisma.feed.findUnique({ where: { id } }),
+  ]);
 
   if (!existingFeed) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Feed not found');
   }
 
   if (existingFeed.isLocked) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      'Feed is locked and cannot be edited',
-    );
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Feed is locked and cannot be edited');
   }
-
-  const updatedData = {
-    ...data,
-    files: uploaded.length ? [...uploaded] : existingFeed.files,
-  };
 
   const result = await prisma.feed.update({
     where: { id },
-    data: updatedData,
+    data: {
+      ...data,
+      ...uploadedFiles,
+    },
     select: feedSelect,
   });
 
   return result;
 };
-
 // -------------------------------------------------------
 // change Feed status (admin/moderator) + auto status history
 // -------------------------------------------------------

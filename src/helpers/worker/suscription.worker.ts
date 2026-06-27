@@ -1,13 +1,13 @@
-import { Worker, Job } from "bullmq";
-import { NotifyType, userRole } from "@prisma/client";
-import prisma from "../../shared/prisma";
-import { createNotification } from "../../utils/notify";
-import redis, { bullMQRedisOptions } from "../../lib/redisConnection";
+import { Worker, Job } from 'bullmq';
+import { NotifyType, UserRoleEnum } from '@prisma/client';
+import prisma from '../../app/utils/prisma';
+import { createNotification } from '../../app/utils/notify';
+import redis, { bullMQRedisOptions } from '../../lib/redisConnection';
 
 // src/utils/getAdminId.ts
 
-const ADMIN_ID_CACHE_KEY = "system:adminId";
-const ADMIN_ID_TTL = 60 * 60 * 6; 
+const ADMIN_ID_CACHE_KEY = 'system:adminId';
+const ADMIN_ID_TTL = 60 * 60 * 6;
 
 export async function getAdminId(): Promise<string | null> {
   // Cache check
@@ -15,26 +15,26 @@ export async function getAdminId(): Promise<string | null> {
   if (cached) return cached;
 
   const admin = await prisma.user.findFirst({
-    where: { role: userRole.ADMIN },
+    where: { role: UserRoleEnum.ADMIN },
     select: { id: true },
   });
 
   if (!admin) return null;
 
-  await redis.set(ADMIN_ID_CACHE_KEY, admin.id, "EX", ADMIN_ID_TTL);
+  await redis.set(ADMIN_ID_CACHE_KEY, admin.id, 'EX', ADMIN_ID_TTL);
 
   return admin.id;
 }
 
 export const subscriptionWorker = new Worker(
-  "subscription-processing",
+  'subscription-processing',
   async (job: Job) => {
     console.log(
       `[Queue Worker] Running task: ${job.name} for Job ID: ${job.id}`,
     );
 
     switch (job.name) {
-      case "send-subscription-notifications": {
+      case 'send-subscription-notifications': {
         const {
           userId,
           amount,
@@ -51,7 +51,7 @@ export const subscriptionWorker = new Worker(
         await createNotification({
           receiverId: userId,
           senderId: adminId,
-          title: "Payment Successful 🎉",
+          title: 'Payment Successful 🎉',
           body: `Your ${planLabel} subscription has been activated. Amount charged: $${amount}.`,
           referenceId: paymentId,
           type: NotifyType.Payment,
@@ -61,7 +61,7 @@ export const subscriptionWorker = new Worker(
           await createNotification({
             receiverId: adminId,
             senderId: userId,
-            title: "New Subscription Payment",
+            title: 'New Subscription Payment',
             body: `${userFullName} has subscribed to ${planLabel} for $${amount}.`,
             referenceId: paymentId,
             type: NotifyType.Payment,

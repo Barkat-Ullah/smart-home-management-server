@@ -1,8 +1,9 @@
 import { Job, Worker } from "bullmq";
-import { otpEmail } from "../../email/otpEmail";
 import emailSender from "../emailSender/emailSender";
 import { sendSmsOtp } from "../phoneSmsSender/messageSender";
 import { createWorker } from "./workerFactory";
+
+const otpEmail = (otpCode: string) => `<h1>Your OTP Code</h1><p>${otpCode}</p>`;
 
 export const otpWorker: Worker = createWorker("otp-queue", async (job: Job) => {
   const { otpCode, identifier, type = "email" } = job.data;
