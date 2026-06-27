@@ -3,12 +3,7 @@ import httpStatus from 'http-status';
 import { Secret, SignOptions } from 'jsonwebtoken';
 import config from '../../../config';
 import AppError from '../../errors/AppError';
-import {
-  Prisma,
-  User,
-  UserRoleEnum,
-  UserStatus,
-} from '@prisma/client';
+import { Prisma, User, UserRoleEnum, UserStatus } from '@prisma/client';
 import {
   getOtpStatusMessage,
   otpExpiryTime,
@@ -36,7 +31,6 @@ const loginWithOtpFromDB = async (
   clientInfo: IClientInfo | null | undefined,
   trackInfo: IPWhoInfo | null | undefined,
 ) => {
-
   const userData = await insecurePrisma.user.findUnique({
     where: { email: payload.email },
   });
@@ -71,7 +65,9 @@ const loginWithOtpFromDB = async (
 
     // 📧 otpVerificationEmail — login email
     const html = otpVerificationEmail(otp, userData.fullName);
-    await emailSender(payload.email, html, '🔐 OTP Verification — SmartHome');
+    emailSender(payload.email, html, '🔐 OTP Verification — SmartHome').catch(
+      (err: unknown) => console.error('Async email send failed:', err),
+    );
 
     return {
       message: 'Please check your email for the verification OTP.',
@@ -180,15 +176,11 @@ const registerWithOtpIntoDB = async (
     });
   }
 
-  try {
-    const html = otpVerificationEmail(otp, newUser.fullName);
-    await emailSender(newUser.email, html, '🔐 OTP Verification — SmartHome');
-  } catch {
-    throw new AppError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to send OTP email',
-    );
-  }
+  emailSender(newUser.email, otpVerificationEmail(otp, newUser.fullName), '🔐 OTP Verification — SmartHome').catch(
+    (err: unknown) => {
+      console.error('Register OTP email failed:', err);
+    },
+  );
 
   return 'Please check mail to verify your email';
 };
@@ -227,12 +219,9 @@ const verifyOtpCommon = async (payload: { email: string; otp: string }) => {
     });
 
     // 📧 welcomeEmail — Registration OTP verify
-    try {
-      const html = welcomeEmail(user.fullName);
-      await emailSender(user.email, html, '🏠 Welcome to SmartHome!');
-    } catch {
-      console.error('Welcome email failed to send');
-    }
+    emailSender(user.email, welcomeEmail(user.fullName), '🏠 Welcome to SmartHome!').catch(
+      (err: unknown) => console.error('Welcome email failed:', err),
+    );
 
     const accessToken = await generateToken(
       { id: user.id, name: user.fullName, email: user.email, role: user.role },
@@ -321,16 +310,10 @@ const resendVerificationWithOtp = async (email: string) => {
     data: { otp, otpExpiry: expiry },
   });
 
-  try {
-    // 📧 otpVerificationEmail — resend OTP request
-    const html = otpVerificationEmail(otp, user.fullName);
-    await emailSender(email, html, '🔐 Resend OTP — SmartHome');
-  } catch {
-    throw new AppError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to send OTP email',
-    );
-  }
+  // 📧 otpVerificationEmail — resend OTP request
+  emailSender(email, otpVerificationEmail(otp, user.fullName), '🔐 Resend OTP — SmartHome').catch(
+    (err: unknown) => console.error('Resend OTP email failed:', err),
+  );
 
   return {
     message: 'Verification OTP sent successfully. Please check your inbox.',
@@ -360,15 +343,12 @@ const changePassword = async (user: any, payload: any) => {
     data: { password: hashedPassword },
   });
 
-  try {
-    const changedAt = new Date().toLocaleString('en-US', {
-      timeZone: 'Asia/Dhaka',
-    });
-    const html = passwordChangedEmail(userData.fullName, changedAt);
-    await emailSender(userData.email, html, '🔒 Password Changed — SmartHome');
-  } catch {
-    console.error('Password change confirmation email failed');
-  }
+  const changedAt = new Date().toLocaleString('en-US', {
+    timeZone: 'Asia/Dhaka',
+  });
+  emailSender(userData.email, passwordChangedEmail(userData.fullName, changedAt), '🔒 Password Changed — SmartHome').catch(
+    (err: unknown) => console.error('Password change email failed:', err),
+  );
 
   return { message: 'Password changed successfully!' };
 };

@@ -1,9 +1,11 @@
 import httpStatus from 'http-status';
 import AppError from '../../errors/AppError';
 import { prisma } from '../../utils/prisma';
-import { addSSEClient, removeSSEClient } from '../../utils/sse';
+import { addSSEClient, removeSSEClient, sendSSEToUser } from '../../utils/sse';
 import { RequestHandler } from 'express';
 import admin from './firebaseAdmin';
+import { IPaginationOptions } from '../../interface/pagination.type';
+import { paginationHelper } from '../../utils/calculatePagination';
 
 const subscribe: RequestHandler = (req, res, _next) => {
   const userId = (req as any).user.id;
@@ -59,6 +61,16 @@ export const sendSingleNotificationUtils = async ({
     // Save in DB
     await prisma.notification.create({
       data: { receiverId: userId, senderId, title, body },
+    });
+
+    // Real-time push via SSE
+    sendSSEToUser(userId, 'notification', {
+      id: null,
+      title,
+      body,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      sender: { id: senderId },
     });
 
     // Send via Firebase
@@ -210,26 +222,55 @@ const sendNotifications = async (req: any) => {
 };
 
 // Fetch notifications for the current user
-
-const getNotificationsFromDB = async (req: any) => {
+const getNotificationsFromDB = async (
+  req: any,
+  options: IPaginationOptions,
+) => {
   const userId = req.user.id;
 
-  const [notifications, unreadCount] = await Promise.all([
+  if (!userId) {
+    throw new AppError(400, 'User ID is required');
+  }
+
+  const { page, limit, skip } = paginationHelper.calculatePagination(options);
+
+  const [notifications, total] = await Promise.all([
     prisma.notification.findMany({
       where: { receiverId: userId },
       include: {
         sender: {
-          select: { id: true, email: true, fullName: true, image: true },
+          select: {
+            id: true,
+            email: true,
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
     }),
     prisma.notification.count({
-      where: { receiverId: userId, isRead: false },
+      where: { receiverId: userId },
     }),
   ]);
 
-  return { unreadCount, notifications };
+  return {
+    meta: {
+      total,
+      page,
+      limit,
+    },
+    data: notifications.map(notification => ({
+      id: notification.id,
+      title: notification.title,
+      body: notification.body,
+      isRead: notification.isRead,
+      createdAt: notification.createdAt,
+      sender: {
+        id: notification?.sender?.id,
+      },
+    })),
+  };
 };
 
 // Fetch a single notification and mark it as read
@@ -297,24 +338,17 @@ const getSingleNotificationFromDB = async (
 };
 
 const getMyNotifications = async (userEmail: string) => {
-  // Find user
   const user = await prisma.user.findUnique({
     where: { email: userEmail },
-    select: {
-      id: true,
-      role: true,
-    },
+    select: { id: true },
   });
 
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  // ✅ Declare whereConditions outside
-  let whereConditions: any = {};
-
   const notifications = await prisma.notification.findMany({
-    where: whereConditions,
+    where: { receiverId: user.id },
     orderBy: {
       createdAt: 'desc',
     },

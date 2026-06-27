@@ -2,7 +2,7 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { notificationServices } from './notification.service';
-
+import pick from '../../utils/pickValidFields';
 
 const subscribe: RequestHandler = (
   req: Request,
@@ -33,8 +33,6 @@ const sendNotifications = catchAsync(async (req: any, res: any) => {
   });
 });
 
-
-
 const getMyNotification = catchAsync(async (req, res) => {
   const userMail = req.user.email;
   const result = await notificationServices.getMyNotifications(userMail);
@@ -48,13 +46,17 @@ const getMyNotification = catchAsync(async (req, res) => {
 });
 
 const getNotifications = catchAsync(async (req: any, res: any) => {
-  const notifications = await notificationServices.getNotificationsFromDB(req);
-
+  const options = pick(req.query, ['page', 'limit']);
+  const result = await notificationServices.getNotificationsFromDB(
+    req,
+    options,
+  );
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: 'Notifications retrieved successfully',
-    data: notifications,
+    message: 'Notifications fetched successfully',
+    meta: result.meta,
+    data: result.data,
   });
 });
 
@@ -72,7 +74,6 @@ const getSingleNotificationById = catchAsync(async (req: any, res: any) => {
     data: notification,
   });
 });
-
 
 export const notificationController = {
   sendNotification,

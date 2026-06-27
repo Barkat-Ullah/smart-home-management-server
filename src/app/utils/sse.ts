@@ -22,6 +22,7 @@ export const sendSSEToUser = (userId: string, event: string, data: any) => {
 const startGlobalHeartbeat = () => {
   setInterval(() => {
     let activeCount = 0;
+    const toRemove: { userId: string; res: Response }[] = [];
 
     clients.forEach((connections, userId) => {
       connections.forEach(res => {
@@ -29,14 +30,18 @@ const startGlobalHeartbeat = () => {
           res.write(`: ping\n\n`);
           activeCount++;
         } catch {
-          connections.delete(res);
-          if (connections.size === 0) clients.delete(userId);
+          toRemove.push({ userId, res });
         }
       });
     });
 
+    // Remove dead connections after iteration to avoid Set mutation bugs
+    toRemove.forEach(({ userId, res }) => {
+      removeSSEClient(userId, res);
+    });
+
     if (activeCount > 0) {
-      console.log(`Heartbeat sent to ${activeCount} connections`);
+      console.log(`Heartbeat: ${activeCount} active SSE connections`);
     }
   }, 20000);
 };
