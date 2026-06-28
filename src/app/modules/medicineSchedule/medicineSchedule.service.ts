@@ -1,6 +1,14 @@
 import httpStatus from 'http-status';
 import { Prisma, ScheduleStatus } from '@prisma/client';
 import prisma from '../../utils/prisma';
+import {
+  cacheOr,
+  CacheKeys,
+  TTL,
+  CacheInvalidator,
+  invalidateKeys,
+  invalidatePattern,
+} from '../../../lib/redis';
 import { IPaginationOptions } from '../../interface/pagination.type';
 import { paginationHelper } from '../../utils/calculatePagination';
 import ApiError from '../../errors/AppError';
@@ -301,7 +309,6 @@ const deleteMedicineSchedule = async (id: string) => {
   if (!existing) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Medicine schedule not found');
   }
-
 
   const result = await prisma.medicineSchedule.update({
     where: { id },

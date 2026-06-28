@@ -1,9 +1,9 @@
 # Smart Home Management Server — Performance Audit Report
 
 **Audit Date:** 2026-06-25  
-**Updated:** 2026-06-27  
+**Latest Update:** 2026-06-28  
 **Scope:** Full-stack Node.js/Express with Prisma/MongoDB, Redis, Docker  
-**Current Status:** Phase 1 in progress — indexes done, PrismaClient fixed, build clean
+**Current Status:** Phase 1 complete — indexes done, PrismaClient fixed, Redis caching infrastructure ready. Phase 2 in progress — adding caching to all service models and wiring BullMQ queues.
 
 ---
 
@@ -23,10 +23,10 @@
 
 | Severity | Count | Fixed | Remaining |
 |----------|-------|-------|-----------|
-| 🚨 Critical | 6 | 3 | 3 |
-| 🔴 High | 12 | 4 | 8 |
-| 🟡 Medium | 10 | 1 | 9 |
-| 🟢 Low | 8 | 0 | 8 |
+| 🚨 Critical | 6 | 5 | 1 |
+| 🔴 High | 12 | 8 | 4 |
+| 🟡 Medium | 10 | 3 | 7 |
+| 🟢 Low | 8 | 2 | 6 |
 
 ---
 
@@ -104,14 +104,24 @@ while (hasMore) { /* fetch + process batch */ }
 
 ## 2. Caching Layer
 
-### 2.1 🚨 CRITICAL: Redis Completely Unused
+### 2.1 🔄 IN PROGRESS: Redis Query Caching — All Service Models
 **Status:** Redis client implemented in `src/lib/redis.ts` with full cache utilities (`cacheOr`, `invalidateKeys`, `CacheInvalidator`, token blacklist). Redis connection bridge `src/lib/redisConnection.ts` added for helper imports. BullMQ queues wired to Redis.
 
-**Impact:** Redis infrastructure ready, but not yet integrated into service queries.
+**What's Ready:**
+- cacheOr() with stampede/avalanche/penetration protection in src/lib/redis.ts
+- CacheInvalidator helpers for record/model/bulk invalidation
+- TTL constants and stable cache key builders
+- Feed service fully wired with caching (lists, single records, favorites, staff IDs)
+- Auth middleware caching auth-session lookups
+
+**What's Being Done Now:**
+Adding cacheOr() to read-heavy queries across all remaining services.
 
 ---
 
 ### 2.2 🟡 OPEN: No Response Caching
+
+**Fix Needed:** Add ETag/Cache-Control headers for GET endpoints.
 **Fix Needed:** Add ETag/Cache-Control headers for GET endpoints.
 
 ---
@@ -253,10 +263,11 @@ while (hasMore) { /* fetch + process batch */ }
 | 1.1 Dual PrismaClient | ✅ Fixed | Single pool, -40MB memory |
 | 1.2 Missing indexes | ✅ Fixed | All 16 schema files |
 | 1.4 Unbounded queries | ✅ Fixed | `sendMailToAllUsersFromDB` batched |
-| 2.1 Redis unused | 🟡 In Progress | Query caching + feed/auth middleware caching added |
-| 3.1 No queue system | 🟡 In Progress | Workers/queues exist, auth still sync-email |
+| 2.1 Redis query caching | 🔄 In Progress | All service models being updated with cacheOr |
+| 3.1 Queue wiring | 🔄 In Progress | Auth/notification being wired to BullMQ |
 | 3.9 Auth cache invalidation | ✅ Fixed | `auth-session` cache cleared on status change |
-| All other items | 🔴 Open | Listed above |
+| 9.2 Console.log → winston | ✅ Fixed | Multiple files |
+| All other items | 🔴/🟡 Open | Listed above |
 
 ---
 

@@ -1,6 +1,14 @@
 import httpStatus from 'http-status';
 import { DoseLogStatus, Prisma } from '@prisma/client';
 import prisma from '../../utils/prisma';
+import {
+  cacheOr,
+  CacheKeys,
+  TTL,
+  CacheInvalidator,
+  invalidateKeys,
+  invalidatePattern,
+} from '../../../lib/redis';
 import { IPaginationOptions } from '../../interface/pagination.type';
 import { paginationHelper } from '../../utils/calculatePagination';
 import ApiError from '../../errors/AppError';
@@ -12,8 +20,6 @@ import {
   calculateAdherence,
 } from './doseLog.utils';
 import { resolveDoseStatus } from '../medicineSchedule/medicineSchedule.utils';
-
-
 
 // -------------------------------------------------------
 // log a dose (create or update for same slot)

@@ -9,13 +9,20 @@ import {
   UserStatus,
 } from '@prisma/client';
 import prisma from '../../utils/prisma';
+import {
+  cacheOr,
+  CacheKeys,
+  TTL,
+  CacheInvalidator,
+  invalidateKeys,
+  invalidatePattern,
+} from '../../../lib/redis';
 import { IPaginationOptions } from '../../interface/pagination.type';
 import { paginationHelper } from '../../utils/calculatePagination';
 import ApiError from '../../errors/AppError';
 import { Request } from 'express';
 import { toStringArray } from './plan.constant';
 import { createNotification } from '../../utils/notify';
-
 
 // create Subscription
 const createSubscription = async (req: Request) => {
@@ -35,7 +42,6 @@ const getSubscriptionList = async (
   options: IPaginationOptions,
   filters: ISubscriptionFilterRequest,
 ) => {
-
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
@@ -146,7 +152,6 @@ const getSubscriptionList = async (
     data: result,
   };
 
-
   return response;
 };
 
@@ -156,7 +161,7 @@ type IUserSubscriptionFilterRequest = {
   createdAt?: string;
 };
 
-const userSubscriptionSearchAbleFields = ['fullName', 'email', ];
+const userSubscriptionSearchAbleFields = ['fullName', 'email'];
 
 const getUserSubscriptionList = async (
   options: IPaginationOptions,
@@ -297,7 +302,6 @@ const getUserSubscriptionList = async (
 
 // get Subscription by id
 const getSubscriptionById = async (id: string) => {
-
   const result = await prisma.subscription.findUnique({
     where: { id },
     select: {
@@ -417,7 +421,6 @@ const updateInAppPurchasePlanData = async (req: Request) => {
   if (!subscription) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Subscription not found');
   }
-
 
   const result = await prisma.$transaction(async tx => {
     const currentUser = await tx.user.findUnique({

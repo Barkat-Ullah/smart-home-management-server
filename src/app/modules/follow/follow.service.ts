@@ -1,4 +1,12 @@
 import { prisma } from '../../utils/prisma';
+import {
+  cacheOr,
+  CacheKeys,
+  TTL,
+  CacheInvalidator,
+  invalidateKeys,
+  invalidatePattern,
+} from '../../../lib/redis';
 
 export const searchableFields = ['fullName', 'email'];
 

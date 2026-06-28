@@ -1,6 +1,14 @@
 import httpStatus from 'http-status';
 import { Prisma, WeeklyPlanStatus } from '@prisma/client';
 import prisma from '../../utils/prisma';
+import {
+  cacheOr,
+  CacheKeys,
+  TTL,
+  CacheInvalidator,
+  invalidateKeys,
+  invalidatePattern,
+} from '../../../lib/redis';
 import { IPaginationOptions } from '../../interface/pagination.type';
 import { paginationHelper } from '../../utils/calculatePagination';
 import ApiError from '../../errors/AppError';
@@ -203,7 +211,7 @@ const updateWeeklyMealPlan = async (req: Request) => {
   const { notes, status } = req.body;
 
   const existing = await prisma.weeklyMealPlan.findFirst({
-    where: { id},
+    where: { id },
   });
 
   if (!existing) {

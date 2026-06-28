@@ -2,7 +2,9 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "imports": {
+    "#*": "./dist/*.js"
+  },
   "prisma": {
     "schema": "./prisma"
   },
@@ -12,7 +14,7 @@
     "pm": "npx prisma migrate dev ",
     "pg": "npx prisma generate",
     "generate": "ts-node src/generate-module.js",
-    "build": "npx prisma generate && tsc && npx esbuild src/server.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.js",
+"build": "npx prisma generate && tsc",
     "postinstall": "prisma generate",
     "lint:check": "eslint --ignore-path .eslintignore --ext .js,.ts .",
     "lint:fix": "eslint . --fix",

@@ -1,10 +1,17 @@
 import { Prisma } from '@prisma/client';
 import { IPaginationOptions } from '../../interface/pagination.type';
 import { prisma } from '../../utils/prisma';
+import {
+  cacheOr,
+  CacheKeys,
+  TTL,
+  CacheInvalidator,
+  invalidateKeys,
+  invalidatePattern,
+} from '../../../lib/redis';
 import ApiError from '../../errors/AppError';
 import httpStatus from 'http-status';
 import { paginationHelper } from '../../utils/calculatePagination';
-
 
 const createFavorite = async (userId: string, articleId: string) => {
   // const article = await prisma.test.findUnique({
@@ -12,7 +19,7 @@ const createFavorite = async (userId: string, articleId: string) => {
   //     id: articleId,
   //   },
   // });
-  const article = {}
+  const article = {};
   if (!article) {
     throw new ApiError(404, 'Article not found');
   }

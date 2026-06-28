@@ -2,7 +2,7 @@
 
 **Plan Date:** 2026-06-25  
 **Based On:** [PERFORMANCE_AUDIT.md](./PERFORMANCE_AUDIT.md)  
-**Current Status:** Phase 1 largely complete — indexes, PrismaClient, Redis cache utilities, workers/queues, auth caching, and feed caching in place  
+**Current Status:** Phase 1 complete. Phase 2 in progress — adding cacheOr() to all service models and wiring auth/notification queues  
 **Build Status:** 0 TypeScript errors  
 **Strategy:** High impact / low risk first, then high impact / medium risk, then everything else
 

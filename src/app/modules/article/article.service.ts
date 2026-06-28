@@ -1,6 +1,14 @@
 import httpStatus from 'http-status';
 import { Prisma } from '@prisma/client';
 import prisma from '../../utils/prisma';
+import {
+  cacheOr,
+  CacheKeys,
+  TTL,
+  CacheInvalidator,
+  invalidateKeys,
+  invalidatePattern,
+} from '../../../lib/redis';
 import { IPaginationOptions } from '../../interface/pagination.type';
 import { paginationHelper } from '../../utils/calculatePagination';
 import ApiError from '../../errors/AppError';
@@ -65,8 +73,6 @@ const generateArticleFromAi = async (req: Request) => {
     activityType,
     topic,
   } = req.body;
-
-
 
   // ── Validate blogType ──────────────────────────────────────────────────────
   if (!blogType || !VALID_BLOG_TYPES.includes(blogType)) {
