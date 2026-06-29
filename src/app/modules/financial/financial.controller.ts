@@ -207,8 +207,8 @@ const getTransactionList = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Transaction list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -224,8 +224,8 @@ const getMyTransactions = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My transactions retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -293,8 +293,8 @@ const getBudgetList = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Budget list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -306,8 +306,8 @@ const getMyBudgets = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My budgets retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -363,8 +363,8 @@ const getFinancialGoalList = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Financial goal list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -380,8 +380,8 @@ const getMyFinancialGoals = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My financial goals retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 

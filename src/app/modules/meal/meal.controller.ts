@@ -25,8 +25,8 @@ const getMealList = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Meal list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -38,8 +38,8 @@ const getMyMeals = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My meals retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 

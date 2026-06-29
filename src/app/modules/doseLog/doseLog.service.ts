@@ -21,6 +21,8 @@ import {
 } from './doseLog.utils';
 import { resolveDoseStatus } from '../medicineSchedule/medicineSchedule.utils';
 
+const DOSELOG_MODEL = 'doseLog';
+
 // -------------------------------------------------------
 // log a dose (create or update for same slot)
 // -------------------------------------------------------
@@ -32,7 +34,6 @@ const logDose = async (req: Request) => {
   const scheduledAtDate = new Date(scheduledAt);
   const takenAtDate = takenAt ? new Date(takenAt) : undefined;
 
-  // Verify schedule belongs to user
   const schedule = await prisma.medicineSchedule.findFirst({
     where: { id: scheduleId, userId, isDeleted: false },
   });
@@ -40,7 +41,6 @@ const logDose = async (req: Request) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Medicine schedule not found');
   }
 
-  // Auto-resolve Taken vs Late based on grace period (60 min)
   let resolvedStatus: DoseLogStatus = status;
   if (
     (status === DoseLogStatus.Taken || status === DoseLogStatus.Late) &&
@@ -52,7 +52,6 @@ const logDose = async (req: Request) => {
     ) as DoseLogStatus;
   }
 
-  // Check if a log already exists for this dose slot (±30 min window)
   const existing = await prisma.doseLog.findFirst({
     where: {
       scheduleId,
@@ -65,7 +64,6 @@ const logDose = async (req: Request) => {
   });
 
   if (existing) {
-    // Update existing log for this slot
     const result = await prisma.doseLog.update({
       where: { id: existing.id },
       data: { takenAt: takenAtDate, status: resolvedStatus, skipReason, note },
@@ -74,7 +72,6 @@ const logDose = async (req: Request) => {
     return result;
   }
 
-  // Create new dose log
   const result = await prisma.doseLog.create({
     data: {
       scheduleId,
@@ -109,27 +106,34 @@ const getDoseLogList = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.DoseLogWhereInput[] = [];
+  const cacheKey = CacheKeys.list(DOSELOG_MODEL, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.DoseLogWhereInput[] = [];
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildDoseLogFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildDoseLogFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.DoseLogWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
+      const whereConditions: Prisma.DoseLogWhereInput =
+        andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const [result, total] = await Promise.all([
-    prisma.doseLog.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { scheduledAt: 'desc' },
-      select: doseLogSelect,
-    }),
-    prisma.doseLog.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.doseLog.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { scheduledAt: 'desc' },
+          select: doseLogSelect,
+        }),
+        prisma.doseLog.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -144,26 +148,33 @@ const getMyDoseLogs = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.DoseLogWhereInput[] = [{ userId }];
+  const cacheKey = CacheKeys.myList(DOSELOG_MODEL, userId, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.DoseLogWhereInput[] = [{ userId }];
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildDoseLogFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildDoseLogFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.DoseLogWhereInput = { AND: andConditions };
+      const whereConditions: Prisma.DoseLogWhereInput = { AND: andConditions };
 
-  const [result, total] = await Promise.all([
-    prisma.doseLog.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { scheduledAt: 'desc' },
-      select: doseLogSelect,
-    }),
-    prisma.doseLog.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.doseLog.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { scheduledAt: 'desc' },
+          select: doseLogSelect,
+        }),
+        prisma.doseLog.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -187,10 +198,8 @@ const getAdherenceReport = async (req: Request) => {
     select: { status: true, scheduleId: true },
   });
 
-  // Overall adherence
   const overall = calculateAdherence(logs);
 
-  // Per-schedule breakdown
   const scheduleMap = new Map<string, { status: DoseLogStatus }[]>();
   for (const log of logs) {
     const arr = scheduleMap.get(log.scheduleId) || [];

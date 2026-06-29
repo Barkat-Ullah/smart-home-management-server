@@ -17,12 +17,7 @@ const createInventory = catchAsync(async (req: Request, res: Response) => {
 });
 
 // get all Inventory
-const inventoryFilterableFields = [
-  'searchTerm',
-  'id',
-  'createdAt',
-  'status',
-];
+const inventoryFilterableFields = ['searchTerm', 'id', 'createdAt', 'status'];
 const getInventoryList = catchAsync(async (req: Request, res: Response) => {
   const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
   const filters = pick(req.query, inventoryFilterableFields);
@@ -31,8 +26,8 @@ const getInventoryList = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Inventory list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -57,8 +52,8 @@ const getMyInventory = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My Inventory list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -74,16 +69,18 @@ const updateInventory = catchAsync(async (req: Request, res: Response) => {
 });
 
 // toggle status Inventory
-const toggleStatusInventory = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await inventoryService.toggleStatusInventory(id);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Inventory status toggled successfully',
-    data: result,
-  });
-});
+const toggleStatusInventory = catchAsync(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const result = await inventoryService.toggleStatusInventory(id);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Inventory status toggled successfully',
+      data: result,
+    });
+  },
+);
 
 // soft delete Inventory
 const softDeleteInventory = catchAsync(async (req: Request, res: Response) => {

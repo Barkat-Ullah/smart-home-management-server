@@ -33,6 +33,8 @@ const createInventory = async (req: Request) => {
     data: addedData,
     select: inventorySelect,
   });
+
+  await CacheInvalidator.onRecordCreate('inventory');
   return result;
 };
 
@@ -55,71 +57,76 @@ const getInventoryList = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.InventoryWhereInput[] = [];
+  const cacheKey = CacheKeys.list('inventory', { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.InventoryWhereInput[] = [];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: inventorySearchAbleFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
-
-  if (Object.keys(filterData).length) {
-    Object.keys(filterData).forEach(key => {
-      const value = (filterData as any)[key];
-      if (value === '' || value === null || value === undefined) return;
-
-      if (key === 'createdAt') {
-        const parts = (value as string).split('-');
-
-        if (parts.length === 2) {
-          // Format: "YYYY-MM" →
-          const year = parseInt(parts[0]);
-          const month = parseInt(parts[1]) - 1;
-          andConditions.push({
-            createdAt: {
-              gte: toUTCStartOfMonth(year, month),
-              lte: toUTCEndOfMonth(year, month),
-            },
-          });
-        } else if (parts.length === 3) {
-          // Format: "YYYY-MM-DD" →
-          andConditions.push({
-            createdAt: {
-              gte: toUTCStartOfDay(value),
-              lte: toUTCEndOfDay(value),
-            },
-          });
-        }
-        return;
+      if (searchTerm) {
+        andConditions.push({
+          OR: inventorySearchAbleFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
       }
 
-      if (key.includes('.')) {
-        const [relation, field] = key.split('.');
-        andConditions.push({ [relation]: { some: { [field]: value } } });
-        return;
+      if (Object.keys(filterData).length) {
+        Object.keys(filterData).forEach(key => {
+          const value = (filterData as any)[key];
+          if (value === '' || value === null || value === undefined) return;
+
+          if (key === 'createdAt') {
+            const parts = (value as string).split('-');
+
+            if (parts.length === 2) {
+              const year = parseInt(parts[0]);
+              const month = parseInt(parts[1]) - 1;
+              andConditions.push({
+                createdAt: {
+                  gte: toUTCStartOfMonth(year, month),
+                  lte: toUTCEndOfMonth(year, month),
+                },
+              });
+            } else if (parts.length === 3) {
+              andConditions.push({
+                createdAt: {
+                  gte: toUTCStartOfDay(value),
+                  lte: toUTCEndOfDay(value),
+                },
+              });
+            }
+            return;
+          }
+
+          if (key.includes('.')) {
+            const [relation, field] = key.split('.');
+            andConditions.push({ [relation]: { some: { [field]: value } } });
+            return;
+          }
+
+          andConditions.push({ [key]: value });
+        });
       }
 
-      andConditions.push({ [key]: value });
-    });
-  }
+      const whereConditions: Prisma.InventoryWhereInput =
+        andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const whereConditions: Prisma.InventoryWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
+      const [result, total] = await Promise.all([
+        prisma.inventory.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'desc' },
+          select: inventorySelect,
+        }),
+        prisma.inventory.count({ where: whereConditions }),
+      ]);
 
-  const [result, total] = await Promise.all([
-    prisma.inventory.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: inventorySelect,
-    }),
-    prisma.inventory.count({ where: whereConditions }),
-  ]);
-
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -147,67 +154,75 @@ const getMyInventory = async (
   const userId = req.user.id;
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
-  const andConditions: Prisma.InventoryWhereInput[] = [{ userId }];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: inventorySearchAbleFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+  const cacheKey = CacheKeys.myList('inventory', userId, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.InventoryWhereInput[] = [{ userId }];
 
-  if (Object.keys(filterData).length) {
-    Object.keys(filterData).forEach(key => {
-      const value = (filterData as any)[key];
-      if (value === '' || value === null || value === undefined) return;
-
-      if (key === 'createdAt' && value) {
-        const parts = (value as string).split('-');
-        if (parts.length === 2) {
-          const year = parseInt(parts[0]);
-          const month = parseInt(parts[1]) - 1;
-          const start = new Date(year, month, 1, 0, 0, 0, 0);
-          const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
-          andConditions.push({
-            createdAt: { gte: start.toISOString(), lte: end.toISOString() },
-          });
-        } else {
-          const start = new Date(value);
-          start.setHours(0, 0, 0, 0);
-          const end = new Date(value);
-          end.setHours(23, 59, 59, 999);
-          andConditions.push({
-            createdAt: { gte: start.toISOString(), lte: end.toISOString() },
-          });
-        }
-        return;
+      if (searchTerm) {
+        andConditions.push({
+          OR: inventorySearchAbleFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
       }
 
-      if (key.includes('.')) {
-        const [relation, field] = key.split('.');
-        andConditions.push({ [relation]: { some: { [field]: value } } });
-        return;
+      if (Object.keys(filterData).length) {
+        Object.keys(filterData).forEach(key => {
+          const value = (filterData as any)[key];
+          if (value === '' || value === null || value === undefined) return;
+
+          if (key === 'createdAt' && value) {
+            const parts = (value as string).split('-');
+            if (parts.length === 2) {
+              const year = parseInt(parts[0]);
+              const month = parseInt(parts[1]) - 1;
+              const start = new Date(year, month, 1, 0, 0, 0, 0);
+              const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+              andConditions.push({
+                createdAt: { gte: start.toISOString(), lte: end.toISOString() },
+              });
+            } else {
+              const start = new Date(value);
+              start.setHours(0, 0, 0, 0);
+              const end = new Date(value);
+              end.setHours(23, 59, 59, 999);
+              andConditions.push({
+                createdAt: { gte: start.toISOString(), lte: end.toISOString() },
+              });
+            }
+            return;
+          }
+
+          if (key.includes('.')) {
+            const [relation, field] = key.split('.');
+            andConditions.push({ [relation]: { some: { [field]: value } } });
+            return;
+          }
+
+          andConditions.push({ [key]: value });
+        });
       }
 
-      andConditions.push({ [key]: value });
-    });
-  }
+      const whereConditions: Prisma.InventoryWhereInput = { AND: andConditions };
 
-  const whereConditions: Prisma.InventoryWhereInput = { AND: andConditions };
+      const [result, total] = await Promise.all([
+        prisma.inventory.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'desc' },
+          select: inventorySelect,
+        }),
+        prisma.inventory.count({ where: whereConditions }),
+      ]);
 
-  const [result, total] = await Promise.all([
-    prisma.inventory.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: inventorySelect,
-    }),
-    prisma.inventory.count({ where: whereConditions }),
-  ]);
-
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -237,6 +252,7 @@ const updateInventory = async (req: Request) => {
     select: inventorySelect,
   });
 
+  await CacheInvalidator.onOwnedRecordUpdate('inventory', id, existingInventory.userId);
   return result;
 };
 
@@ -251,8 +267,6 @@ const toggleStatusInventory = async (id: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Inventory not found');
   }
 
-  // TODO: define your status enum toggle logic below
-
   const currentStatus = (existingInventory as any).status;
   const newStatus = currentStatus === 'Pending' ? 'Done' : 'Pending';
   const result = await prisma.inventory.update({
@@ -261,6 +275,7 @@ const toggleStatusInventory = async (id: string) => {
     select: inventorySelect,
   });
 
+  await CacheInvalidator.onOwnedRecordUpdate('inventory', id, existingInventory.userId);
   return result;
 };
 
@@ -282,6 +297,8 @@ const softDeleteInventory = async (id: string) => {
     data: { isDeleted: true },
     select: inventorySelect,
   });
+
+  await CacheInvalidator.onRecordDelete('inventory', id, existingInventory.userId);
   return result;
 };
 
@@ -296,6 +313,7 @@ const deleteInventory = async (id: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Inventory not found');
   }
   const result = await prisma.inventory.delete({ where: { id } });
+  await CacheInvalidator.onRecordDelete('inventory', id);
   return result;
 };
 

@@ -24,8 +24,8 @@ const getReminderList = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Reminder list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -40,8 +40,8 @@ const getMyReminders = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My reminders retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 

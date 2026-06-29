@@ -31,8 +31,8 @@ const getDoseLogList = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Dose log list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -47,8 +47,8 @@ const getMyDoseLogs = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My dose logs retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 

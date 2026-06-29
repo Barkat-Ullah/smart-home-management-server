@@ -14,7 +14,7 @@
     "pm": "npx prisma migrate dev ",
     "pg": "npx prisma generate",
     "generate": "ts-node src/generate-module.js",
-"build": "npx prisma generate && tsc",
+    "build": "npx prisma generate && tsc",
     "postinstall": "prisma generate",
     "lint:check": "eslint --ignore-path .eslintignore --ext .js,.ts .",
     "lint:fix": "eslint . --fix",

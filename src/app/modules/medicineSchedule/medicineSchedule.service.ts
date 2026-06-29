@@ -23,6 +23,8 @@ import {
   generateDosesForRange,
 } from './medicineSchedule.utils';
 
+const SCHEDULE_MODEL = 'medicineSchedule';
+
 // -------------------------------------------------------
 // create MedicineSchedule
 // -------------------------------------------------------
@@ -82,6 +84,7 @@ const createMedicineSchedule = async (req: Request) => {
     select: medicineScheduleSelect,
   });
 
+  await CacheInvalidator.onRecordCreate(SCHEDULE_MODEL);
   // Auto-generate reminders for next 7 days after creation
   await generateAndSaveReminders(schedule as any, 7);
 
@@ -110,38 +113,45 @@ const getMedicineScheduleList = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.MedicineScheduleWhereInput[] = [
-    { isDeleted: false },
-  ];
+  const cacheKey = CacheKeys.list(SCHEDULE_MODEL, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.MedicineScheduleWhereInput[] = [
+        { isDeleted: false },
+      ];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: scheduleSearchableFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: scheduleSearchableFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildScheduleFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildScheduleFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.MedicineScheduleWhereInput = {
-    AND: andConditions,
-  };
+      const whereConditions: Prisma.MedicineScheduleWhereInput = {
+        AND: andConditions,
+      };
 
-  const [result, total] = await Promise.all([
-    prisma.medicineSchedule.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: medicineScheduleSelect,
-    }),
-    prisma.medicineSchedule.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.medicineSchedule.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'desc' },
+          select: medicineScheduleSelect,
+        }),
+        prisma.medicineSchedule.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -156,39 +166,46 @@ const getMyMedicineSchedules = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.MedicineScheduleWhereInput[] = [
-    { userId },
-    { isDeleted: false },
-  ];
+  const cacheKey = CacheKeys.myList(SCHEDULE_MODEL, userId, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.MedicineScheduleWhereInput[] = [
+        { userId },
+        { isDeleted: false },
+      ];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: scheduleSearchableFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: scheduleSearchableFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildScheduleFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildScheduleFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.MedicineScheduleWhereInput = {
-    AND: andConditions,
-  };
+      const whereConditions: Prisma.MedicineScheduleWhereInput = {
+        AND: andConditions,
+      };
 
-  const [result, total] = await Promise.all([
-    prisma.medicineSchedule.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: medicineScheduleSelect,
-    }),
-    prisma.medicineSchedule.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.medicineSchedule.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'desc' },
+          select: medicineScheduleSelect,
+        }),
+        prisma.medicineSchedule.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -254,7 +271,6 @@ const updateMedicineSchedule = async (req: Request) => {
     throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
   }
 
-  // Convert date strings if provided
   if (data.startDate) data.startDate = new Date(data.startDate);
   if (data.endDate) data.endDate = new Date(data.endDate);
 
@@ -264,6 +280,7 @@ const updateMedicineSchedule = async (req: Request) => {
     select: medicineScheduleSelect,
   });
 
+  await CacheInvalidator.onOwnedRecordUpdate(SCHEDULE_MODEL, id, existing.userId);
   return result;
 };
 
@@ -290,12 +307,12 @@ const updateScheduleStatus = async (
     where: { id },
     data: {
       status,
-      // Set completedAt only when marking as Completed
       ...(status === ScheduleStatus.Completed && { completedAt: new Date() }),
     },
     select: medicineScheduleSelect,
   });
 
+  await CacheInvalidator.onOwnedRecordUpdate(SCHEDULE_MODEL, id, userId);
   return result;
 };
 
@@ -316,6 +333,7 @@ const deleteMedicineSchedule = async (id: string) => {
     select: { id: true },
   });
 
+  await CacheInvalidator.onRecordDelete(SCHEDULE_MODEL, id, existing.userId);
   return result;
 };
 
@@ -342,7 +360,6 @@ export const generateAndSaveReminders = async (
 
   if (!doses.length) return;
 
-  // Reminder = 15 minutes before the scheduled dose time
   await prisma.medicineReminder.createMany({
     data: doses.map(dose => ({
       scheduleId: dose.scheduleId,

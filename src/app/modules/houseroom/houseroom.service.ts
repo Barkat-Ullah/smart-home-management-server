@@ -17,6 +17,8 @@ import { handleFileUploads } from '../../utils/handleFile';
 import { houseroomSelect } from './houseroom.select';
 import { buildFilterConditions } from './houseroom.utils';
 
+const MODEL = 'houseroom';
+
 // -------------------------------------------------------
 // Create Houseroom
 // -------------------------------------------------------
@@ -34,6 +36,7 @@ const createHouseroom = async (req: Request) => {
     select: houseroomSelect,
   });
 
+  await CacheInvalidator.onRecordCreate(MODEL);
   return result;
 };
 
@@ -58,35 +61,43 @@ const getHouseroomList = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.HouseroomWhereInput[] = [];
+  const cacheKey = CacheKeys.list(MODEL, { ...options, ...filters });
+  return (
+    cacheOr<{
+      meta: { total: number; page: number; limit: number };
+      data: any[];
+    }>(cacheKey, TTL.SHORT, async () => {
+      const andConditions: Prisma.HouseroomWhereInput[] = [];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: houseroomSearchableFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: houseroomSearchableFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.HouseroomWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
+      const whereConditions: Prisma.HouseroomWhereInput =
+        andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const [result, total] = await Promise.all([
-    prisma.houseroom.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: houseroomSelect,
-    }),
-    prisma.houseroom.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.houseroom.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'desc' },
+          select: houseroomSelect,
+        }),
+        prisma.houseroom.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    }) ?? { meta: { total: 0, page, limit }, data: [] }
+  );
 };
 
 // -------------------------------------------------------
@@ -113,37 +124,47 @@ const getMyHouseroom = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.HouseroomWhereInput[] = [
-    { userId },
-    { isDeleted: false },
-  ];
+  const cacheKey = CacheKeys.myList(MODEL, userId, { ...options, ...filters });
+  return (
+    cacheOr<{
+      meta: { total: number; page: number; limit: number };
+      data: any[];
+    }>(cacheKey, TTL.SHORT, async () => {
+      const andConditions: Prisma.HouseroomWhereInput[] = [
+        { userId },
+        { isDeleted: false },
+      ];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: houseroomSearchableFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: houseroomSearchableFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.HouseroomWhereInput = { AND: andConditions };
+      const whereConditions: Prisma.HouseroomWhereInput = {
+        AND: andConditions,
+      };
 
-  const [result, total] = await Promise.all([
-    prisma.houseroom.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
-      select: houseroomSelect,
-    }),
-    prisma.houseroom.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.houseroom.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+          select: houseroomSelect,
+        }),
+        prisma.houseroom.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    }) ?? { meta: { total: 0, page, limit }, data: [] }
+  );
 };
 
 // -------------------------------------------------------
@@ -165,7 +186,6 @@ const updateHouseroom = async (req: Request) => {
   if (!existingHouseroom)
     throw new AppError(httpStatus.NOT_FOUND, 'Houseroom not found');
 
-  // Only owner can update
   if (existingHouseroom.userId !== userId)
     throw new AppError(httpStatus.FORBIDDEN, 'Access denied');
 
@@ -179,6 +199,7 @@ const updateHouseroom = async (req: Request) => {
     select: houseroomSelect,
   });
 
+  await CacheInvalidator.onOwnedRecordUpdate(MODEL, id, userId);
   return result;
 };
 
@@ -195,7 +216,6 @@ const softDeleteHouseroom = async (id: string, userId: string) => {
   if (existingHouseroom.userId !== userId)
     throw new AppError(httpStatus.FORBIDDEN, 'Access denied');
 
-  // Default rooms cannot be deleted
   if (existingHouseroom.isDefault)
     throw new AppError(
       httpStatus.BAD_REQUEST,
@@ -211,6 +231,7 @@ const softDeleteHouseroom = async (id: string, userId: string) => {
     select: houseroomSelect,
   });
 
+  await CacheInvalidator.onRecordDelete(MODEL, id, userId);
   return result;
 };
 
@@ -230,7 +251,6 @@ const deleteHouseroom = async (id: string) => {
       'Default rooms cannot be deleted',
     );
 
-  // Cascade: unlink devices, cameras, aircons before deletion
   await prisma.$transaction([
     prisma.smartDevice.deleteMany({ where: { houseroomId: id } }),
     prisma.airConditioner.deleteMany({ where: { houseroomId: id } }),
@@ -238,6 +258,7 @@ const deleteHouseroom = async (id: string) => {
     prisma.houseroom.delete({ where: { id } }),
   ]);
 
+  await CacheInvalidator.onRecordDelete(MODEL, id);
   return { message: 'Houseroom permanently deleted' };
 };
 

@@ -36,8 +36,8 @@ const getEventList = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Event list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -62,8 +62,8 @@ const getMyEvent = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My Event list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -80,7 +80,6 @@ const updateEvent = catchAsync(async (req: Request, res: Response) => {
 
 // toggle status Event
 const toggleStatusEvent = catchAsync(async (req: Request, res: Response) => {
- 
   const result = await eventService.toggleStatusEvent(req);
   sendResponse(res, {
     statusCode: httpStatus.OK,

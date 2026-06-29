@@ -40,8 +40,8 @@ const getAirConditionerList = catchAsync(
       statusCode: httpStatus.OK,
       success: true,
       message: 'Air conditioner list retrieved successfully',
-      data: result.data,
-      meta: result.meta,
+      data: result!.data,
+      meta: result!.meta,
     });
   },
 );
@@ -73,8 +73,8 @@ const getMyAirConditioner = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My air conditioners retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 

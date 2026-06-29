@@ -46,8 +46,8 @@ const getMedicineScheduleList = catchAsync(
       statusCode: httpStatus.OK,
       success: true,
       message: 'Medicine schedule list retrieved successfully',
-      data: result.data,
-      meta: result.meta,
+      data: result!.data,
+      meta: result!.meta,
     });
   },
 );
@@ -68,8 +68,8 @@ const getMyMedicineSchedules = catchAsync(
       statusCode: httpStatus.OK,
       success: true,
       message: 'My medicine schedules retrieved successfully',
-      data: result.data,
-      meta: result.meta,
+      data: result!.data,
+      meta: result!.meta,
     });
   },
 );

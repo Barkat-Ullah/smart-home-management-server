@@ -16,10 +16,8 @@ const createSubscription = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
-
 // get all Subscription
-const subscriptionFilterableFields = ['searchTerm', 'id', 'createdAt','tier'];
+const subscriptionFilterableFields = ['searchTerm', 'id', 'createdAt', 'tier'];
 const getSubscriptionList = catchAsync(async (req: Request, res: Response) => {
   const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
   const filters = pick(req.query, subscriptionFilterableFields);
@@ -31,33 +29,30 @@ const getSubscriptionList = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Subscription list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
 // get all UserSubscription
-const userSubscriptionFilterableFields = [
-  'searchTerm',
-  'id',
-  'createdAt',
- 
-];
-const getUserSubscriptionList = catchAsync(async (req: Request, res: Response) => {
-  const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
-  const filters = pick(req.query, userSubscriptionFilterableFields);
-  const result = await subscriptionService.getUserSubscriptionList(
-    options,
-    filters,
-  );
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'UserSubscription list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
-  });
-});
+const userSubscriptionFilterableFields = ['searchTerm', 'id', 'createdAt'];
+const getUserSubscriptionList = catchAsync(
+  async (req: Request, res: Response) => {
+    const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
+    const filters = pick(req.query, userSubscriptionFilterableFields);
+    const result = await subscriptionService.getUserSubscriptionList(
+      options,
+      filters,
+    );
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'UserSubscription list retrieved successfully',
+      data: result!.data,
+      meta: result!.meta,
+    });
+  },
+);
 
 const getMyPlan = catchAsync(async (req: Request, res: Response) => {
   const result = await subscriptionService.getMyPlan(req);

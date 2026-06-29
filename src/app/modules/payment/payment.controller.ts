@@ -17,12 +17,7 @@ const createPayment = catchAsync(async (req: Request, res: Response) => {
 });
 
 // get all Payment
-const paymentFilterableFields = [
-  'searchTerm',
-  'id',
-  'createdAt',
-  'status',
-];
+const paymentFilterableFields = ['searchTerm', 'id', 'createdAt', 'status'];
 const getPaymentList = catchAsync(async (req: Request, res: Response) => {
   const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
   const filters = pick(req.query, paymentFilterableFields);
@@ -31,8 +26,8 @@ const getPaymentList = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Payment list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -57,8 +52,8 @@ const getMyPayment = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My Payment list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 

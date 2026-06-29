@@ -20,6 +20,8 @@ import {
 } from './prescription.select';
 import { buildFilterConditions } from './prescription.utils';
 
+const PRESCRIPTION_MODEL = 'prescription';
+
 // -------------------------------------------------------
 // create Prescription
 // -------------------------------------------------------
@@ -39,6 +41,7 @@ const createPrescription = async (req: Request) => {
     select: prescriptionSelect,
   });
 
+  await CacheInvalidator.onRecordCreate(PRESCRIPTION_MODEL);
   return result;
 };
 
@@ -61,35 +64,42 @@ const getPrescriptionList = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.PrescriptionWhereInput[] = [];
+  const cacheKey = CacheKeys.list(PRESCRIPTION_MODEL, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.PrescriptionWhereInput[] = [];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: prescriptionSearchableFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: prescriptionSearchableFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.PrescriptionWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
+      const whereConditions: Prisma.PrescriptionWhereInput =
+        andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const [result, total] = await Promise.all([
-    prisma.prescription.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: prescriptionSelect,
-    }),
-    prisma.prescription.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.prescription.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'desc' },
+          select: prescriptionSelect,
+        }),
+        prisma.prescription.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -120,35 +130,41 @@ const getMyPrescriptions = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  // Always scope to logged-in user
-  const andConditions: Prisma.PrescriptionWhereInput[] = [{ userId }];
+  const cacheKey = CacheKeys.myList(PRESCRIPTION_MODEL, userId, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.PrescriptionWhereInput[] = [{ userId }];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: prescriptionSearchableFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: prescriptionSearchableFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.PrescriptionWhereInput = { AND: andConditions };
+      const whereConditions: Prisma.PrescriptionWhereInput = { AND: andConditions };
 
-  const [result, total] = await Promise.all([
-    prisma.prescription.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: prescriptionWithMedicinesSelect,
-    }),
-    prisma.prescription.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.prescription.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'desc' },
+          select: prescriptionWithMedicinesSelect,
+        }),
+        prisma.prescription.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -170,7 +186,6 @@ const updatePrescription = async (req: Request) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Prescription not found');
   }
 
-  // Only owner can update
   if (existing.userId !== req.user.id) {
     throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
   }
@@ -181,11 +196,12 @@ const updatePrescription = async (req: Request) => {
     select: prescriptionSelect,
   });
 
+  await CacheInvalidator.onOwnedRecordUpdate(PRESCRIPTION_MODEL, id, existing.userId);
   return result;
 };
 
 // -------------------------------------------------------
-// delete Prescription (hard delete + soft-delete medicines)
+// delete Prescription
 // -------------------------------------------------------
 const deletePrescription = async (id: string) => {
   const existing = await prisma.prescription.findUnique({ where: { id } });
@@ -193,13 +209,13 @@ const deletePrescription = async (id: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Prescription not found');
   }
 
-  // Soft-delete all medicine schedules under this prescription first
   await prisma.medicineSchedule.updateMany({
     where: { prescriptionId: id },
     data: { isDeleted: true },
   });
 
   const result = await prisma.prescription.delete({ where: { id } });
+  await CacheInvalidator.onRecordDelete(PRESCRIPTION_MODEL, id, existing.userId);
   return result;
 };
 

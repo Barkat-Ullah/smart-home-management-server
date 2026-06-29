@@ -46,7 +46,6 @@ const createUser = async (req: Request) => {
   const data = req.body;
   const targetRole = data.role as UserRoleEnum;
 
-  // permission check
   const allowed = canCreateRole[creatorRole] || [];
   if (!allowed.includes(targetRole)) {
     throw new ApiError(
@@ -55,16 +54,13 @@ const createUser = async (req: Request) => {
     );
   }
 
-  // email unique check
   const existing = await prisma.user.findUnique({
     where: { email: data.email },
   });
   if (existing)
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already exists');
 
-  // password generate
   const userPass = data.password;
-
   const hashedPassword = await bcrypt.hash(userPass, BCRYPT_ROUNDS);
 
   const result = await prisma.user.create({
@@ -72,7 +68,8 @@ const createUser = async (req: Request) => {
     select: userSelect,
   });
 
-  // creator info
+  await CacheInvalidator.onRecordCreate('user');
+
   const creator = await prisma.user.findUnique({
     where: { id: creatorId },
     select: { fullName: true },
@@ -148,11 +145,9 @@ type IUserFilterRequest = {
   isEmailVerified?: string;
   isOnline?: string;
   isDeleted?: string;
-  // clientInfo
   device?: string;
   browser?: string;
   os?: string;
-  // ipInfo
   country?: string;
   region?: string;
   city?: string;
@@ -160,7 +155,6 @@ type IUserFilterRequest = {
   isp?: string;
 };
 
-// searchable fields
 const userSearchAbleFields = [
   'fullName',
   'email',
@@ -177,120 +171,120 @@ const getUserList = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.UserWhereInput[] = [{ role: UserRoleEnum.USER }];
+  const cacheKey = CacheKeys.list('user', { ...options, ...filters });
+  return (
+    cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+      cacheKey, TTL.SHORT, async () => {
+        const andConditions: Prisma.UserWhereInput[] = [{ role: UserRoleEnum.USER }];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: userSearchAbleFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
-
-  if (Object.keys(filterData).length) {
-    Object.keys(filterData).forEach(key => {
-      const value = (filterData as any)[key];
-      if (value === '' || value === null || value === undefined) return;
-
-      // --- Date filter ---
-      if (key === 'createdAt') {
-        const parts = (value as string).split('-');
-
-        if (parts.length === 2) {
-          // Format: "YYYY-MM" →
-          const year = parseInt(parts[0]);
-          const month = parseInt(parts[1]) - 1;
+        if (searchTerm) {
           andConditions.push({
-            createdAt: {
-              gte: toUTCStartOfMonth(year, month),
-              lte: toUTCEndOfMonth(year, month),
-            },
-          });
-        } else if (parts.length === 3) {
-          // Format: "YYYY-MM-DD" →
-          andConditions.push({
-            createdAt: {
-              gte: toUTCStartOfDay(value),
-              lte: toUTCEndOfDay(value),
-            },
+            OR: userSearchAbleFields.map(field => ({
+              [field]: { contains: searchTerm, mode: 'insensitive' },
+            })),
           });
         }
-        return;
+
+        if (Object.keys(filterData).length) {
+          Object.keys(filterData).forEach(key => {
+            const value = (filterData as any)[key];
+            if (value === '' || value === null || value === undefined) return;
+
+            if (key === 'createdAt') {
+              const parts = (value as string).split('-');
+              if (parts.length === 2) {
+                const year = parseInt(parts[0]);
+                const month = parseInt(parts[1]) - 1;
+                andConditions.push({
+                  createdAt: {
+                    gte: toUTCStartOfMonth(year, month),
+                    lte: toUTCEndOfMonth(year, month),
+                  },
+                });
+              } else if (parts.length === 3) {
+                andConditions.push({
+                  createdAt: {
+                    gte: toUTCStartOfDay(value),
+                    lte: toUTCEndOfDay(value),
+                  },
+                });
+              }
+              return;
+            }
+
+            if (['status', 'role', 'plan', 'gender'].includes(key)) {
+              andConditions.push({
+                [key]: { in: Array.isArray(value) ? value : [value] },
+              });
+              return;
+            }
+
+            if (['isEmailVerified', 'isOnline', 'isDeleted'].includes(key)) {
+              andConditions.push({ [key]: value === 'true' });
+              return;
+            }
+
+            if (['device', 'browser', 'os'].includes(key)) {
+              andConditions.push({
+                clientInfo: { string_contains: value },
+              } as any);
+              return;
+            }
+
+            if (['country', 'region', 'city', 'timezone', 'isp'].includes(key)) {
+              andConditions.push({
+                ipInfo: { string_contains: value },
+              } as any);
+              return;
+            }
+
+            andConditions.push({ [key]: value });
+          });
+        }
+
+        const whereConditions: Prisma.UserWhereInput =
+          andConditions.length > 0 ? { AND: andConditions } : {};
+
+        const [result, total] = await Promise.all([
+          prisma.user.findMany({
+            skip,
+            take: limit,
+            where: whereConditions,
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phoneNumber: true,
+              role: true,
+              status: true,
+              describe: true,
+              city: true,
+              address: true,
+              image: true,
+              bloodGroup: true,
+              gender: true,
+              allergies: true,
+              isAgreeWithTerms: true,
+              plan: true,
+              isEmailVerified: true,
+              isDeleted: true,
+              isOnline: true,
+              clientInfo: true,
+              ipInfo: true,
+              lastLoginAt: true,
+              createdAt: true,
+              updatedAt: true,
+              createdById: true,
+            },
+          }),
+          prisma.user.count({ where: whereConditions }),
+        ]);
+
+        return { meta: { total, page, limit }, data: result };
       }
-
-      // --- Enum array filters ---
-      if (['status', 'role', 'plan', 'gender'].includes(key)) {
-        andConditions.push({
-          [key]: { in: Array.isArray(value) ? value : [value] },
-        });
-        return;
-      }
-
-      // --- Boolean filters ---
-      if (['isEmailVerified', 'isOnline', 'isDeleted'].includes(key)) {
-        andConditions.push({ [key]: value === 'true' });
-        return;
-      }
-
-      // --- clientInfo JSON filters ---
-      if (['device', 'browser', 'os'].includes(key)) {
-        andConditions.push({
-          clientInfo: { string_contains: value },
-        } as any);
-        return;
-      }
-
-      // --- ipInfo JSON filters ---
-      if (['country', 'region', 'city', 'timezone', 'isp'].includes(key)) {
-        andConditions.push({
-          ipInfo: { string_contains: value },
-        } as any);
-        return;
-      }
-
-      andConditions.push({ [key]: value });
-    });
-  }
-
-  const whereConditions: Prisma.UserWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
-
-  const result = await prisma.user.findMany({
-    skip,
-    take: limit,
-    where: whereConditions,
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      phoneNumber: true,
-      role: true,
-      status: true,
-      describe: true,
-      city: true,
-      address: true,
-      image: true,
-      bloodGroup: true,
-      gender: true,
-      allergies: true,
-      isAgreeWithTerms: true,
-      plan: true,
-      isEmailVerified: true,
-      isDeleted: true,
-      isOnline: true,
-      clientInfo: true,
-      ipInfo: true,
-      lastLoginAt: true,
-      createdAt: true,
-      updatedAt: true,
-      createdById: true,
-    },
-  });
-
-  const total = await prisma.user.count({ where: whereConditions });
-
-  return { meta: { total, page, limit }, data: result };
+    ) ?? { meta: { total: 0, page, limit }, data: [] }
+  );
 };
 
 // -------------------------------------------------------
@@ -314,9 +308,7 @@ const getMyUser = async (req: Request) => {
   const userId = req.user.id;
 
   const result = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
+    where: { id: userId },
     select: {
       id: true,
       fullName: true,
@@ -355,18 +347,20 @@ const updateUser = async (req: Request) => {
   const existingUser = await prisma.user.findUnique({ where: { id } });
   if (!existingUser) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
 
-  // Strip undefined values
   const cleanData = Object.fromEntries(
     Object.entries({ ...data, ...uploadedFiles }).filter(
       ([_, v]) => v !== undefined,
     ),
   );
 
-  return prisma.user.update({
+  const result = await prisma.user.update({
     where: { id },
     data: cleanData,
     select: userSelect,
   });
+
+  await CacheInvalidator.onOwnedRecordUpdate('user', id, id);
+  return result;
 };
 
 // -------------------------------------------------------
@@ -385,7 +379,7 @@ const toggleStatusUser = async (id: string) => {
   });
 
   await invalidateKeys(CacheKeys.single('auth-session', id));
-
+  await CacheInvalidator.onRecordDelete('user', id, id);
   return result;
 };
 
@@ -407,6 +401,7 @@ const softDeleteUser = async (id: string) => {
   });
 
   await invalidateKeys(CacheKeys.single('auth-session', id));
+  await CacheInvalidator.onRecordDelete('user', id, id);
   return result;
 };
 
@@ -420,6 +415,7 @@ const deleteUser = async (id: string) => {
   }
   const result = await prisma.user.delete({ where: { id } });
   await invalidateKeys(CacheKeys.single('auth-session', id));
+  await CacheInvalidator.onRecordDelete('user', id);
   return result;
 };
 

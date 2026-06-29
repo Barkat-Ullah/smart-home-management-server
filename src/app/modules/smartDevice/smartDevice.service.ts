@@ -16,6 +16,8 @@ import { Request } from 'express';
 import { smartDeviceSelect } from './smartDevice.select';
 import { buildFilterConditions } from './smartDevice.utils';
 
+const MODEL = 'smartDevice';
+
 // -------------------------------------------------------
 // Create SmartDevice
 // -------------------------------------------------------
@@ -23,20 +25,18 @@ const createSmartDevice = async (req: Request) => {
   const userId = req.user.id;
   const data = req.body;
 
-  // Verify houseroom belongs to user
   const houseroom = await prisma.houseroom.findUnique({
     where: { id: data.houseroomId },
   });
   if (!houseroom)
     throw new AppError(httpStatus.NOT_FOUND, 'Houseroom not found');
-  // if (houseroom.userId !== userId)
-  //   throw new AppError(httpStatus.FORBIDDEN, 'Access denied');
 
   const result = await prisma.smartDevice.create({
     data: { ...data, userId },
     select: smartDeviceSelect,
   });
 
+  await CacheInvalidator.onRecordCreate(MODEL);
   return result;
 };
 
@@ -63,35 +63,42 @@ const getSmartDeviceList = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.SmartDeviceWhereInput[] = [];
+  const cacheKey = CacheKeys.list(MODEL, { ...options, ...filters });
+  return (
+    cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+      cacheKey, TTL.SHORT, async () => {
+        const andConditions: Prisma.SmartDeviceWhereInput[] = [];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: smartDeviceSearchableFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+        if (searchTerm) {
+          andConditions.push({
+            OR: smartDeviceSearchableFields.map(field => ({
+              [field]: { contains: searchTerm, mode: 'insensitive' },
+            })),
+          });
+        }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
+        if (Object.keys(filterData).length) {
+          andConditions.push(...buildFilterConditions(filterData));
+        }
 
-  const whereConditions: Prisma.SmartDeviceWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
+        const whereConditions: Prisma.SmartDeviceWhereInput =
+          andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const [result, total] = await Promise.all([
-    prisma.smartDevice.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: smartDeviceSelect,
-    }),
-    prisma.smartDevice.count({ where: whereConditions }),
-  ]);
+        const [result, total] = await Promise.all([
+          prisma.smartDevice.findMany({
+            skip,
+            take: limit,
+            where: whereConditions,
+            orderBy: { createdAt: 'desc' },
+            select: smartDeviceSelect,
+          }),
+          prisma.smartDevice.count({ where: whereConditions }),
+        ]);
 
-  return { meta: { total, page, limit }, data: result };
+        return { meta: { total, page, limit }, data: result };
+      }
+    ) ?? { meta: { total: 0, page, limit }, data: [] }
+  );
 };
 
 // -------------------------------------------------------
@@ -119,37 +126,44 @@ const getMySmartDevice = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.SmartDeviceWhereInput[] = [
-    { userId },
-    { isDeleted: false },
-  ];
+  const cacheKey = CacheKeys.myList(MODEL, userId, { ...options, ...filters });
+  return (
+    cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+      cacheKey, TTL.SHORT, async () => {
+        const andConditions: Prisma.SmartDeviceWhereInput[] = [
+          { userId },
+          { isDeleted: false },
+        ];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: smartDeviceSearchableFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+        if (searchTerm) {
+          andConditions.push({
+            OR: smartDeviceSearchableFields.map(field => ({
+              [field]: { contains: searchTerm, mode: 'insensitive' },
+            })),
+          });
+        }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
+        if (Object.keys(filterData).length) {
+          andConditions.push(...buildFilterConditions(filterData));
+        }
 
-  const whereConditions: Prisma.SmartDeviceWhereInput = { AND: andConditions };
+        const whereConditions: Prisma.SmartDeviceWhereInput = { AND: andConditions };
 
-  const [result, total] = await Promise.all([
-    prisma.smartDevice.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: smartDeviceSelect,
-    }),
-    prisma.smartDevice.count({ where: whereConditions }),
-  ]);
+        const [result, total] = await Promise.all([
+          prisma.smartDevice.findMany({
+            skip,
+            take: limit,
+            where: whereConditions,
+            orderBy: { createdAt: 'desc' },
+            select: smartDeviceSelect,
+          }),
+          prisma.smartDevice.count({ where: whereConditions }),
+        ]);
 
-  return { meta: { total, page, limit }, data: result };
+        return { meta: { total, page, limit }, data: result };
+      }
+    ) ?? { meta: { total: 0, page, limit }, data: [] }
+  );
 };
 
 // -------------------------------------------------------
@@ -186,8 +200,6 @@ const updateSmartDevice = async (req: Request) => {
   const existing = await prisma.smartDevice.findUnique({ where: { id } });
   if (!existing)
     throw new AppError(httpStatus.NOT_FOUND, 'Smart device not found');
-  // if (existing.userId !== userId)
-  //   throw new AppError(httpStatus.FORBIDDEN, 'Access denied');
 
   const result = await prisma.smartDevice.update({
     where: { id },
@@ -209,6 +221,7 @@ const updateSmartDevice = async (req: Request) => {
     select: smartDeviceSelect,
   });
 
+  await CacheInvalidator.onOwnedRecordUpdate(MODEL, id, userId);
   return result;
 };
 
@@ -231,6 +244,7 @@ const toggleSmartDevice = async (id: string, userId: string) => {
     select: smartDeviceSelect,
   });
 
+  await CacheInvalidator.onOwnedRecordUpdate(MODEL, id, userId);
   return result;
 };
 
@@ -252,6 +266,7 @@ const softDeleteSmartDevice = async (id: string, userId: string) => {
     select: smartDeviceSelect,
   });
 
+  await CacheInvalidator.onRecordDelete(MODEL, id, userId);
   return result;
 };
 
@@ -264,6 +279,7 @@ const deleteSmartDevice = async (id: string) => {
     throw new AppError(httpStatus.NOT_FOUND, 'Smart device not found');
 
   await prisma.smartDevice.delete({ where: { id } });
+  await CacheInvalidator.onRecordDelete(MODEL, id);
   return { message: 'Smart device permanently deleted' };
 };
 

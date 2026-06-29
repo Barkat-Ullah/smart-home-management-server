@@ -17,6 +17,8 @@ import { handleFileUploads } from '../../utils/handleFile';
 import { memorySelect } from './memory.select';
 import { buildFilterConditions } from './memory.utils';
 
+const MEMORY_MODEL = 'memory';
+
 // -------------------------------------------------------
 // create Memory
 // -------------------------------------------------------
@@ -33,6 +35,8 @@ const createMemory = async (req: Request) => {
     data: addedData,
     select: memorySelect,
   });
+
+  await CacheInvalidator.onRecordCreate(MEMORY_MODEL);
   return result;
 };
 
@@ -55,34 +59,41 @@ const getMemoryList = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.MemoryWhereInput[] = [];
+  const cacheKey = CacheKeys.list(MEMORY_MODEL, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.MemoryWhereInput[] = [];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: memorySearchAbleFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: memorySearchAbleFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.MemoryWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
+      const whereConditions: Prisma.MemoryWhereInput =
+        andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const [result, total] = await Promise.all([
-    prisma.memory.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: memorySelect,
-    }),
-    prisma.memory.count({ where: whereConditions }),
-  ]);
-  return { meta: { total, page, limit }, data: result };
+      const [result, total] = await Promise.all([
+        prisma.memory.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'desc' },
+          select: memorySelect,
+        }),
+        prisma.memory.count({ where: whereConditions }),
+      ]);
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -111,34 +122,41 @@ const getMyMemory = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.MemoryWhereInput[] = [{ userId }];
+  const cacheKey = CacheKeys.myList(MEMORY_MODEL, userId, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.MemoryWhereInput[] = [{ userId }];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: memorySearchAbleFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: memorySearchAbleFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.MemoryWhereInput = { AND: andConditions };
+      const whereConditions: Prisma.MemoryWhereInput = { AND: andConditions };
 
-  const [result, total] = await Promise.all([
-    prisma.memory.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: memorySelect,
-    }),
-    prisma.memory.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.memory.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'desc' },
+          select: memorySelect,
+        }),
+        prisma.memory.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -165,6 +183,7 @@ const updateMemory = async (req: Request) => {
     select: memorySelect,
   });
 
+  await CacheInvalidator.onOwnedRecordUpdate(MEMORY_MODEL, id, existingMemory.userId);
   return result;
 };
 
@@ -177,15 +196,7 @@ const toggleStatusMemory = async (id: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Memory not found');
   }
 
-  // TODO: define your status enum toggle logic below
-  // Example for enum: { ACTIVE -> INACTIVE, INACTIVE -> ACTIVE }
   const currentStatus = (existingMemory as any).status;
-  // const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-  // const result = await prisma.memory.update({
-  //   where: { id },
-  //   data: { status: currentStatus /* replace with newStatus */ },
-  //   select: memorySelect,
-  // });
 
   return null;
 };
@@ -201,12 +212,6 @@ const softDeleteMemory = async (id: string) => {
   if ((existingMemory as any).isDeleted) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Memory is already deleted');
   }
-  // const result = await prisma.memory.update({
-  //   where: { id },
-  //   data: { isDeleted: true },
-  //   select: memorySelect,
-  // });
-  // return result;
 };
 
 // -------------------------------------------------------
@@ -218,6 +223,7 @@ const deleteMemory = async (id: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Memory not found');
   }
   const result = await prisma.memory.delete({ where: { id } });
+  await CacheInvalidator.onRecordDelete(MEMORY_MODEL, id);
   return result;
 };
 

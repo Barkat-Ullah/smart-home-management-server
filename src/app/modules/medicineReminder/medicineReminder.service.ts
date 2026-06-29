@@ -18,6 +18,8 @@ import { reminderSelect } from './medicineReminder.select';
 import { buildReminderFilterConditions } from './medicineReminder.utils';
 import { generateAndSaveReminders } from '../medicineSchedule/medicineSchedule.service';
 
+const REMINDER_MODEL = 'medicineReminder';
+
 // -------------------------------------------------------
 // get all reminders (admin)
 // -------------------------------------------------------
@@ -36,27 +38,34 @@ const getReminderList = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { ...filterData } = filters;
 
-  const andConditions: Prisma.MedicineReminderWhereInput[] = [];
+  const cacheKey = CacheKeys.list(REMINDER_MODEL, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.MedicineReminderWhereInput[] = [];
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildReminderFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildReminderFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.MedicineReminderWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
+      const whereConditions: Prisma.MedicineReminderWhereInput =
+        andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const [result, total] = await Promise.all([
-    prisma.medicineReminder.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { remindAt: 'asc' },
-      select: reminderSelect,
-    }),
-    prisma.medicineReminder.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.medicineReminder.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { remindAt: 'asc' },
+          select: reminderSelect,
+        }),
+        prisma.medicineReminder.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -71,28 +80,35 @@ const getMyReminders = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { ...filterData } = filters;
 
-  const andConditions: Prisma.MedicineReminderWhereInput[] = [{ userId }];
+  const cacheKey = CacheKeys.myList(REMINDER_MODEL, userId, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.MedicineReminderWhereInput[] = [{ userId }];
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildReminderFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildReminderFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.MedicineReminderWhereInput = {
-    AND: andConditions,
-  };
+      const whereConditions: Prisma.MedicineReminderWhereInput = {
+        AND: andConditions,
+      };
 
-  const [result, total] = await Promise.all([
-    prisma.medicineReminder.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { remindAt: 'asc' },
-      select: reminderSelect,
-    }),
-    prisma.medicineReminder.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.medicineReminder.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { remindAt: 'asc' },
+          select: reminderSelect,
+        }),
+        prisma.medicineReminder.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------

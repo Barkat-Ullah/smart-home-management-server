@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import { Prisma } from '@prisma/client';
 import prisma from '../../utils/prisma';
-import { cacheOr, CacheKeys, TTL, CacheInvalidator, invalidateKeys, invalidatePattern } from '../../../lib/redis';
+import { cacheOr, CacheKeys, TTL, CacheInvalidator } from '../../../lib/redis';
 import { IPaginationOptions } from '../../interface/pagination.type';
 import { paginationHelper } from '../../utils/calculatePagination';
 import ApiError from '../../errors/AppError';
@@ -17,251 +17,109 @@ import { fileUploader } from '../../utils/fileUploader';
 const createFamilyMember = async (req: Request) => {
   const userId = req.user.id;
   const data = req.body;
-  const files = req.files as
-    | { [fieldname: string]: Express.Multer.File[] }
-    | undefined;
+  const files = req.files as | { [fieldname: string]: Express.Multer.File[] } | undefined;
 
   const uploadedFiles = await handleFileUploads(files);
   const addedData = { ...data, ...uploadedFiles, userId };
-  const result = await prisma.familyMember.create({
-    data: addedData,
-    select: familyMemberSelect,
-  });
+  const result = await prisma.familyMember.create({ data: addedData, select: familyMemberSelect });
+
+  await CacheInvalidator.onRecordCreate('familyMember');
   return result;
 };
 
-// -------------------------------------------------------
-// get all FamilyMember
-// -------------------------------------------------------
-type IFamilyMemberFilterRequest = {
-  searchTerm?: string;
-  id?: string;
-  createdAt?: string;
-  status?: string;
-};
-
+type IFamilyMemberFilterRequest = { searchTerm?: string; id?: string; createdAt?: string; status?: string; };
 const familyMemberSearchAbleFields = ['fullName', 'email'];
 
-const getFamilyMemberList = async (
-  options: IPaginationOptions,
-  filters: IFamilyMemberFilterRequest,
-) => {
+const getFamilyMemberList = async (options: IPaginationOptions, filters: IFamilyMemberFilterRequest) => {
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
-
-  const andConditions: Prisma.FamilyMemberWhereInput[] = [];
-
-  if (searchTerm) {
-    andConditions.push({
-      OR: familyMemberSearchAbleFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
-
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
-
-  const whereConditions: Prisma.FamilyMemberWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
-
-  const [result, total] = await Promise.all([
-    prisma.familyMember.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: familyMemberSelect,
-    }),
-    prisma.familyMember.count({ where: whereConditions }),
-  ]);
-
-  return { meta: { total, page, limit }, data: result };
+  const cacheKey = CacheKeys.list('familyMember', { ...options, ...filters });
+  return (cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(cacheKey, TTL.SHORT, async () => {
+    const andConditions: Prisma.FamilyMemberWhereInput[] = [];
+    if (searchTerm) andConditions.push({ OR: familyMemberSearchAbleFields.map(field => ({ [field]: { contains: searchTerm, mode: 'insensitive' } })) });
+    if (Object.keys(filterData).length) andConditions.push(...buildFilterConditions(filterData));
+    const w = andConditions.length ? { AND: andConditions } : {};
+    const [result, total] = await Promise.all([
+      prisma.familyMember.findMany({ skip, take: limit, where: w, orderBy: { createdAt: 'desc' }, select: familyMemberSelect }),
+      prisma.familyMember.count({ where: w }),
+    ]);
+    return { meta: { total, page, limit }, data: result };
+  }) ?? { meta: { total: 0, page, limit }, data: [] });
 };
 
 // -------------------------------------------------------
 // get FamilyMember by id
 // -------------------------------------------------------
 const getFamilyMemberById = async (id: string) => {
-  const result = await prisma.familyMember.findUnique({
-    where: { id },
-    select: familyMemberSelect,
-  });
-  if (!result) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'FamilyMember not found');
-  }
+  const cacheKey = CacheKeys.single('familyMember', id);
+  const result = await cacheOr(cacheKey, TTL.MEDIUM, () =>
+    prisma.familyMember.findUnique({ where: { id }, select: familyMemberSelect }),
+  );
+  if (!result) throw new ApiError(httpStatus.NOT_FOUND, 'FamilyMember not found');
   return result;
 };
 
-// -------------------------------------------------------
-// get my FamilyMember
-// -------------------------------------------------------
-const getMyFamilyMember = async (
-  req: Request,
-  options: IPaginationOptions,
-  filters: IFamilyMemberFilterRequest,
-) => {
+const getMyFamilyMember = async (req: Request, options: IPaginationOptions, filters: IFamilyMemberFilterRequest) => {
   const userId = req.user.id;
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
-
-  const andConditions: Prisma.FamilyMemberWhereInput[] = [
-    { userId },
-    { isDeleted: false },
-  ];
-
-  if (searchTerm) {
-    andConditions.push({
-      OR: familyMemberSearchAbleFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
-
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
-
-  const whereConditions: Prisma.FamilyMemberWhereInput = { AND: andConditions };
-
-  const [result, total] = await Promise.all([
-    prisma.familyMember.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: familyMemberSelect,
-    }),
-    prisma.familyMember.count({ where: whereConditions }),
-  ]);
-
-  return { meta: { total, page, limit }, data: result };
+  const cacheKey = CacheKeys.myList('familyMember', userId, { ...options, ...filters });
+  return (cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(cacheKey, TTL.SHORT, async () => {
+    const andConditions: Prisma.FamilyMemberWhereInput[] = [{ userId }, { isDeleted: false }];
+    if (searchTerm) andConditions.push({ OR: familyMemberSearchAbleFields.map(f => ({ [f]: { contains: searchTerm, mode: 'insensitive' } })) });
+    if (Object.keys(filterData).length) andConditions.push(...buildFilterConditions(filterData));
+    const w = { AND: andConditions };
+    const [result, total] = await Promise.all([
+      prisma.familyMember.findMany({ skip, take: limit, where: w, orderBy: { createdAt: 'desc' }, select: familyMemberSelect }),
+      prisma.familyMember.count({ where: w }),
+    ]);
+    return { meta: { total, page, limit }, data: result };
+  }) ?? { meta: { total: 0, page, limit }, data: [] });
 };
 
-// -------------------------------------------------------
-// update FamilyMember
-// -------------------------------------------------------
 const updateFamilyMember = async (req: Request) => {
-  const { id } = req.params;
-  const data = req.body;
-
-  const files = req.files as
-    | { [fieldname: string]: Express.Multer.File[] }
-    | undefined;
-
+  const { id } = req.params; const data = req.body;
+  const files = req.files as | { [fieldname: string]: Express.Multer.File[] } | undefined;
   const uploaded: string[] = [];
-
   if (files?.files) {
     for (const file of files.files) {
       const ext = file.originalname.split('.').pop()?.toLowerCase();
-
       let fileType: 'image' | 'video' | 'pdf' = 'pdf';
-
-      if (['jpg', 'jpeg', 'png', 'webp', 'heic'].includes(ext || ''))
-        fileType = 'image';
-      else if (['mp4', 'mov', 'avi', 'webm'].includes(ext || ''))
-        fileType = 'video';
-
-      const upload = await fileUploader.uploadToCloudinaryWithType(
-        file,
-        fileType,
-      );
-
+      if (['jpg', 'jpeg', 'png', 'webp', 'heic'].includes(ext || '')) fileType = 'image';
+      else if (['mp4', 'mov', 'avi', 'webm'].includes(ext || '')) fileType = 'video';
+      const upload = await fileUploader.uploadToCloudinaryWithType(file, fileType);
       uploaded.push(upload.Location);
     }
   }
-
-  const existingFamilyMember = await prisma.familyMember.findUnique({
-    where: { id },
-  });
-  if (!existingFamilyMember) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'FamilyMember not found');
-  }
-
-  const updatedData = {
-    ...data,
-    files: uploaded.length ? [...uploaded] : existingFamilyMember.files,
-  };
-
-  const result = await prisma.familyMember.update({
-    where: { id },
-    data: updatedData,
-    select: familyMemberSelect,
-  });
-
+  const existingFamilyMember = await prisma.familyMember.findUnique({ where: { id } });
+  if (!existingFamilyMember) throw new ApiError(httpStatus.NOT_FOUND, 'FamilyMember not found');
+  const updatedData = { ...data, files: uploaded.length ? [...uploaded] : existingFamilyMember.files };
+  const result = await prisma.familyMember.update({ where: { id }, data: updatedData, select: familyMemberSelect });
+  await CacheInvalidator.onOwnedRecordUpdate('familyMember', id, existingFamilyMember.userId);
   return result;
 };
 
-// -------------------------------------------------------
-// toggle status FamilyMember
-// -------------------------------------------------------
 const toggleStatusFamilyMember = async (id: string) => {
-  const existingFamilyMember = await prisma.familyMember.findUnique({
-    where: { id },
-  });
-  if (!existingFamilyMember) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'FamilyMember not found');
-  }
-
-  // TODO: define your status enum toggle logic below
-  // Example for enum: { ACTIVE -> INACTIVE, INACTIVE -> ACTIVE }
-  const currentStatus = (existingFamilyMember as any).status;
-  // const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-  const result = await prisma.familyMember.update({
-    where: { id },
-    data: { status: currentStatus /* replace with newStatus */ },
-    select: familyMemberSelect,
-  });
-
-  return result;
+  const existing = await prisma.familyMember.findUnique({ where: { id } });
+  if (!existing) throw new ApiError(httpStatus.NOT_FOUND, 'FamilyMember not found');
+  return prisma.familyMember.update({ where: { id }, data: { status: (existing as any).status }, select: familyMemberSelect });
 };
 
-// -------------------------------------------------------
-// soft delete FamilyMember
-// -------------------------------------------------------
 const softDeleteFamilyMember = async (id: string) => {
-  const existingFamilyMember = await prisma.familyMember.findUnique({
-    where: { id },
-  });
-  if (!existingFamilyMember) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'FamilyMember not found');
-  }
-  if ((existingFamilyMember as any).isDeleted) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      'FamilyMember is already deleted',
-    );
-  }
-  const result = await prisma.familyMember.update({
-    where: { id },
-    data: { isDeleted: true },
-    select: familyMemberSelect,
-  });
+  const existing = await prisma.familyMember.findUnique({ where: { id } });
+  if (!existing) throw new ApiError(httpStatus.NOT_FOUND, 'FamilyMember not found');
+  if ((existing as any).isDeleted) throw new ApiError(httpStatus.BAD_REQUEST, 'FamilyMember is already deleted');
+  const result = await prisma.familyMember.update({ where: { id }, data: { isDeleted: true }, select: familyMemberSelect });
+  await CacheInvalidator.onRecordDelete('familyMember', id, existing.userId);
   return result;
 };
 
-// -------------------------------------------------------
-// hard delete FamilyMember
-// -------------------------------------------------------
 const deleteFamilyMember = async (id: string) => {
-  const existingFamilyMember = await prisma.familyMember.findUnique({
-    where: { id },
-  });
-  if (!existingFamilyMember) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'FamilyMember not found');
-  }
+  const existing = await prisma.familyMember.findUnique({ where: { id } });
+  if (!existing) throw new ApiError(httpStatus.NOT_FOUND, 'FamilyMember not found');
   const result = await prisma.familyMember.delete({ where: { id } });
+  await CacheInvalidator.onRecordDelete('familyMember', id);
   return result;
 };
 
-export const familyMemberService = {
-  createFamilyMember,
-  getFamilyMemberList,
-  getFamilyMemberById,
-  getMyFamilyMember,
-  updateFamilyMember,
-  toggleStatusFamilyMember,
-  softDeleteFamilyMember,
-  deleteFamilyMember,
-};
+export const familyMemberService = { createFamilyMember, getFamilyMemberList, getFamilyMemberById, getMyFamilyMember, updateFamilyMember, toggleStatusFamilyMember, softDeleteFamilyMember, deleteFamilyMember };

@@ -26,13 +26,16 @@ const familyMemberFilterableFields = [
 const getFamilyMemberList = catchAsync(async (req: Request, res: Response) => {
   const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
   const filters = pick(req.query, familyMemberFilterableFields);
-  const result = await familyMemberService.getFamilyMemberList(options, filters);
+  const result = await familyMemberService.getFamilyMemberList(
+    options,
+    filters,
+  );
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'FamilyMember list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -52,13 +55,17 @@ const getFamilyMemberById = catchAsync(async (req: Request, res: Response) => {
 const getMyFamilyMember = catchAsync(async (req: Request, res: Response) => {
   const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
   const filters = pick(req.query, familyMemberFilterableFields);
-  const result = await familyMemberService.getMyFamilyMember(req, options, filters);
+  const result = await familyMemberService.getMyFamilyMember(
+    req,
+    options,
+    filters,
+  );
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My FamilyMember list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -74,28 +81,32 @@ const updateFamilyMember = catchAsync(async (req: Request, res: Response) => {
 });
 
 // toggle status FamilyMember
-const toggleStatusFamilyMember = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await familyMemberService.toggleStatusFamilyMember(id);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'FamilyMember status toggled successfully',
-    data: result,
-  });
-});
+const toggleStatusFamilyMember = catchAsync(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const result = await familyMemberService.toggleStatusFamilyMember(id);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'FamilyMember status toggled successfully',
+      data: result,
+    });
+  },
+);
 
 // soft delete FamilyMember
-const softDeleteFamilyMember = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await familyMemberService.softDeleteFamilyMember(id);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'FamilyMember soft deleted successfully',
-    data: result,
-  });
-});
+const softDeleteFamilyMember = catchAsync(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const result = await familyMemberService.softDeleteFamilyMember(id);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'FamilyMember soft deleted successfully',
+      data: result,
+    });
+  },
+);
 
 // hard delete FamilyMember
 const deleteFamilyMember = catchAsync(async (req: Request, res: Response) => {

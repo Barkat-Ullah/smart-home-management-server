@@ -34,6 +34,8 @@ const createChild = async (req: Request) => {
     data: addedData,
     select: childSelect,
   });
+
+  await CacheInvalidator.onRecordCreate('child');
   return result;
 };
 
@@ -56,45 +58,52 @@ const getChildList = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.ChildWhereInput[] = [];
+  const cacheKey = CacheKeys.list('child', { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.ChildWhereInput[] = [];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: childSearchAbleFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: childSearchAbleFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.ChildWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
+      const whereConditions: Prisma.ChildWhereInput =
+        andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const [result, total] = await Promise.all([
-    prisma.child.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: childSelect,
-    }),
-    prisma.child.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.child.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'desc' },
+          select: childSelect,
+        }),
+        prisma.child.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
 // get Child by id
 // -------------------------------------------------------
 const getChildById = async (id: string) => {
-  const result = await prisma.child.findUnique({
-    where: { id },
-    select: childSelect,
-  });
+  const cacheKey = CacheKeys.single('child', id);
+  const result = await cacheOr(cacheKey, TTL.MEDIUM, () =>
+    prisma.child.findUnique({ where: { id }, select: childSelect }),
+  );
   if (!result) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Child not found');
   }
@@ -113,37 +122,44 @@ const getMyChild = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.ChildWhereInput[] = [
-    { userId },
-    { isDeleted: false },
-  ];
+  const cacheKey = CacheKeys.myList('child', userId, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.ChildWhereInput[] = [
+        { userId },
+        { isDeleted: false },
+      ];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: childSearchAbleFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: childSearchAbleFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.ChildWhereInput = { AND: andConditions };
+      const whereConditions: Prisma.ChildWhereInput = { AND: andConditions };
 
-  const [result, total] = await Promise.all([
-    prisma.child.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: childSelect,
-    }),
-    prisma.child.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.child.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'desc' },
+          select: childSelect,
+        }),
+        prisma.child.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -193,6 +209,7 @@ const updateChild = async (req: Request) => {
     select: childSelect,
   });
 
+  await CacheInvalidator.onOwnedRecordUpdate('child', id, existingChild.userId);
   return result;
 };
 
@@ -204,17 +221,7 @@ const toggleStatusChild = async (id: string) => {
   if (!existingChild) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Child not found');
   }
-
-  // TODO: define your status enum toggle logic below
-  // Example for enum: { ACTIVE -> INACTIVE, INACTIVE -> ACTIVE }
   const currentStatus = (existingChild as any).status;
-  // // const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-  // const result = await prisma.child.update({
-  //   where: { id },
-  //   data: { status: currentStatus /* replace with newStatus */ },
-  //   select: childSelect,
-  // });
-
   return null;
 };
 
@@ -234,6 +241,8 @@ const softDeleteChild = async (id: string) => {
     data: { isDeleted: true },
     select: childSelect,
   });
+
+  await CacheInvalidator.onRecordDelete('child', id, existingChild.userId);
   return result;
 };
 
@@ -246,6 +255,7 @@ const deleteChild = async (id: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Child not found');
   }
   const result = await prisma.child.delete({ where: { id } });
+  await CacheInvalidator.onRecordDelete('child', id);
   return result;
 };
 

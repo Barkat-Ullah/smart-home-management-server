@@ -34,6 +34,8 @@ const createEvent = async (req: Request) => {
     data: addedData,
     select: eventSelect,
   });
+
+  await CacheInvalidator.onRecordCreate('event');
   return result;
 };
 
@@ -51,7 +53,6 @@ type IEventFilterRequest = {
   eventDate?: string;
 };
 
-// Fields that are actually on the Event model and searchable
 const eventSearchAbleFields = ['title', 'description', 'location', 'notes'];
 
 const getEventList = async (
@@ -61,53 +62,60 @@ const getEventList = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.EventWhereInput[] = [{ isDeleted: false }];
+  const cacheKey = CacheKeys.list('event', { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.EventWhereInput[] = [{ isDeleted: false }];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: eventSearchAbleFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: eventSearchAbleFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.EventWhereInput = { AND: andConditions };
+      const whereConditions: Prisma.EventWhereInput = { AND: andConditions };
 
-  const [result, total] = await Promise.all([
-    prisma.event.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: eventSelect,
-    }),
-    prisma.event.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.event.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'desc' },
+          select: eventSelect,
+        }),
+        prisma.event.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
 // get Event by id
 // -------------------------------------------------------
 const getEventById = async (id: string) => {
-  const result = await prisma.event.findUnique({
-    where: { id, isDeleted: false },
-    select: eventSelect,
-  });
+  const cacheKey = CacheKeys.single('event', id);
+  const result = await cacheOr(cacheKey, TTL.MEDIUM, () =>
+    prisma.event.findUnique({
+      where: { id, isDeleted: false },
+      select: eventSelect,
+    }),
+  );
   if (!result) {
     throw new ApiError(
       httpStatus.NOT_FOUND,
       'Event not found or has been deleted',
     );
   }
-  // if ((result as any).isDeleted) {
-  //   throw new ApiError(httpStatus.GONE, 'Event has been deleted');
-  // }
   return result;
 };
 
@@ -123,38 +131,44 @@ const getMyEvent = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  // Always scope to current user and non-deleted
-  const andConditions: Prisma.EventWhereInput[] = [
-    { userId },
-    { isDeleted: false },
-  ];
+  const cacheKey = CacheKeys.myList('event', userId, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.EventWhereInput[] = [
+        { userId },
+        { isDeleted: false },
+      ];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: eventSearchAbleFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: eventSearchAbleFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.EventWhereInput = { AND: andConditions };
+      const whereConditions: Prisma.EventWhereInput = { AND: andConditions };
 
-  const [result, total] = await Promise.all([
-    prisma.event.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { eventDate: 'asc' },
-      select: eventSelect,
-    }),
-    prisma.event.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.event.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { eventDate: 'asc' },
+          select: eventSelect,
+        }),
+        prisma.event.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -176,13 +190,9 @@ const updateEvent = async (req: Request) => {
       'Event not found or Cannot update a deleted event',
     );
   }
-  // if ((existingEvent as any).isDeleted) {
-  //   throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot update a deleted event');
-  // }
 
   const uploadedFiles = await handleFileUploads(files);
 
-  // Auto-set completedAt / cancelledAt timestamps when status changes
   const statusTimestamps: Partial<{
     completedAt: Date | null;
     cancelledAt: Date | null;
@@ -200,7 +210,6 @@ const updateEvent = async (req: Request) => {
   ) {
     statusTimestamps.cancelledAt = new Date();
   }
-  // If reverting from Completed/Cancelled, clear the timestamps
   if (
     data.status &&
     data.status !== EventStatus.Completed &&
@@ -226,13 +235,13 @@ const updateEvent = async (req: Request) => {
     select: eventSelect,
   });
 
+  await CacheInvalidator.onOwnedRecordUpdate('event', id, existingEvent.userId);
   return result;
 };
 
 // -------------------------------------------------------
 // toggle status Event
 // -------------------------------------------------------
-
 const toggleStatusEvent = async (req: Request) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -246,14 +255,7 @@ const toggleStatusEvent = async (req: Request) => {
       'Event not found or Cannot toggle status of a deleted event',
     );
   }
-  // if ((existingEvent as any).isDeleted) {
-  //   throw new ApiError(
-  //     httpStatus.BAD_REQUEST,
-  //     'Cannot toggle status of a deleted event',
-  //   );
-  // }
 
-  // Validate the incoming status is a valid EventStatus
   const validStatuses = Object.values(EventStatus);
   if (!validStatuses.includes(status)) {
     throw new ApiError(
@@ -279,8 +281,6 @@ const toggleStatusEvent = async (req: Request) => {
   ) {
     statusTimestamps.cancelledAt = new Date();
   }
-
-  // Clear timestamps if reverting
   if (
     newStatus !== EventStatus.Completed &&
     currentStatus === EventStatus.Completed
@@ -300,6 +300,7 @@ const toggleStatusEvent = async (req: Request) => {
     select: eventSelect,
   });
 
+  await CacheInvalidator.onOwnedRecordUpdate('event', id, existingEvent.userId);
   return result;
 };
 
@@ -316,14 +317,13 @@ const softDeleteEvent = async (id: string) => {
       'Event not found or Event is already deleted',
     );
   }
-  // if ((existingEvent as any).isDeleted) {
-  //   throw new ApiError(httpStatus.BAD_REQUEST, 'Event is already deleted');
-  // }
   const result = await prisma.event.update({
     where: { id },
     data: { isDeleted: true },
     select: eventSelect,
   });
+
+  await CacheInvalidator.onRecordDelete('event', id, existingEvent.userId);
   return result;
 };
 
@@ -340,14 +340,13 @@ const restoreEvent = async (id: string) => {
       'Event not found or Event is not deleted',
     );
   }
-  // if (!(existingEvent as any).isDeleted) {
-  //   throw new ApiError(httpStatus.BAD_REQUEST, 'Event is not deleted');
-  // }
   const result = await prisma.event.update({
     where: { id },
     data: { isDeleted: false },
     select: eventSelect,
   });
+
+  await CacheInvalidator.onRecordDelete('event', id, existingEvent.userId);
   return result;
 };
 
@@ -360,6 +359,7 @@ const deleteEvent = async (id: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Event not found');
   }
   const result = await prisma.event.delete({ where: { id } });
+  await CacheInvalidator.onRecordDelete('event', id);
   return result;
 };
 

@@ -1,505 +1,470 @@
-# Smart Home Management Server — Performance Optimization Plan
+# Performance Optimization Plan — Smart Home Management Server
 
-**Plan Date:** 2026-06-25  
-**Based On:** [PERFORMANCE_AUDIT.md](./PERFORMANCE_AUDIT.md)  
-**Current Status:** Phase 1 complete. Phase 2 in progress — adding cacheOr() to all service models and wiring auth/notification queues  
-**Build Status:** 0 TypeScript errors  
-**Strategy:** High impact / low risk first, then high impact / medium risk, then everything else
+**Date:** June 29, 2026  
+**Based on:** PERFORMANCE_AUDIT.md findings  
+**Strategy:** Iterative, ROI-prioritized implementation with no breaking changes
 
 ---
 
-## Execution Strategy Overview
+## Optimization Roadmap
 
-### Phases
-1. **Phase 1 (Days 1-2):** Critical & High Impact / Low Risk — Immediate wins
-2. **Phase 2 (Days 3-4):** High Impact / Medium Risk — Architectural improvements
-3. **Phase 3 (Days 5-7):** Medium Impact — Optimizations and hardening
-4. **Phase 4 (Days 8-10):** Low Impact — Polish and monitoring
+We will implement optimizations in 4 phases, starting with highest ROI and lowest risk:
 
-### Guiding Principles
-- ✅ Preserve all existing functionality
-- ✅ No breaking changes unless absolutely necessary
-- ✅ Maintain readability and maintainability
-- ✅ Follow existing project conventions
-- ✅ No premature optimization
-- ✅ Every change includes before/after analysis
+| Phase | Focus Area | Est. Effort | Est. Impact |
+|-------|-----------|-------------|-------------|
+| **Phase 1** | Database + Caching (P0 items) | 2-3 days | 60-80% DB read reduction |
+| **Phase 2** | Application Layer (P1 items) | 2-3 days | 40-60% latency reduction |
+| **Phase 3** | Infrastructure (P2 items) | 1-2 days | 30-50% P99 improvement |
+| **Phase 4** | Queues + Cleanup (P3-P4 items) | 0.5-1 day | 10-20% consistency gain |
 
 ---
 
-## Phase 1: Critical & High Impact / Low Risk (Days 1-2)
+## Phase 1 — Database & Caching (Critical)
 
-### P1.1 ✅ FIXED: MongoDB Indexes — All Models
-**Est. Time:** 1 day  
-**Risk:** Low  
-**ROI:** ★★★★★
+### Task 1.1: Add Redis Caching to All List Endpoints
 
-**What:**
-Added composite indexes to all 16 Prisma schema files targeting the most common query patterns. Validated with `prisma validate`.
+**Files to modify:** 
+- `src/app/modules/financial/financial.service.ts`
+- `src/app/modules/event/event.service.ts`
+- `src/app/modules/user/user.service.ts`
+- `src/app/modules/child/child.service.ts`
+- `src/app/modules/familyMember/familyMember.service.ts`
+- `src/app/modules/inventory/inventory.service.ts`
+- `src/app/modules/medicineSchedule/medicineSchedule.service.ts`
+- `src/app/modules/medicineReminder/medicineReminder.service.ts`
+- `src/app/modules/meal/meal.service.ts`
+- `src/app/modules/mealPlanDay/mealPlanDay.service.ts`
+- `src/app/modules/mealPlanDayItem/mealPlanDayItem.service.ts`
+- `src/app/modules/prescription/prescription.service.ts`
+- `src/app/modules/doseLog/doseLog.service.ts`
+- `src/app/modules/memory/memory.service.ts`
+- `src/app/modules/houseroom/houseroom.service.ts`
+- `src/app/modules/smartDevice/smartDevice.service.ts`
+- `src/app/modules/airConditioner/airConditioner.service.ts`
+- `src/app/modules/cctvCamera/cctvCamera.service.ts`
+- `src/app/modules/notification/notification.service.ts`
 
-**Files modified:**
-- `prisma/user.prisma` — Add indexes for email, role, status, isDeleted, createdAt, plan
-- `prisma/event.prisma` — Add indexes for userId, eventDate, status, isDeleted
-- `prisma/notification.prisma` — Add indexes for receiverId, isRead, createdAt
-- `prisma/children.prisma` — Add indexes for userId, isDeleted
-- `prisma/family.prisma` — Add indexes for userId, isDeleted
-- `prisma/feed.prisma` — Add indexes for userId, status, type, createdAt
-- `prisma/financial.prisma` — Add indexes for userId, date, type, financialProfileId
-- `prisma/medicine.prisma` — Add indexes for userId, scheduleId, status, startDate, scheduledAt
-- `prisma/memory.prisma` — Add indexes for userId, memoryOf, relatedPersonId
-- `prisma/houseroom.prisma` — Add indexes for userId, houseroomId
-- `prisma/subscription.prisma` — Add indexes for userId, subscriptionId
-- `prisma/message.prisma`, `prisma/follow.prisma`, `prisma/favourite.prisma`, `prisma/inventory.prisma`, `prisma/cv.prisma`, `prisma/payment.prisma`
-
-**Expected Impact:**
-- **Response Time:** 10-100× improvement on filtered queries
-- **Database Load:** 80% reduction in collection scans
-- **Infrastructure Cost:** Lower MongoDB Atlas read units
-
----
-
-### P1.2 ✅ FIXED: Eliminate Dual PrismaClient Instances
-**Est. Time:** 0.5 day  
-**Risk:** Low  
-**ROI:** ★★★★☆
-
-**What:**
-Merged `prisma` and `insecurePrisma` into a single `PrismaClient` instance using a `globalThis` singleton pattern. Both exports reference the same client.
-
-**Files modified:**
-- `src/app/utils/prisma.ts` — Single instance with dev-mode reconnect protection
-
-**Files affected (import changes):**
-- `src/app/middlewares/auth.ts` — No changes needed; `insecurePrisma` still resolves to the same client
-- `src/shared/index.ts` — No changes needed
-
-**Actual Impact:**
-- **Memory:** -40MB (eliminate duplicate connection pool)
-- **Connections:** -50% (half the MongoDB connections)
-- **Response Time:** -20ms per query (no additional pool overhead)
-
----
-
-### P1.3 ✅ INFRASTRUCTURE READY: Redis Caching Layer
-**Est. Time:** 1 day  
-**Risk:** Medium  
-**ROI:** ★★★★★
-
-**What:**
-Implemented full Redis client and cache utilities in `src/lib/redis.ts`:
-- `cacheOr()` with stampede/avalanche/penetration protection
-- `CacheInvalidator` helpers for record/model/bulk invalidation
-- Token blacklist (`blacklistToken` / `isTokenBlacklisted`)
-- TTL constants and stable cache key builders
-
-Also created `src/lib/redisConnection.ts` as a compatibility bridge for helper imports.
-
-**Files created/modified:**
-- `src/lib/redis.ts` — Full Redis client + cache utilities
-- `src/lib/redisConnection.ts` — Import bridge for BullMQ/worker files
-- `src/helpers/queue/*`, `src/helpers/worker/*` — Wired to `bullMQRedisOptions`
-- `src/app/modules/feed/feed.service.ts` — Wired Redis caching to feeds, comments, favorites, and staff lists
-- `src/app/middlewares/auth.ts` — Cached auth session lookups with invalidation on suspension/delete
-
-**Remaining:**
-- Wrap additional read-heavy service queries with `cacheOr()`
-- Migrate rate limiter state into Redis
-
-**Actual Impact:**
-- **Response Time:** -90% for cached queries (from ~100ms to ~5ms)
-- **Database Load:** 80-90% reduction in reads for cache-backed feed/auth flows
-
----
-
-### P1.4 ✅ INFRASTRUCTURE READY: Background Job Queue for Emails & Notifications
-**Est. Time:** 1.5 days  
-**Risk:** Medium  
-**ROI:** ★★★★★
-
-**What:**
-Implemented BullMQ queue system with Redis backend.
-
-**Queue Definitions:**
-- `otp-queue` — OTP email/SMS via `otpWorker`
-- `mail-queue` — Class invitations via `emailWorker`
-- `subscription-processing` — Payment notifications via `subscriptionWorker`
-
-**Files created/modified:**
-- `src/helpers/queue/queueFactory.ts` — Queue factory with retry/backoff
-- `src/helpers/worker/workerFactory.ts` — Worker factory with concurrency/limiter
-- `src/helpers/worker/emailWorker.ts` — Email worker
-- `src/helpers/worker/otpWorker.ts` — OTP worker
-- `src/helpers/worker/suscription.worker.ts` — Subscription notification worker
-- `src/helpers/queue-manager/queueManager.ts` — Init/shutdown lifecycle
-- `src/helpers/cleanQueue/cleanOtpQueue.ts` — Queue cleanup utility
-- `src/lib/redisConnection.ts` — Redis connection bridge
-
-**Remaining:**
-- Wire `auth.service.ts` to enqueue OTP/welcome emails instead of sending synchronously
-- Wire `notification.service.ts` to enqueue FCM pushes
-- Route `sendMailToAllUsersFromDB` through `mailQueue`
-
-**Build Status:**
-- Fixed 43 TypeScript errors in helper files
-- Verified 0 errors with `tsc --noEmit`
-
-**Actual Impact:**
-- **Response Time:** -80% on email/notification endpoints achievable once services enqueue
-- **Reliability:** Failed jobs auto-retry (up to 3 attempts)
-
----
-
-## Phase 2: High Impact / Medium Risk (Days 3-4)
-
-### P2.1 🔴 Paginate Unbounded Queries
-**Est. Time:** 0.5 day  
-**Risk:** Low  
-**ROI:** ★★★★☆
-
-**What:**
-Add pagination/chunking to all queries that currently fetch all records without limits.
-
-**Files to modify:**
-- `src/app/modules/user/user.service.ts`:
-  - `sendMailToAllUsersFromDB` — Process in chunks of 100
-  - `sendMailToSelectedUsersFromDB` — Validate with paginated lookup
-- `src/app/modules/notifications/notification.service.ts`:
-  - `sendNotifications` — Process in batches
-- `src/app/modules/user/analytics/analytics.service.ts`:
-  - `getUserLogoutStats` — Add limit/page with fallback
-  - `getLogoutTrend` — Use aggregation instead of fetching all
-
-**Expected Impact:**
-- **Memory:** -99% on batch operations
-- **Reliability:** No more request timeouts on large datasets
-- **Scalability:** Works with 100K+ users
-
----
-
-### P2.2 🔴 Parallelize File Uploads
-**Est. Time:** 0.5 day  
-**Risk:** Low  
-**ROI:** ★★★★☆
-
-**What:**
-Convert sequential file uploads to parallel using `Promise.all`.
-
-**Files to modify:**
-- `src/shared/index.ts` — `documentUpload` function
-
-**Pattern:**
+**Pattern to apply:**
 ```typescript
-// Before (sequential):
-if (files?.image?.[0]) { await uploadOne('image'); }
-if (files?.video?.[0]) { await uploadOne('video'); }
+// BEFORE
+const [result, total] = await Promise.all([
+  prisma.model.findMany({ skip, take: limit, where: ..., orderBy: ..., select: ... }),
+  prisma.model.count({ where: ... }),
+]);
+return { meta: { total, page, limit }, data: result };
 
-// After (parallel):
-const uploads = [];
-if (files?.image?.[0]) uploads.push(uploadOne('image'));
-if (files?.video?.[0]) uploads.push(uploadOne('video'));
-await Promise.all(uploads);
+// AFTER
+const cacheKey = CacheKeys.list('model', { ...options, ...filters });
+return cacheOr(cacheKey, TTL.SHORT, async () => {
+  const [result, total] = await Promise.all([
+    prisma.model.findMany({ skip, take: limit, where: ..., orderBy: ..., select: ... }),
+    prisma.model.count({ where: ... }),
+  ]);
+  return { meta: { total, page, limit }, data: result };
+}) ?? { meta: { total: 0, page, limit }, data: [] };
 ```
 
-**Expected Impact:**
-- **Upload Speed:** 2-3× faster for multi-file uploads
-- **User Experience:** Significantly reduced wait time
+**Cache invalidation:** Add `CacheInvalidator.onRecordCreate('model')` in create, `CacheInvalidator.onOwnedRecordUpdate('model', id, userId)` in update, `CacheInvalidator.onRecordDelete('model', id, userId)` in delete.
+
+**Expected impact:**
+- Response time: 200-500ms → 10-30ms (cached)
+- Database load: 60-80% reduction in read queries
+- Risk: Very low — cache-or pattern with negative caching handles misses gracefully
 
 ---
 
-### P2.3 🔴 Add SSE Heartbeat & Connection Cleanup
-**Est. Time:** 0.5 day  
-**Risk:** Low  
-**ROI:** ★★★★☆
+### Task 1.2: Defer Financial Profile Recalculation via BullMQ
 
-**What:**
-Add heartbeat mechanism to SSE connections and proper timeout/cleanup.
+**Files to modify:** `src/app/modules/financial/financial.utils.ts`, `src/app/modules/financial/financial.service.ts`
+
+**Implementation:**
+1. Create a new BullMQ queue `financial-recalculation` in `src/helpers/queue/index.ts`
+2. Create a worker `recalculationWorker.ts` in `src/helpers/worker/`
+3. Replace synchronous calls to `recalculateProfileTotals()` and `recalculateBudgetSpend()` with queue job pushes
+4. The worker processes profile recalculations asynchronously
+
+**Alternative (simpler, chosen):** Implement **incremental recalculation** — instead of 4 full aggregations, add/subtract the transaction amount from running totals:
+
+```typescript
+// INCREMENTAL APPROACH (preferred for Phase 1 - lower effort)
+const updateTotals = {
+  totalIncome: { increment: data.type === 'Income' ? data.amount : 0 },
+  totalExpense: { increment: data.type === 'Expense' ? data.amount : 0 },
+  totalSaving: { increment: data.type === 'Saving' ? data.amount : 0 },
+  totalInvestment: { increment: data.type === 'Investment' ? data.amount : 0 },
+  netBalance: { increment: data.type === 'Income' ? data.amount : (data.type === 'Expense' ? -data.amount : 0) },
+};
+
+await prisma.financialProfile.update({
+  where: { id: financialProfileId },
+  data: updateTotals,
+});
+```
+
+**Expected impact:**
+- Write latency: 300-800ms → 30-80ms
+- Aggregation queries eliminated entirely for normal CRUD
+- Risk: Low — incremental updates may drift; schedule periodic full recalibration (e.g., daily cron)
+
+---
+
+### Task 1.3: Optimize Financial Snapshot with MongoDB Aggregation
+
+**File to modify:** `src/app/modules/financial/financial.service.ts` (lines 845-917)
+
+**Implementation:** Replace in-memory aggregation with MongoDB native aggregation:
+
+```typescript
+const pipeline = [
+  { $match: { userId: new ObjectId(userId), isDeleted: false, date: { $gte: startDate, $lte: endDate } } },
+  { $group: {
+    _id: null,
+    totalIncome: { $sum: { $cond: [{ $eq: ['$type', 'Income'] }, '$amount', 0] } },
+    totalExpense: { $sum: { $cond: [{ $eq: ['$type', 'Expense'] }, '$amount', 0] } },
+    totalSaving: { $sum: { $cond: [{ $eq: ['$type', 'Saving'] }, '$amount', 0] } },
+    totalInvestment: { $sum: { $cond: [{ $eq: ['$type', 'Investment'] }, '$amount', 0] } },
+    categoryBreakdown: { $push: { k: '$category', v: '$amount' } },
+  }},
+];
+
+// For weekly breakdown, add $bucket stage
+```
+
+**Expected impact:**
+- Memory: 90% reduction (no in-memory iteration)
+- Response time: 500ms-3s → 50-200ms
+- Risk: Low — uses MongoDB native capabilities
+
+---
+
+### Task 1.4: Split Feed Select for List vs Detail
+
+**Files to modify:** `src/app/modules/feed/feed.select.ts`, `src/app/modules/feed/feed.service.ts`
+
+**Implementation:**
+1. Create `feedListSelect` — minimal fields + `_count` + `createdBy` + 1st level of assignments
+2. Keep `feedSelect` as `feedDetailSelect` — full nested includes
+3. Update `getFeedList()` and `getMyFeed()` to use `feedListSelect`
+4. Keep `getFeedById()` using `feedDetailSelect`
+
+**Expected impact:**
+- List payload: ~80% reduction (removes comments, statusHistory, deep assignment details)
+- Query time: 50% reduction
+- Risk: Very low — pure refactor, no behavior change
+
+---
+
+## Phase 2 — Application Layer (High Impact)
+
+### Task 2.1: Move All Emails to BullMQ Queue
 
 **Files to modify:**
-- `src/app/utils/sse.ts` — Add heartbeat interval and connection timeout
-- `src/app/modules/notifications/notification.service.ts` — Add periodic pings
+- `src/app/modules/auth/auth.service.ts` (6 email calls)
+- `src/app/modules/user/user.service.ts` (3 email calls)
+- `src/app/utils/sendMail.ts`
 
-**Expected Impact:**
-- **Memory:** Fixes potential memory leak from dead connections
-- **Scalability:** Can handle 10× more concurrent connections
+**Implementation:**
+1. Create a standardized email job type:
+```typescript
+// types
+interface EmailJobData {
+  to: string;
+  subject: string;
+  html: string;
+  priority?: 'low' | 'normal' | 'high';
+}
+```
+2. Replace all `emailSender(...)` calls with `mailQueue.add('send-email', emailJobData)`
+3. Update `emailWorker.ts` to handle generic email jobs
 
----
-
-### P2.4 🟡 Refactor JSON Field Filtering
-**Est. Time:** 1 day  
-**Risk:** Medium  
-**ROI:** ★★★★☆
-
-**What:**
-Refactor the `clientInfo` and `ipInfo` filtering to avoid `string_contains` on JSON fields.
-
-**Solution Options:**
-1. Store flattened indexed fields at the top level of User model (device, browser, os, country, region, city, timezone, isp)
-2. Or, accept the limitation and note it's a known MongoDB/Prisma constraint
-
-**Files to modify:**
-- `prisma/user.prisma` — Add top-level indexed fields for queryable properties
-- `src/app/modules/user/user.service.ts` — Update filter logic
-- Seed/migration script to backfill data
-
-**Expected Impact:**
-- **Query Speed:** 100× improvement on user filtering by client/ip info
-- **Scalability:** Enables efficient filtering at 100K+ users
+**Expected impact:**
+- Auth response time: 2-5s → 100-200ms
+- Email delivery becomes reliable with retries
+- Risk: Low — queue infrastructure already exists
 
 ---
 
-### P2.5 🔴 Docker Resource Limits & Build Optimization
-**Est. Time:** 0.5 day  
-**Risk:** Low  
-**ROI:** ★★★★☆
+### Task 2.2: Optimize Auth Middleware
 
-**What:**
-1. Add memory/CPU limits to all Docker services
-2. Optimize Docker build cache layers
-3. Add health check dependencies for worker
+**File to modify:** `src/app/middlewares/auth.ts`
 
-**Files to modify:**
-- `docker-compose.yml` — Add `deploy.resources.limits`
-- `Dockerfile` — Optimize layer caching (copy prisma only once)
+**Implementation:**
+1. Reduce TTL for auth session cache to 2 minutes (faster invalidation)
+2. Add early return for role-only checks (skip DB if token role matches)
+3. Cache `lastLogoutAt` in a lightweight Redis key instead of full session object
 
-**Expected Impact:**
-- **Stability:** Prevents cascading failures from memory leaks
-- **Build Time:** -30% faster builds
-- **Cost Control:** Predictable resource usage
+**Expected impact:**
+- Middleware overhead: 3-5ms → <1ms
+- Redis operations per request: 1 GET → 0 (for most cases)
+- Risk: Low — maintains existing security guarantees
 
 ---
 
-## Phase 3: Medium Impact Optimizations (Days 5-7)
+### Task 2.3: Reuse S3 Client for ZenexCloud
 
-### P3.1 🟡 Add HTTP Response Caching (ETag)
-**Est. Time:** 0.5 day  
-**Risk:** Low  
-**ROI:** ★★★★☆
+**File to modify:** `src/app/utils/fileUploader.ts`
 
-**What:**
-Add ETag middleware for GET endpoints that return static or semi-static data.
+**Implementation:**
+```typescript
+// Hoist ZenexCloud client to module level (line ~19)
+const zenexClient = new S3Client({
+  region: process.env.ZENEX_REGION || 'us-east-1',
+  endpoint: (process.env.ZENEX_ENDPOINT || 'http://vault.zenexcloud.com:9000').replace(/\/$/, ''),
+  forcePathStyle: true,
+  credentials: {
+    accessKeyId: process.env.ZENEX_ACCESS_KEY || '',
+    secretAccessKey: process.env.ZENEX_SECRET_KEY || '',
+  },
+});
 
-**Files to modify:**
-- `src/shared/index.ts` — Add ETag configuration to `setupMiddlewares`
+// Then use the reused client in uploadToZenexCloudWithType()
+```
 
-**Expected Impact:**
-- **Response Time:** -60% on cached GET requests (304 Not Modified)
-- **Bandwidth:** Reduced payload transfer for unmodified resources
-
----
-
-### P3.2 🟡 Add Compression Awareness
-**Est. Time:** 0.25 day  
-**Risk:** Low  
-**ROI:** ★★★☆☆
-
-**What:**
-Configure compression middleware to filter by content type, skipping already-compressed assets.
-
-**Files to modify:**
-- `src/shared/index.ts` — Configure compression options
-
-**Expected Impact:**
-- **CPU:** Reduced compression overhead for binary/resized assets
+**Expected impact:**
+- Upload latency: 100-300ms reduction (eliminates TLS handshake per upload)
+- Risk: Very low — structural refactor
 
 ---
 
-### P3.3 🟡 Optimize Analytics Aggregation Queries
-**Est. Time:** 0.5 day  
-**Risk:** Low  
-**ROI:** ★★★☆☆
+### Task 2.4: Cache Notification Unread Counts in Redis
 
-**What:**
-Replace in-memory analytics processing with MongoDB aggregation pipeline using Prisma raw queries or aggregation support.
+**Files to modify:** `src/app/utils/notify.ts`
 
-**Files to modify:**
-- `src/app/modules/user/analytics/analytics.service.ts`
-- Add `src/app/modules/user/analytics/analytics.queries.ts`
+**Implementation:**
+```typescript
+// On createNotification:
+await redis.incr(`notifications:unread:${receiverId}`);
 
-**Expected Impact:**
-- **Memory:** O(1) instead of O(n) for analytics
-- **Response Time:** 10-100× faster on large datasets
-- **Database Load:** Less data transferred to application
+// On createBulkNotifications:
+await Promise.all(
+  uniqueReceivers.map(id => redis.incr(`notifications:unread:${id}`))
+);
 
----
+// On mark-as-read (notification route):
+await redis.set(`notifications:unread:${userId}`, '0', 'EX', TTL.SHORT);
+```
 
-### P3.4 🟡 Rate Limiter — Use Redis + User ID Keys
-**Est. Time:** 0.5 day  
-**Risk:** Low  
-**ROI:** ★★★☆☆
-
-**What:**
-Update rate limiter to use Redis backend with user ID as the key (when authenticated) and IP as fallback.
-
-**Files to modify:**
-- `src/shared/index.ts` — Update `apiLimiter` configuration
-- `src/lib/redis.ts` — Already created in P1.3
-
-**Expected Impact:**
-- **Reliability:** Consistent rate limiting across multiple server instances
-- **Accuracy:** Better proxy/CDN handling
+**Expected impact:**
+- Eliminates 1+N database count queries per notification batch
+- Risk: Very low — unread count is eventually consistent anyway
 
 ---
 
-### P3.5 🟡 Optimize Prisma Query Patterns
-**Est. Time:** 0.5 day  
-**Risk:** Low  
-**ROI:** ★★★☆☆
+## Phase 3 — Infrastructure (High Impact / Medium Risk)
 
-**What:**
-Batch `findUnique` + `update` patterns into single `update` with `where` clauses where possible. Use `updateMany` for bulk operations.
+### Task 3.1: Add Missing Database Indexes
 
-**Files to modify:**
-- All service files with findUnique + update pattern:
-  - `event.service.ts` — updateEvent, toggleStatusEvent
-  - `user.service.ts` — updateUser, softDeleteUser, toggleStatusUser
-  - `auth.service.ts` — Multiple patterns
+**Files to modify:** Multiple `.prisma` schema files
 
-**Expected Impact:**
-- **Database Queries:** -50% on update operations
-- **Response Time:** -20ms per eliminated query
+**Indexes to add:**
 
----
+| Model | Index | Justification |
+|-------|-------|---------------|
+| Notification | `[type, receiverId]` | Filtered notification queries |
+| Chat | `[roomId, receiverId, isRead]` | Unread count queries |
+| Feed | `[status, createdAt]` | Admin feed filtering |
+| Transaction | `[financialProfileId, type, category, isDeleted]` | Recalculation aggregation |
+| Transaction | `[financialProfileId, type, isDeleted]` | Profile total recalculation |
+| DoseLog | `[userId, scheduledAt, status]` | User's scheduled dose queries |
+| Event | `[userId, eventDate, status]` | Calendar view queries |
+| MedicineSchedule | `[userId, status, startDate, endDate]` | Active schedule queries |
 
-### P3.6 🟡 Fix SSE Utility Implementation
-**Est. Time:** 0.25 day  
-**Risk:** Low  
-**ROI:** ★★★☆☆
+**Implementation:** Add `@@index([...])` decorators to each model, then run `npx prisma db push`.
 
-**What:**
-Read and optimize the SSE utility file (`src/app/utils/sse.ts`) for proper cleanup and heartbeat support.
+**Risk:** Medium — adding indexes to large MongoDB collections can block writes. Use `prisma db push --accept-index-loss` or migrate during maintenance window.
 
-**Files to modify:**
-- `src/app/utils/sse.ts` — Implement heartbeat and cleanup
-
-**Expected Impact:**
-- **Stability:** Proper connection lifecycle management
+**Expected impact:** 10-50x speed improvement on filtered queries
 
 ---
 
-## Phase 4: Low Impact / Polish (Days 8-10)
+### Task 3.2: Increase Docker Container Resources
 
-### P4.1 🟢 Remove Console.log in Error Handler
-**Est. Time:** 0.1 day  
-**Risk:** None  
-**ROI:** ★★☆☆☆
+**File to modify:** `docker-compose.yml`
 
-**What:**
-Replace `console.log(err)` with structured winston logger.
+**Changes:**
+```yaml
+app:
+  deploy:
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 1024M
+      reservations:
+        memory: 512M
 
-**Files to modify:**
-- `src/app/middlewares/globalErrorHandler.ts`
+worker:
+  deploy:
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 1024M
+      reservations:
+        memory: 512M
+```
 
-**Expected Impact:** Minimal — logging consistency
-
-### P4.2 🟢 Consistent Bcrypt Salt Rounds
-**Est. Time:** 0.1 day  
-**Risk:** None  
-**ROI:** ★★☆☆☆
-
-**What:**
-Standardize bcrypt salt rounds to 12 across all auth operations.
-
-**Files to modify:**
-- `src/app/modules/auth/auth.service.ts` — Change line 450 from 10 to 12
-
-**Expected Impact:** Minimal — code consistency
-
-### P4.3 🟢 Optimize Health Check
-**Est. Time:** 0.1 day  
-**Risk:** None  
-**ROI:** ★★☆☆☆
-
-**What:**
-Remove `$connect()` from health check endpoint — Prisma auto-connects on first query.
-
-**Files to modify:**
-- `src/shared/index.ts` — Simplify `serverHealth`
-
-**Expected Impact:** Minimal — one less unnecessary operation per health check
-
-### P4.4 🟢 API Response Payload Optimization
-**Est. Time:** 0.5 day  
-**Risk:** Low  
-**ROI:** ★★☆☆☆
-
-**What:**
-Review and reduce default field selections in list endpoints to return only essential fields. Add documentation on field selection via query params.
-
-**Files to modify:**
-- All service files with list endpoints
-
-**Expected Impact:** 30-50% smaller response payloads
+**Expected impact:**
+- P99 latency: 30-50% reduction under concurrent load
+- Reduced GC pressure
+- Risk: Low — Docker host needs available resources
 
 ---
 
-## Resource Allocation
+### Task 3.3: Configure Winston for Async Logging
 
-| Phase | Days | Engineer Focus | Estimated Impact |
-|-------|------|----------------|------------------|
-| Phase 1 | 2 | Database + Caching + Queues | 70% of total performance gain |
-| Phase 2 | 2 | Application layer + Infrastructure | 20% of total performance gain |
-| Phase 3 | 3 | Optimization + Monitoring | 8% of total performance gain |
-| Phase 4 | 3 | Polish + Consistency | 2% of total performance gain |
+**File to modify:** `src/shared/index.ts`
 
-**Total Estimated Time:** 10 days for full implementation  
-**Critical Path (Phase 1 only):** 2 days for 70% of the benefit
+**Implementation:**
+```typescript
+import DailyRotateFile from 'winston-daily-rotate-file';
 
----
+const logger = createLogger({
+  format: format.combine(
+    format.timestamp(),
+    format.errors({ stack: true }),
+    format.json(),
+  ),
+  transports: [
+    new transports.Console({ format: format.simple() }),
+    new DailyRotateFile({
+      filename: 'logs/error-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      level: 'error',
+      maxFiles: '14d',
+      zippedArchive: true,
+    }),
+    new DailyRotateFile({
+      filename: 'logs/combined-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      maxFiles: '30d',
+      zippedArchive: true,
+    }),
+  ],
+});
+```
 
-## Expected End-State Metrics
-
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| API P50 Response Time | ~500ms | ~80ms | 6× faster |
-| API P99 Response Time | ~3000ms | ~500ms | 6× faster |
-| MongoDB Connections | 20 (2 pools) | 10 (1 pool) | 50% reduction |
-| Memory Usage (App) | ~200MB | ~120MB | 40% reduction |
-| Database Read Units | Baseline | -80% | Significant cost savings |
-| Email Delivery Time | Synchronous (~2s) | Background (~5s async) | 40× faster API |
-| File Upload Speed | 3s (3 files sequential) | 1.5s (parallel) | 2× faster |
-| Concurrent SSE Connections | ~100 (no cleanup) | ~1000+ (heartbeat) | 10× scale |
-| Batch Operations Scale | ~1000 users | ~100,000+ users | 100× scale |
-
----
-
-## Risk Register
-
-| # | Risk | Mitigation | Phase |
-|---|------|------------|-------|
-| R1 | Migration downtime for indexes | Create indexes in background on MongoDB Atlas | P1.1 |
-| R2 | Redis connection failure causing errors | Circuit breaker pattern, fallback to direct DB | P1.3 |
-| R3 | Queue job failures losing messages | Implement dead letter queue + retry | P1.4 |
-| R4 | JSON field refactoring breaks existing queries | Maintain backward compatibility layer | P2.4 |
-| R5 | SSE heartbeat changes break connected clients | Test with existing frontend connections | P2.3 |
+**Expected impact:** Prevents event loop blocking under high log volume
 
 ---
 
-## Rollback Plan
+### Task 3.4: Add Global Request Timeout
 
-For each change:
-1. **Indexes:** Drop newly created indexes
-2. **PrismaClient:** Restore original prisma.ts file
-3. **Redis:** Disable caching by setting `REDIS_ENABLED=false` in .env
-4. **Queue:** Disable workers and fall back to synchronous operations via feature flag
-5. **All changes:** Use git for atomic commits with descriptive messages
+**File to modify:** `src/app.ts`
+
+**Implementation:**
+```typescript
+import timeout from 'express-timeout-handler';
+
+app.use(timeout.handler({
+  timeout: 30000, // 30 seconds
+  onTimeout: (req, res) => {
+    res.status(503).json({
+      success: false,
+      message: 'Request timed out',
+    });
+  },
+}));
+```
+
+**Expected impact:** Prevents connection pool exhaustion during DB congestion
 
 ---
 
-## Success Criteria
+## Phase 4 — Housekeeping & Optimization (Medium-Low Priority)
 
-- [ ] All Phase 1 items completed and verified
-- [ ] P50 API response time under 100ms on production load test
-- [ ] P99 API response time under 500ms on production load test
-- [ ] MongoDB CPU utilization reduced by 60%+
-- [ ] Zero request failures due to timeout in batch operations
-- [ ] Email delivery reliability: 99.9% (with queue retries)
-- [ ] All existing tests pass (or updated)
+### Task 4.1: Fix Queue Cleaner Duplication
+
+**File to modify:** `src/helpers/cleanQueue/cleanOtpQueue.ts`
+
+**Action:** Remove the `setInterval` at the bottom of the file (lines 24-29). Only keep the `cleanQueue` export function. The `queueManager.ts` already manages the interval.
+
+---
+
+### Task 4.2: Optimize Validation Middleware
+
+**File to modify:** `src/app/middlewares/validateRequest.ts`
+
+**Change:** Replace `parseAsync` with `parse` (sync) for small payloads, and avoid `JSON.parse` when body is already an object:
+
+```typescript
+const validateRequest = (schema: AnyZodObject) =>
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (typeof req.body === 'string') {
+        req.body = JSON.parse(req.body);
+      }
+      schema.parse(req.body); // sync parse for speed
+      return next();
+    } catch (err) {
+      next(err);
+    }
+  };
+```
+
+---
+
+### Task 4.3: Remove Dead Code
+
+**Files to remove/clean:**
+- `src/helpers/emailSender/sendGridEmailSender.ts` — entire file is commented out
+- `src/helpers/emailSender/sendGridBulkEmailSender.ts` — entire file is commented out
+- `src/app/utils/StripeUtils.ts` — if unused (StripeWebHook import is commented in app.ts)
+
+---
+
+## Implementation Order (By Task ID)
+
+| Order | Task ID | Description | Est. Time | Dependencies |
+|-------|---------|-------------|-----------|--------------|
+| 1 | 1.1 | Add Redis caching to list endpoints | 4h | None |
+| 2 | 1.2 | Optimize financial recalculation | 2h | None |
+| 3 | 1.3 | Optimize financial snapshot | 2h | None |
+| 4 | 1.4 | Split feed select | 1h | None |
+| 5 | 2.1 | Move emails to BullMQ | 2h | None |
+| 6 | 2.2 | Optimize auth middleware | 1h | None |
+| 7 | 2.3 | Reuse S3 client | 0.5h | None |
+| 8 | 2.4 | Cache notification unread counts | 1h | None |
+| 9 | 3.1 | Add database indexes | 1h | Prisma schema review |
+| 10 | 3.2 | Increase Docker resources | 0.5h | Docker/compose |
+| 11 | 3.3 | Configure async logging | 0.5h | None |
+| 12 | 3.4 | Add request timeout | 0.5h | None |
+| 13 | 4.1 | Fix queue cleaner duplication | 0.5h | None |
+| 14 | 4.2 | Optimize validation middleware | 0.5h | None |
+| 15 | 4.3 | Remove dead code | 0.5h | None |
+
+**Total estimated implementation time:** 17.5 hours (approximately 3-4 days)
+
+---
+
+## Risk Assessment & Rollback Plan
+
+| Change | Risk Level | Rollback Strategy |
+|--------|-----------|-------------------|
+| Redis caching | Low | Remove cache keys; data still in DB |
+| Incremental financial totals | Low | Revert to aggregation queries |
+| MongoDB aggregation pipeline | Low | Keep old code path as fallback |
+| BullMQ email migration | Low | Emails still queued in Redis if worker fails |
+| Database indexes | Medium | `prisma db push` can drop/recreate indexes |
+| Docker resource changes | Low | Revert YAML changes |
+| Code removal | Low | Git revert |
+
+---
+
+## Success Metrics
+
+After implementation, we should measure:
+
+1. **API Response Times:** P50, P95, P99 for top 10 endpoints
+2. **Database Load:** MongoDB Atlas metrics (connections, ops/sec, latency)
+3. **Redis Hit Rate:** Cache hit/miss ratio (target: >80%)
+4. **Memory Usage:** Container RSS memory (target: <512MB under load)
+5. **Error Rates:** 5xx responses (target: <0.1%)
+6. **Email Delivery:** Queue depth, failure rate (target: <1%)
 
 ---
 
 ## Next Steps
 
-1. ✅ **Review and approve this plan** — Present to team/stakeholders
-2. ✅ **Set up performance baseline** — Run load tests before changes
-3. 🚀 **Begin Phase 1 execution** — Start with P1.1 (indexes) and P1.2 (PrismaClient)
-4. 📊 **Re-measure after each phase** — Validate improvements
-5. 🔄 **Iterate** — Continue based on results
+1. Review this plan and provide feedback
+2. Begin Phase 1 implementation (Task 1.1-1.4)
+3. After Phase 1, re-measure and report results
+4. Proceed to Phase 2-4 based on measured impact

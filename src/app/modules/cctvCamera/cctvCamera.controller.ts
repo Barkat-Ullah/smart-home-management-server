@@ -34,8 +34,8 @@ const getCctvCameraList = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Camera list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -43,7 +43,7 @@ const getCctvCameraList = catchAsync(async (req: Request, res: Response) => {
 const getCctvCameraById = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const userId = req.user.id;
-  const result = await cctvCameraService.getCctvCameraById(id, userId);
+  const result = await cctvCameraService.getCctvCameraById(id);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -56,7 +56,7 @@ const getCctvCameraById = catchAsync(async (req: Request, res: Response) => {
 const getCameraStream = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const userId = req.user.id;
-  const result = await cctvCameraService.getCameraStream(id, userId);
+  const result = await cctvCameraService.getCameraStream(id);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -74,8 +74,8 @@ const getMyCctvCamera = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My cameras retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 

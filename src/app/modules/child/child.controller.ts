@@ -17,12 +17,7 @@ const createChild = catchAsync(async (req: Request, res: Response) => {
 });
 
 // get all Child
-const childFilterableFields = [
-  'searchTerm',
-  'id',
-  'createdAt',
-  'status',
-];
+const childFilterableFields = ['searchTerm', 'id', 'createdAt', 'status'];
 const getChildList = catchAsync(async (req: Request, res: Response) => {
   const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
   const filters = pick(req.query, childFilterableFields);
@@ -31,8 +26,8 @@ const getChildList = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Child list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 
@@ -57,8 +52,8 @@ const getMyChild = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My Child list retrieved successfully',
-    data: result.data,
-    meta: result.meta,
+    data: result!.data,
+    meta: result!.meta,
   });
 });
 

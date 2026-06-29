@@ -35,6 +35,7 @@ const createMeal = async (req: Request) => {
     select: mealSelect,
   });
 
+  await CacheInvalidator.onRecordCreate('meal');
   return result;
 };
 
@@ -55,34 +56,41 @@ const getMealList = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.MealWhereInput[] = [];
+  const cacheKey = CacheKeys.list('meal', { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.MealWhereInput[] = [];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: mealSearchableFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: mealSearchableFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildMealFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildMealFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.MealWhereInput = { AND: andConditions };
+      const whereConditions: Prisma.MealWhereInput = { AND: andConditions };
 
-  const [result, total] = await Promise.all([
-    prisma.meal.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'desc' },
-      select: mealSelect,
-    }),
-    prisma.meal.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.meal.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'desc' },
+          select: mealSelect,
+        }),
+        prisma.meal.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -97,37 +105,44 @@ const getMyMeals = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.MealWhereInput[] = [
-    { userId },
-    { isDeleted: false },
-  ];
+  const cacheKey = CacheKeys.myList('meal', userId, { ...options, ...filters });
+  return cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.MealWhereInput[] = [
+        { userId },
+        { isDeleted: false },
+      ];
 
-  if (searchTerm) {
-    andConditions.push({
-      OR: mealSearchableFields.map(field => ({
-        [field]: { contains: searchTerm, mode: 'insensitive' },
-      })),
-    });
-  }
+      if (searchTerm) {
+        andConditions.push({
+          OR: mealSearchableFields.map(field => ({
+            [field]: { contains: searchTerm, mode: 'insensitive' },
+          })),
+        });
+      }
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildMealFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildMealFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.MealWhereInput = { AND: andConditions };
+      const whereConditions: Prisma.MealWhereInput = { AND: andConditions };
 
-  const [result, total] = await Promise.all([
-    prisma.meal.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { createdAt: 'asc' },
-      select: mealSelect,
-    }),
-    prisma.meal.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.meal.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { createdAt: 'asc' },
+          select: mealSelect,
+        }),
+        prisma.meal.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  ) ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -172,6 +187,7 @@ const updateMeal = async (req: Request) => {
     select: mealSelect,
   });
 
+  await CacheInvalidator.onOwnedRecordUpdate('meal', id, existing.userId);
   return result;
 };
 
@@ -186,11 +202,14 @@ const deleteMeal = async (id: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Meal not found');
   }
 
-  return prisma.meal.update({
+  const result = await prisma.meal.update({
     where: { id },
     data: { isDeleted: true },
     select: { id: true },
   });
+
+  await CacheInvalidator.onRecordDelete('meal', id, existing.userId);
+  return result;
 };
 
 export const mealService = {
