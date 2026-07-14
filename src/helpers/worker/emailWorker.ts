@@ -9,8 +9,17 @@ const inviteStudentEmail = (info: { studentEmail: string; className: string; sch
 export const emailWorker: Worker = createWorker(
   "mail-queue",
   async (job: Job) => {
-    const { information, type = "email" } = job.data;
+    const { type } = job.data;
 
+    if (type === "otp-email" || type === "welcome-email" || type === "password-changed" || type === "bulk-email") {
+      const { to, html, subject } = job.data;
+      await emailSender(to, html, subject);
+      console.log(`✅ ${type} email sent to ${to}`);
+      return { success: true, type, identifier: to };
+    }
+
+    // Default: class invitation
+    const { information } = job.data;
     const otpHtml = inviteStudentEmail(information);
     await emailSender(
       `You're Invited to Join ${information.className} at ${information.schoolName}`,
@@ -19,6 +28,6 @@ export const emailWorker: Worker = createWorker(
     );
     console.log(`✅ Class invitation sent to ${information.studentEmail}`);
 
-    return { success: true, type, identifier: information.studentEmail };
+    return { success: true, type: "class-invitation", identifier: information.studentEmail };
   }
 );

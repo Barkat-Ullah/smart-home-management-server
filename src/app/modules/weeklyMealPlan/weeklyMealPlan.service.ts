@@ -95,28 +95,37 @@ const getWeeklyMealPlanList = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.WeeklyMealPlanWhereInput[] = [];
+  const cacheKey = CacheKeys.list('weeklyMealPlan', { ...options, ...filters });
+  const cached = await cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.WeeklyMealPlanWhereInput[] = [];
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildWeeklyPlanFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildWeeklyPlanFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.WeeklyMealPlanWhereInput = {
-    AND: andConditions,
-  };
+      const whereConditions: Prisma.WeeklyMealPlanWhereInput = {
+        AND: andConditions,
+      };
 
-  const [result, total] = await Promise.all([
-    prisma.weeklyMealPlan.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { weekNumber: 'desc' },
-      select: weeklyMealPlanSelect,
-    }),
-    prisma.weeklyMealPlan.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.weeklyMealPlan.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { weekNumber: 'desc' },
+          select: weeklyMealPlanSelect,
+        }),
+        prisma.weeklyMealPlan.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  );
+
+  return cached ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
@@ -131,40 +140,52 @@ const getMyWeeklyMealPlans = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
-  const andConditions: Prisma.WeeklyMealPlanWhereInput[] = [
-    { userId },
-    { isDeleted: false },
-  ];
+  const cacheKey = CacheKeys.myList('weeklyMealPlan', userId, { ...options, ...filters });
+  const cached = await cacheOr<{ meta: { total: number; page: number; limit: number }; data: any[] }>(
+    cacheKey,
+    TTL.SHORT,
+    async () => {
+      const andConditions: Prisma.WeeklyMealPlanWhereInput[] = [
+        { userId },
+        { isDeleted: false },
+      ];
 
-  if (Object.keys(filterData).length) {
-    andConditions.push(...buildWeeklyPlanFilterConditions(filterData));
-  }
+      if (Object.keys(filterData).length) {
+        andConditions.push(...buildWeeklyPlanFilterConditions(filterData));
+      }
 
-  const whereConditions: Prisma.WeeklyMealPlanWhereInput = {
-    AND: andConditions,
-  };
+      const whereConditions: Prisma.WeeklyMealPlanWhereInput = {
+        AND: andConditions,
+      };
 
-  const [result, total] = await Promise.all([
-    prisma.weeklyMealPlan.findMany({
-      skip,
-      take: limit,
-      where: whereConditions,
-      orderBy: { weekNumber: 'desc' },
-      select: weeklyMealPlanSelect,
-    }),
-    prisma.weeklyMealPlan.count({ where: whereConditions }),
-  ]);
+      const [result, total] = await Promise.all([
+        prisma.weeklyMealPlan.findMany({
+          skip,
+          take: limit,
+          where: whereConditions,
+          orderBy: { weekNumber: 'desc' },
+          select: weeklyMealPlanSelect,
+        }),
+        prisma.weeklyMealPlan.count({ where: whereConditions }),
+      ]);
 
-  return { meta: { total, page, limit }, data: result };
+      return { meta: { total, page, limit }, data: result };
+    },
+  );
+
+  return cached ?? { meta: { total: 0, page, limit }, data: [] };
 };
 
 // -------------------------------------------------------
 // get WeeklyMealPlan by id (with all days + items)
 // -------------------------------------------------------
 const getWeeklyMealPlanById = async (id: string) => {
-  const result = await prisma.weeklyMealPlan.findFirst({
-    where: { id },
-    select: weeklyMealPlanWithDaysSelect,
+  const cacheKey = CacheKeys.single('weeklyMealPlan', id);
+  const result = await cacheOr(cacheKey, TTL.MEDIUM, async () => {
+    return prisma.weeklyMealPlan.findFirst({
+      where: { id },
+      select: weeklyMealPlanWithDaysSelect,
+    });
   });
 
   if (!result) {
@@ -228,6 +249,8 @@ const updateWeeklyMealPlan = async (req: Request) => {
     select: weeklyMealPlanSelect,
   });
 
+  await CacheInvalidator.onRecordUpdate('weeklyMealPlan', id);
+
   return result;
 };
 
@@ -243,11 +266,15 @@ const deleteWeeklyMealPlan = async (id: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Weekly meal plan not found');
   }
 
-  return prisma.weeklyMealPlan.update({
+  const result = await prisma.weeklyMealPlan.update({
     where: { id },
     data: { isDeleted: true },
     select: { id: true },
   });
+
+  await CacheInvalidator.onRecordDelete('weeklyMealPlan', id);
+
+  return result;
 };
 
 export const weeklyMealPlanService = {

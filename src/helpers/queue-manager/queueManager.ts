@@ -19,7 +19,7 @@ export const initializeQueueSystem = () => {
       console.error("❌ queue cleaner (startup) failed:", err);
     }
 
-    const HOUR = 60 * 60 * 1000;
+    const MINUTES = 10 * 60 * 1000; // 10 minutes
     cleanerInterval = setInterval(async () => {
       try {
         await cleanQueue(otpQueue);
@@ -27,7 +27,7 @@ export const initializeQueueSystem = () => {
       } catch (err) {
         console.error("❌ queue cleaner (scheduled) error:", err);
       }
-    }, HOUR);
+    }, MINUTES);
   })();
 
   return {

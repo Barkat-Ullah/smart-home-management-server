@@ -5,8 +5,7 @@ import { IPaginationOptions } from '../../interface/pagination.type';
 import { paginationHelper } from '../../utils/calculatePagination';
 import { Request } from 'express';
 import { handleFileUploads } from '../../utils/handleFile';
-import { userSelect } from './user.select';
-import emailSender from '../../utils/sendMail';
+import { userSelect, userListSelect } from './user.select';
 import ApiError from '../../errors/AppError';
 import {
   generateAdminCustomEmail,
@@ -28,6 +27,7 @@ import {
   invalidateKeys,
   invalidatePattern,
 } from '../../../lib/redis';
+import { mailQueue } from '../../../helpers/queue';
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 12;
 
@@ -75,17 +75,22 @@ const createUser = async (req: Request) => {
     select: { fullName: true },
   });
 
-  await emailSender(
-    data.email,
-    welcomeEmailTemplate({
+  // Send welcome email in background
+  await mailQueue.add('welcome-email', {
+    type: 'welcome-email',
+    to: data.email,
+    html: welcomeEmailTemplate({
       fullName: data.fullName,
       email: data.email,
       password: userPass,
       role: targetRole,
       createdByName: creator?.fullName || 'Admin',
     }),
-    `Welcome to Smart Home — Your ${targetRole} Account`,
-  );
+    subject: `Welcome to Smart Home — Your ${targetRole} Account`,
+  }, {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+  });
 
   return result;
 };
@@ -103,30 +108,33 @@ const getMyCareGiver = async (req: Request) => {
       ? [UserRoleEnum.MODERATOR, UserRoleEnum.CAREGIVER]
       : [UserRoleEnum.CAREGIVER];
 
-  const result = await prisma.user.findMany({
-    where: {
-      createdById: userId,
-      role: { in: roleFilter },
-      isDeleted: false,
-    },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      phoneNumber: true,
-      role: true,
-      status: true,
-      describe: true,
-      city: true,
-      address: true,
-      image: true,
-      bloodGroup: true,
-      gender: true,
-      allergies: true,
-      plan: true,
-      lastLoginAt: true,
-      createdAt: true,
-    },
+  const cacheKey = CacheKeys.myList('user', userId, { role: roleFilter });
+  const result = await cacheOr(cacheKey, TTL.SHORT, async () => {
+    return prisma.user.findMany({
+      where: {
+        createdById: userId,
+        role: { in: roleFilter },
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        role: true,
+        status: true,
+        describe: true,
+        city: true,
+        address: true,
+        image: true,
+        bloodGroup: true,
+        gender: true,
+        allergies: true,
+        plan: true,
+        lastLoginAt: true,
+        createdAt: true,
+      },
+    });
   });
 
   return result;
@@ -251,32 +259,7 @@ const getUserList = async (
             take: limit,
             where: whereConditions,
             orderBy: { createdAt: 'desc' },
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              phoneNumber: true,
-              role: true,
-              status: true,
-              describe: true,
-              city: true,
-              address: true,
-              image: true,
-              bloodGroup: true,
-              gender: true,
-              allergies: true,
-              isAgreeWithTerms: true,
-              plan: true,
-              isEmailVerified: true,
-              isDeleted: true,
-              isOnline: true,
-              clientInfo: true,
-              ipInfo: true,
-              lastLoginAt: true,
-              createdAt: true,
-              updatedAt: true,
-              createdById: true,
-            },
+            select: userListSelect,
           }),
           prisma.user.count({ where: whereConditions }),
         ]);
@@ -440,10 +423,18 @@ const sendMailToSingleUserFromDB = async (payload: ISingleMailPayload) => {
   };
 
   const html = generateAdminCustomEmail(mailPayload);
-  await emailSender(user.email, html, payload.subject);
+  await mailQueue.add('bulk-email', {
+    type: 'bulk-email',
+    to: user.email,
+    html,
+    subject: payload.subject,
+  }, {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+  });
 
   return {
-    message: `Email sent to ${user.fullName} (${user.email}) successfully`,
+    message: `Email queued to ${user.fullName} (${user.email}) successfully`,
   };
 };
 
@@ -464,39 +455,41 @@ const sendMailToSelectedUsersFromDB = async (
     throw new ApiError(httpStatus.NOT_FOUND, 'No valid users found');
   }
 
-  const results = await Promise.allSettled(
-    users.map(async user => {
-      const html = generateAdminCustomEmail({
-        toName: user.fullName,
-        toEmail: user.email,
-        subject: payload.subject,
-        body: payload.body,
-        adminName: payload.adminName,
-        priority: payload.priority ?? 'normal',
-      });
-      await emailSender(user.email, html, payload.subject);
-      return user.email;
-    }),
-  );
+  const jobs = users.map(async user => {
+    const html = generateAdminCustomEmail({
+      toName: user.fullName,
+      toEmail: user.email,
+      subject: payload.subject,
+      body: payload.body,
+      adminName: payload.adminName,
+      priority: payload.priority ?? 'normal',
+    });
+    await mailQueue.add('bulk-email', {
+      type: 'bulk-email',
+      to: user.email,
+      html,
+      subject: payload.subject,
+    }, {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5000 },
+    });
+    return user.email;
+  });
 
-  const sent = results.filter(r => r.status === 'fulfilled').length;
-  const failed = results.filter(r => r.status === 'rejected').length;
+  await Promise.all(jobs);
 
   return {
-    message: `Email sent to ${sent} user(s)${failed ? `, ${failed} failed` : ''}`,
-    data: { sent, failed, total: users.length },
+    message: `Email queued for ${users.length} user(s)`,
+    data: { total: users.length },
   };
 };
 
 // ── 3. All Users ──
 const sendMailToAllUsersFromDB = async (payload: IBulkMailPayload) => {
-  let sent = 0;
-  let failed = 0;
-  let total = 0;
-
   const BATCH_SIZE = 200;
   let page = 1;
   let hasMore = true;
+  let totalQueued = 0;
 
   while (hasMore) {
     const skip = (page - 1) * BATCH_SIZE;
@@ -508,39 +501,46 @@ const sendMailToAllUsersFromDB = async (payload: IBulkMailPayload) => {
       skip,
     });
 
-    if (users.length === 0) hasMore = false;
+    if (users.length === 0) {
+      hasMore = false;
+      break;
+    }
 
-    total += users.length;
+    const jobs = users.map(async user => {
+      const html = generateAdminCustomEmail({
+        toName: user.fullName,
+        toEmail: user.email,
+        subject: payload.subject,
+        body: payload.body,
+        adminName: payload.adminName,
+        priority: payload.priority ?? 'normal',
+      });
+      await mailQueue.add('bulk-email', {
+        type: 'bulk-email',
+        to: user.email,
+        html,
+        subject: payload.subject,
+      }, {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5000 },
+      });
+      return user.email;
+    });
 
-    const results = await Promise.allSettled(
-      users.map(async user => {
-        const html = generateAdminCustomEmail({
-          toName: user.fullName,
-          toEmail: user.email,
-          subject: payload.subject,
-          body: payload.body,
-          adminName: payload.adminName,
-          priority: payload.priority ?? 'normal',
-        });
-        await emailSender(user.email, html, payload.subject);
-        return user.email;
-      }),
-    );
-
-    sent += results.filter(r => r.status === 'fulfilled').length;
-    failed += results.filter(r => r.status === 'rejected').length;
+    await Promise.all(jobs);
+    totalQueued += users.length;
 
     if (users.length < BATCH_SIZE) hasMore = false;
     page += 1;
   }
 
-  if (total === 0) {
+  if (totalQueued === 0) {
     throw new ApiError(httpStatus.NOT_FOUND, 'No users found');
   }
 
   return {
-    message: `Broadcast email sent to ${sent}/${total} users`,
-    data: { sent, failed, total },
+    message: `Broadcast email queued for ${totalQueued} users`,
+    data: { total: totalQueued },
   };
 };
 

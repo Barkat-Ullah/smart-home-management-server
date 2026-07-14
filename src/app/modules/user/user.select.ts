@@ -82,3 +82,21 @@ export const userSelect = {
   // devices: { select: { id: true } }, // ← NEW relation — uncomment to include
   // userSubscriptions: { select: { id: true } }, // ← NEW relation — uncomment to include
 } satisfies Prisma.UserSelect;
+
+/**
+ * Lightweight select for list views — excludes sensitive/large fields
+ */
+export const userListSelect = {
+  id: true,
+  fullName: true,
+  email: true,
+  phoneNumber: true,
+  role: true,
+  status: true,
+  image: true,
+  plan: true,
+  isEmailVerified: true,
+  isDeleted: true,
+  isOnline: true,
+  createdAt: true,
+} satisfies Prisma.UserSelect;

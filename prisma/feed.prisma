@@ -58,6 +58,8 @@ model Feed {
 
     @@index([userId, status, isDeleted])
     @@index([userId, type])
+    @@index([userId, createdAt(sort: Desc)])  // for getMyFeed
+    @@index([status, isDeleted, createdAt(sort: Desc)])  // for getFeedList
     @@index([status, priority])
     @@index([createdAt(sort: Desc)])
     @@index([isPinned, createdAt(sort: Desc)])

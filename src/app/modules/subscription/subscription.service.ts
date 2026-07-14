@@ -302,19 +302,21 @@ const getUserSubscriptionList = async (
 
 // get Subscription by id
 const getSubscriptionById = async (id: string) => {
-  const result = await prisma.subscription.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      title: true,
-
-      amount: true,
-      duration: true,
-      isDeleted: true,
-
-      features: true,
-    },
+  const cacheKey = CacheKeys.single('subscription', id);
+  const result = await cacheOr(cacheKey, TTL.LONG, async () => {
+    return prisma.subscription.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        amount: true,
+        duration: true,
+        isDeleted: true,
+        features: true,
+      },
+    });
   });
+
   if (!result) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Subscription not found');
   }
@@ -359,6 +361,8 @@ const updateSubscription = async (req: Request) => {
     data: updateData,
   });
 
+  await CacheInvalidator.onRecordUpdate('subscription', id);
+
   return result;
 };
 
@@ -371,31 +375,37 @@ const deleteSubscription = async (id: string) => {
     },
   });
 
+  await CacheInvalidator.onRecordDelete('subscription', id);
+
   return result;
 };
 
 const getMyPlan = async (req: Request) => {
-  const plan = await prisma.userSubscription.findFirst({
-    where: {
-      userId: req.user.id,
-    },
-    select: {
-      id: true,
-      startDate: true,
-      endDate: true,
-      subscription: {
-        select: {
-          id: true,
-          title: true,
+  const userId = req.user.id;
+  const cacheKey = CacheKeys.single('userSubscription', userId);
+  const plan = await cacheOr(cacheKey, TTL.SHORT, async () => {
+    return prisma.userSubscription.findFirst({
+      where: {
+        userId,
+      },
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        subscription: {
+          select: {
+            id: true,
+            title: true,
+          },
         },
       },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   });
   if (!plan) {
-    throw new ApiError(404, 'You do not have any pan');
+    throw new ApiError(404, 'You do not have any plan');
   }
   return plan;
 };

@@ -43,7 +43,7 @@ const scalarToZod = ({ type, isList, fieldName }) => {
     case 'String':
       base = `z.string({ required_error: '${fieldName} is required', invalid_type_error: 'Invalid ${fieldName}' })`;
       break;
-    case 'Int':
+    case 'Int': 
       base = `z.number({ required_error: '${fieldName} is required', invalid_type_error: 'Invalid ${fieldName}' }).int('Must be an integer')`;
       break;
     case 'Float':

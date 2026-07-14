@@ -47,6 +47,17 @@ export const setupMiddlewares = (app: Application): void => {
   );
   //compression
   app.use(compression());
+  // Cache control for GET requests
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.method === 'GET') {
+      if (req.headers.authorization) {
+        res.set('Cache-Control', 'private, max-age=30');
+      } else {
+        res.set('Cache-Control', 'public, max-age=60');
+      }
+    }
+    next();
+  });
   // Body parsers
   app.use(express.json({ limit: '50kb' }));
   app.use(cookieParser());

@@ -11,7 +11,6 @@ import {
 } from '../../utils/otp';
 import { generateToken } from '../../utils/generateToken';
 import { insecurePrisma, prisma } from '../../utils/prisma';
-import emailSender from '../../utils/sendMail';
 import { IClientInfo } from '../../../types/ip.type';
 
 import {
@@ -23,6 +22,7 @@ import { defaultRooms } from './auth.constant';
 import ApiError from '../../errors/AppError';
 import { verifyToken } from '../../utils/verifyToken';
 import { IPWhoInfo } from '../../middlewares/ipInfo';
+import { mailQueue } from '../../../helpers/queue';
 
 // ========== LOGIN ==========
 // 📧 Template: otpVerificationEmail
@@ -65,9 +65,15 @@ const loginWithOtpFromDB = async (
 
     // 📧 otpVerificationEmail — login email
     const html = otpVerificationEmail(otp, userData.fullName);
-    emailSender(payload.email, html, '🔐 OTP Verification — SmartHome').catch(
-      (err: unknown) => console.error('Async email send failed:', err),
-    );
+    await mailQueue.add('otp-email', {
+      type: 'otp-email',
+      to: payload.email,
+      html,
+      subject: '🔐 OTP Verification — SmartHome',
+    }, {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5000 },
+    });
 
     return {
       message: 'Please check your email for the verification OTP.',
@@ -176,11 +182,15 @@ const registerWithOtpIntoDB = async (
     });
   }
 
-  emailSender(newUser.email, otpVerificationEmail(otp, newUser.fullName), '🔐 OTP Verification — SmartHome').catch(
-    (err: unknown) => {
-      console.error('Register OTP email failed:', err);
-    },
-  );
+  await mailQueue.add('otp-email', {
+    type: 'otp-email',
+    to: newUser.email,
+    html: otpVerificationEmail(otp, newUser.fullName),
+    subject: '🔐 OTP Verification — SmartHome',
+  }, {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+  });
 
   return 'Please check mail to verify your email';
 };
@@ -219,9 +229,15 @@ const verifyOtpCommon = async (payload: { email: string; otp: string }) => {
     });
 
     // 📧 welcomeEmail — Registration OTP verify
-    emailSender(user.email, welcomeEmail(user.fullName), '🏠 Welcome to SmartHome!').catch(
-      (err: unknown) => console.error('Welcome email failed:', err),
-    );
+    await mailQueue.add('welcome-email', {
+      type: 'welcome-email',
+      to: user.email,
+      html: welcomeEmail(user.fullName),
+      subject: '🏠 Welcome to SmartHome!',
+    }, {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5000 },
+    });
 
     const accessToken = await generateToken(
       { id: user.id, name: user.fullName, email: user.email, role: user.role },
@@ -311,9 +327,15 @@ const resendVerificationWithOtp = async (email: string) => {
   });
 
   // 📧 otpVerificationEmail — resend OTP request
-  emailSender(email, otpVerificationEmail(otp, user.fullName), '🔐 Resend OTP — SmartHome').catch(
-    (err: unknown) => console.error('Resend OTP email failed:', err),
-  );
+  await mailQueue.add('otp-email', {
+    type: 'otp-email',
+    to: email,
+    html: otpVerificationEmail(otp, user.fullName),
+    subject: '🔐 Resend OTP — SmartHome',
+  }, {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+  });
 
   return {
     message: 'Verification OTP sent successfully. Please check your inbox.',
@@ -346,9 +368,15 @@ const changePassword = async (user: any, payload: any) => {
   const changedAt = new Date().toLocaleString('en-US', {
     timeZone: 'Asia/Dhaka',
   });
-  emailSender(userData.email, passwordChangedEmail(userData.fullName, changedAt), '🔒 Password Changed — SmartHome').catch(
-    (err: unknown) => console.error('Password change email failed:', err),
-  );
+  await mailQueue.add('password-changed', {
+    type: 'password-changed',
+    to: userData.email,
+    html: passwordChangedEmail(userData.fullName, changedAt),
+    subject: '🔒 Password Changed — SmartHome',
+  }, {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+  });
 
   return { message: 'Password changed successfully!' };
 };
@@ -383,40 +411,22 @@ const forgetPassword = async (email: string) => {
   const otp = generateOTP().toString();
   const expireTime = otpExpiryTime();
 
-  try {
-    await prisma.$transaction(
-      async tx => {
-        await tx.user.update({
-          where: { email },
-          data: { otp, otpExpiry: expireTime },
-        });
+  await prisma.user.update({
+    where: { email },
+    data: { otp, otpExpiry: expireTime },
+  });
 
-        try {
-          // 📧 otpVerificationEmail
-          const html = otpVerificationEmail(otp, userData.fullName);
-          await emailSender(
-            userData.email,
-            html,
-            '🔐 Password Reset OTP — SmartHome',
-          );
-        } catch (emailErr) {
-          await tx.user.update({
-            where: { email },
-            data: { otp: null, otpExpiry: null },
-          });
-          console.error('Email sending failed:', emailErr);
-          throw emailErr;
-        }
-      },
-      { timeout: 15000, maxWait: 5000 },
-    );
-  } catch (err: any) {
-    console.error('Forget password transaction failed:', { email, error: err });
-    throw new AppError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to process OTP request',
-    );
-  }
+  // Send OTP email via queue
+  const html = otpVerificationEmail(otp, userData.fullName);
+  await mailQueue.add('otp-email', {
+    type: 'otp-email',
+    to: userData.email,
+    html,
+    subject: '🔐 Password Reset OTP — SmartHome',
+  }, {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+  });
 
   return { message: 'OTP sent successfully' };
 };
