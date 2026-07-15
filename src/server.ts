@@ -4,6 +4,7 @@ import config from './config';
 import { initiateSuperAdmin } from './app/db/db';
 import { seedActivities } from './app/db/db.article';
 import seedSubscriptions from './app/db/db.plan';
+import { initializeJobs, closeAllJobs } from './jobs';
 // import { setupWebSocket } from './app/middlewares/webSocket';
 
 const port = config.port || 5000;
@@ -21,6 +22,9 @@ async function main() {
     await seedActivities();
     await seedSubscriptions();
 
+    // Initialize background jobs (dose tracking, reminders, events)
+    await initializeJobs();
+
     console.log(`🚀 Starting server on port ${port}...`);
     server.listen(port, () => {
       console.log(`✅ Server is running on port ${port}`);
@@ -37,8 +41,13 @@ async function main() {
 }
 
 // Graceful shutdown (improved: handle SIGINT/SIGTERM)
-const gracefulShutdown = (signal: string) => {
+const gracefulShutdown = async (signal: string) => {
   console.log(`🛑 Received ${signal}. Closing server...`);
+  try {
+    await closeAllJobs();
+  } catch {
+    // ignore shutdown errors
+  }
   if (server) {
     // Null check
     server.close(err => {
