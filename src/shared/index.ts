@@ -64,7 +64,7 @@ export const setupMiddlewares = (app: Application): void => {
   app.use(express.urlencoded({ limit: '50kb', extended: true }));
 };
 
-// Rate limiter
+// Rate limiter - general API
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 2000,
@@ -79,6 +79,26 @@ export const apiLimiter = rateLimit({
     success: false,
     message:
       'Too many requests from this IP, please try again after 15 minutes',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Stricter rate limiter for auth endpoints (login, register, forgot-password)
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  keyGenerator: (req: any) => {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const ipArray = forwardedFor ? forwardedFor.split(/\s*,\s*/) : [];
+    const ipAddress =
+      ipArray.length > 0 ? ipArray[0] : req.connection.remoteAddress;
+    return ipAddress;
+  },
+  message: {
+    success: false,
+    message:
+      'Too many authentication attempts, please try again after 15 minutes',
   },
   standardHeaders: true,
   legacyHeaders: false,

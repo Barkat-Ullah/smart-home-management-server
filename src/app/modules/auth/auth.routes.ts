@@ -1,14 +1,19 @@
 import express from 'express';
 import auth from '../../middlewares/auth';
+import validateRequest from '../../middlewares/validateRequest';
 import { UserRoleEnum } from '@prisma/client';
 import clientInfoParser from '../../middlewares/clientInfoPerser';
 import { trackMiddleware } from '../../middlewares/ipInfo';
 import { authControllers } from './auth.controller';
+import { authValidation } from './auth.validation';
+import { authLimiter } from '../../../shared';
 
 const router = express.Router();
 
 router.post(
   '/login',
+  authLimiter,
+  validateRequest(authValidation.loginUser),
   clientInfoParser,
   trackMiddleware,
   authControllers.loginWithOtp,
@@ -16,6 +21,8 @@ router.post(
 
 router.post(
   '/register',
+  authLimiter,
+  validateRequest(authValidation.registerUser),
   clientInfoParser,
   trackMiddleware,
   authControllers.registerWithOtp,
@@ -70,6 +77,7 @@ router.post('/verify-email-with-otp', authControllers.verifyOtpCommon);
 
 router.post(
   '/resend-verification-with-otp',
+  authLimiter,
   authControllers.resendVerificationWithOtp,
 );
 
@@ -81,13 +89,15 @@ router.post(
 
 router.post(
   '/forget-password',
-  // validateRequest.body(authValidation.forgetPasswordValidationSchema),
+  authLimiter,
+  validateRequest(authValidation.forgetPasswordValidationSchema),
   authControllers.forgetPassword,
 );
 
 router.post(
   '/reset-password',
-  // validateRequest.body(authValidation.resetPasswordValidationSchema),
+  authLimiter,
+  validateRequest(authValidation.resetPasswordValidationSchema),
   authControllers.resetPassword,
 );
 

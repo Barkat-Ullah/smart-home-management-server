@@ -1,4 +1,5 @@
 import express, { Application } from 'express';
+import swaggerUi from 'swagger-ui-express';
 import globalErrorHandler from './app/middlewares/globalErrorHandler';
 import router from './app/routes';
 import {
@@ -13,6 +14,7 @@ import { rootHandler } from './shared/rootHandler';
 import { fileUploader } from './app/utils/fileUploader';
 import auth from './app/middlewares/auth';
 import { bullBoard, bullBoardBasePath } from './helpers/queueMonitor/bullBoard';
+import { swaggerSpec } from './config/swagger';
 // import { StripeWebHook } from './app/utils/StripeUtils';
 
 const app: Application = express();
@@ -26,6 +28,14 @@ app.post(
 
 setupMiddlewares(app);
 app.use(bullBoardBasePath, bullBoard);
+
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Smart Home API Documentation',
+}));
+
 // Request logging
 app.use(requestLogger);
 app.set('trust proxy', 1);
