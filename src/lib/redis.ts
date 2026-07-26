@@ -1,14 +1,60 @@
 import Redis, { RedisOptions } from "ioredis";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Redis Client Configuration
-// ─────────────────────────────────────────────────────────────────────────────
+// // ─────────────────────────────────────────────────────────────────────────────
+// // Redis Client Configuration
+// // ─────────────────────────────────────────────────────────────────────────────
 
+// export const redisOptions: RedisOptions = {
+//   host: process.env.REDIS_HOST || "127.0.0.1",
+//   port: parseInt(process.env.REDIS_PORT || "6379"),
+//   password: process.env.REDIS_PASSWORD || undefined,
+//   db: parseInt(process.env.REDIS_DB || "0"),
+
+//   retryStrategy: (times: number) => {
+//     if (times > 10) {
+//       console.error("❌ Redis: max reconnection attempts reached. Giving up.");
+//       return null;
+//     }
+//     return Math.min(times * 200, 3000);
+//   },
+
+//   connectTimeout: 10_000,
+//   lazyConnect: true,
+//   maxRetriesPerRequest: null,
+//   enableReadyCheck: true,
+//   keepAlive: 10_000,
+//   commandTimeout: 10_000, 
+// };
+
+// // ─── Separate options for BullMQ ───
+// // BullMQ requirements:
+// //   maxRetriesPerRequest: null (required)
+// //   enableReadyCheck: false (required)
+// //   do not use lazyConnect — BullMQ manages connections itself
+// export const bullMQRedisOptions: RedisOptions = {
+//   host: process.env.REDIS_HOST || "127.0.0.1",
+//   port: parseInt(process.env.REDIS_PORT || "6379"),
+//   password: process.env.REDIS_PASSWORD || undefined,
+//   db: parseInt(process.env.REDIS_DB || "0"),
+//   maxRetriesPerRequest: null,
+//   enableReadyCheck: false,
+// };
+
+
+const isTlsEnabled = 
+  process.env.REDIS_HOST?.includes('aivencloud.com') || 
+  process.env.REDIS_HOST?.includes('upstash.io') ||
+  process.env.REDIS_TLS === 'true';
+
+// ─── Main Redis Options ───
 export const redisOptions: RedisOptions = {
   host: process.env.REDIS_HOST || "127.0.0.1",
   port: parseInt(process.env.REDIS_PORT || "6379"),
+  username: process.env.REDIS_USER || "default",
   password: process.env.REDIS_PASSWORD || undefined,
   db: parseInt(process.env.REDIS_DB || "0"),
+  
+  tls: isTlsEnabled ? {} : undefined,
 
   retryStrategy: (times: number) => {
     if (times > 10) {
@@ -27,15 +73,15 @@ export const redisOptions: RedisOptions = {
 };
 
 // ─── Separate options for BullMQ ───
-// BullMQ requirements:
-//   maxRetriesPerRequest: null (required)
-//   enableReadyCheck: false (required)
-//   do not use lazyConnect — BullMQ manages connections itself
 export const bullMQRedisOptions: RedisOptions = {
   host: process.env.REDIS_HOST || "127.0.0.1",
   port: parseInt(process.env.REDIS_PORT || "6379"),
+  username: process.env.REDIS_USER || "default",
   password: process.env.REDIS_PASSWORD || undefined,
   db: parseInt(process.env.REDIS_DB || "0"),
+
+  tls: isTlsEnabled ? {} : undefined,
+  
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 };
