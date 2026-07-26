@@ -28,7 +28,7 @@
 # COPY --from=builder /app/dist ./dist
 # COPY package*.json ./
 
-# EXPOSE 5000
+# EXPOSE 5050
 # ENV NODE_ENV=production
 
 # CMD ["node", "dist/server.js"]
@@ -63,7 +63,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/dist ./dist
 COPY package*.json ./
 
-EXPOSE 5000
+EXPOSE 5050
 ENV NODE_ENV=production
 
 CMD ["node", "dist/server.js"]
