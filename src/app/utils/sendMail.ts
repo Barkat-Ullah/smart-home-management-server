@@ -170,63 +170,63 @@ export const generateWelcomeEmail = (userName: string) => {
 };
 
 // ======================== EMAIL SENDER ========================
-const emailSender = async (
-  to: string,
-  html: string,
-  subject: string,
-): Promise<string> => {
-  try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.OWN_MAIL!,
-        pass: process.env.OWN_MAIL_PASS!,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
-
-    const mailOptions = {
-      from: '"SmartHome Security" <barkatullah585464@gmail.com>',
-      to,
-      subject,
-      html,
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    return info.messageId;
-  } catch (error) {
-    console.error('Email sending failed:', error);
-    throw new Error('Failed to send email. Please try again later.');
-  }
-};
-
-// const emailSender = async (to: string, html: string, subject: string) => {
+// const emailSender = async (
+//   to: string,
+//   html: string,
+//   subject: string,
+// ): Promise<string> => {
 //   try {
 //     const transporter = nodemailer.createTransport({
-//       host: 'smtp-relay.brevo.com',
-//       port: 2525,
+//       host: 'smtp.gmail.com',
+//       port: 587,
 //       secure: false,
 //       auth: {
-//         user: process.env.BREVO_MAIL!,
-//         pass: process.env.BREVO_MAIL_PASS!,
+//         user: process.env.OWN_MAIL!,
+//         pass: process.env.OWN_MAIL_PASS!,
+//       },
+//       tls: {
+//         rejectUnauthorized: false,
 //       },
 //     });
+
 //     const mailOptions = {
-//       from: '<akonhasan680@gmail.com>',
+//       from: '"SmartHome Security" <barkatullah585464@gmail.com>',
 //       to,
 //       subject,
-//       text: html.replace(/<[^>]+>/g, ''),
 //       html,
 //     };
-//     // Send the email
+
 //     const info = await transporter.sendMail(mailOptions);
 //     return info.messageId;
 //   } catch (error) {
+//     console.error('Email sending failed:', error);
 //     throw new Error('Failed to send email. Please try again later.');
 //   }
 // };
+
+const emailSender = async (to: string, html: string, subject: string) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: 'smtp-relay.brevo.com',
+      port: 2525,
+      secure: false,
+      auth: {
+        user: process.env.BREVO_MAIL!,
+        pass: process.env.BREVO_MAIL_PASS!,
+      },
+    });
+    const mailOptions = {
+      from: '<akonhasan680@gmail.com>',
+      to,
+      subject,
+      text: html.replace(/<[^>]+>/g, ''),
+      html,
+    };
+    // Send the email
+    const info = await transporter.sendMail(mailOptions);
+    return info.messageId;
+  } catch (error) {
+    throw new Error('Failed to send email. Please try again later.');
+  }
+};
 export default emailSender;
