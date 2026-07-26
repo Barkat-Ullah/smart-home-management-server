@@ -120,7 +120,151 @@ modules/<name>/
 ├── <name>.select.ts       # Prisma select field projections
 └── <name>.utils.ts        # Filter builders, helpers
 ```
+```
 
+## 📦 Modules Overview
+
+### 🔐 Auth
+- Register, Login, Logout
+- Email verification (OTP via Redis TTL)
+- Forgot password / Reset password
+- JWT access token + refresh token
+- JWT blacklist on logout (Redis)
+
+### 👤 User
+- Get profile, Update profile
+- Upload avatar (Cloudinary)
+- Change password
+- Delete account (soft delete)
+
+### 👨‍👩‍👧 Family Member
+- CRUD for family members
+- Relations: Father, Mother, Spouse, Son, Daughter, etc.
+- Status: Active, Inactive, Deceased, Estranged
+
+### 👶 Child
+- CRUD for children
+- Health info: allergies, blood group, medical conditions
+- School info, interests, weight/height tracking
+
+### 👷 Caregiver
+- Admin creates caregiver (self-relation on User)
+- Assign caregiver to meal days, feed responses
+
+### 📢 Support Feed
+- User creates feed post (Bug, Question, Complaint, etc.)
+- Admin assigns moderator
+- Comments, nested replies, reactions
+- Status history audit trail (Open → InProgress → Resolved)
+- Feed pinning, locking by admin
+
+### 📅 Event
+- Create events with category (SchoolDropOff, Medical, etc.)
+- Assign to self / family member / child / caregiver
+- Reminder scheduling via BullMQ (X minutes before)
+- Recurrence support
+
+### ⏰ Custom Reminder
+- User creates reminder for themselves
+- Admin creates reminder for specific user or broadcast to all
+- Delivery tracking per user for broadcasts
+
+### 🔔 Notification
+- In-app notifications for all major actions
+- FCM push notifications
+- Mark as read / mark all as read
+- Unread count cached in Redis
+
+### 💊 Medicine
+- Prescription management (with file upload)
+- Medicine schedule (Daily/Weekly/Monthly/Custom)
+- Dose log — cron job marks missed doses every night
+- Medicine reminders via BullMQ queue
+- Refill alert when doses running low
+
+### 🍽 Meal Plan
+- Weekly meal plan (auto-generates next week when current completes)
+- 7-day plan with Breakfast/Lunch/Dinner/Snack slots
+- Assign specific days to caregiver
+- Link meals from recipe library or quick custom entry
+
+### 🏠 House Room
+- 6 default rooms auto-created on user registration
+- User can add max 2 custom rooms (total 8)
+- Each room holds: CCTV cameras, AC units, smart devices
+
+### 📷 CCTV Camera
+- Store stream URL (RTSP/HLS) — no recording
+- View live stream from browser via HLS.js / WebRTC
+- Credentials encrypted at rest
+
+### ❄️ Air Conditioner
+- Store AC state (on/off, temperature, mode, fan speed)
+- Smart control via Home Assistant / Tuya / SwitchBot API
+- State cached in Redis for real-time UI updates
+
+### 💡 Smart Devices
+- Generic device model (TV, Lamp, Heater, Fridge, Router, etc.)
+- Toggle on/off, power usage tracking
+- Smart control config (controlType + controlId + controlMeta)
+
+### 💰 Finance
+- Monthly financial profile (income, expense, saving, investment)
+- Salary breakdown (basic, allowances, deductions)
+- Transaction CRUD with categories
+- Budget per category with alert at threshold %
+- Financial goals with progress tracking
+- Weekly/Monthly/Yearly snapshot reports
+
+### 📦 Inventory
+- Track household supplies by room/location
+- Categories: Supplies, Cleaning, Maintenance, Food
+
+### 📸 Shared Memory
+- Create memories (photos/notes) for self, child, or family member
+- Share with specific users
+
+### 💬 Chat
+- Real-time 1-to-1 chat (Socket.io)
+- Room-based messaging
+- File/image sharing
+
+### 💳 Subscription & Payment
+- Free and Paid plans
+- Stripe checkout session
+- Webhook for payment confirmation
+- UserSubscription with start/end date
+
+---
+
+## 🔑 Authentication & Authorization
+
+```
+Roles: USER | ADMIN | CAREGIVER | FAMILYMEMBER
+```
+
+| Route Type | Guard |
+|-----------|-------|
+| Public | No guard |
+| Logged in user | `authMiddleware` |
+| Admin only | `authMiddleware` + `roleGuard(ADMIN)` |
+| Admin or Moderator | `authMiddleware` + `roleGuard(ADMIN, MODERATOR)` |
+
+---
+
+## 🗄 Redis Usage
+
+| Feature | Usage |
+|---------|-------|
+| OTP | Store with 5 min TTL, deleted after verification |
+| JWT Blacklist | Invalidate token on logout |
+| Notification unread count | Cache per user |
+| Smart device state | AC / device on-off state |
+| BullMQ | Medicine reminders, event reminders, custom reminders, dose log cron |
+| UserSubscription | Active plan cache |
+| FinancialSnapshot | Monthly summary cache |
+
+---
 ---
 
 ## Background Jobs
