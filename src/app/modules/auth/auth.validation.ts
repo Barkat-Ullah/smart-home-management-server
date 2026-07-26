@@ -14,11 +14,8 @@ const loginUser = z.object({
 });
 
 const registerUser = z.object({
-  firstName: z.string({
-    required_error: 'First Name is required!',
-  }),
-  lastName: z.string({
-    required_error: 'Last Name is required!',
+  fullName: z.string({
+    required_error: 'Full Name is required!',
   }),
   email: z
     .string({
