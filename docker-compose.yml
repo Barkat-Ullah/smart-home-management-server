@@ -141,13 +141,11 @@
 #     driver: bridge
 
 services:
-  # ─────────────────────────────────────────
-  # Node.js App (API Server)
-  # ─────────────────────────────────────────
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    image: homify-server:latest       
     container_name: homify-app
     restart: unless-stopped
     ports:
@@ -170,13 +168,8 @@ services:
     networks:
       - homify-network
 
-  # ─────────────────────────────────────────
-  # Node.js Worker (BullMQ Background Jobs)
-  # ─────────────────────────────────────────
   worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: homify-server:latest       
     container_name: homify-worker
     restart: unless-stopped
     env_file:
@@ -196,30 +189,3 @@ services:
         condition: service_healthy
     networks:
       - homify-network
-
-  # ─────────────────────────────────────────
-  # Redis (BullMQ + Cache)
-  # ─────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    container_name: homify-redis
-    restart: unless-stopped
-    ports:
-      - '6379:6379'
-    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
-    deploy:
-      resources:
-        limits:
-          cpus: '0.10'
-          memory: 64M
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - homify-network
-
-networks:
-  homify-network:
-    driver: bridge
