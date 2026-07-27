@@ -144,7 +144,7 @@ services:
   # Node.js App (API Server)
   # ─────────────────────────────────────────
   app:
-    image: ghcr.io/<YOUR_GITHUB_USERNAME>/smart-home-management-server:latest
+    image: ghcr.io/Barkat-Ullah/smart-home-management-server:latest
     container_name: homify-app
     restart: unless-stopped
     ports:
@@ -171,7 +171,7 @@ services:
   # Node.js Worker (BullMQ Background Jobs)
   # ─────────────────────────────────────────
   worker:
-    image: ghcr.io/<YOUR_GITHUB_USERNAME>/smart-home-management-server:latest
+    image: ghcr.io/Barkat-Ullah/smart-home-management-server:latest
     container_name: homify-worker
     restart: unless-stopped
     env_file:
