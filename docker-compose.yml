@@ -211,7 +211,7 @@ services:
     container_name: homify-redis
     restart: unless-stopped
     ports:
-      - '6380:6379'
+      - '6381:6379'
     command: >
       sh -c '
         if [ -n "$$REDIS_PASSWORD" ]; then
