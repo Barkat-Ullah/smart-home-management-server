@@ -139,21 +139,16 @@
 # networks:
 #   homify-network:
 #     driver: bridge
-
-# ------------------------------------------------
-# for production
 services:
   # ─────────────────────────────────────────
   # Node.js App (API Server)
   # ─────────────────────────────────────────
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/<YOUR_GITHUB_USERNAME>/smart-home-management-server:latest
     container_name: homify-app
     restart: unless-stopped
     ports:
-      - '${PORT:-5000}:${PORT:-5000}'
+      - '${PORT:-5050}:${PORT:-5050}'
     env_file:
       - .env
     environment:
@@ -164,10 +159,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.50'
-          memory: 300M
-        reservations:
-          memory: 150M
+          cpus: '0.25'
+          memory: 256M
     depends_on:
       redis:
         condition: service_healthy
@@ -178,9 +171,7 @@ services:
   # Node.js Worker (BullMQ Background Jobs)
   # ─────────────────────────────────────────
   worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/<YOUR_GITHUB_USERNAME>/smart-home-management-server:latest
     container_name: homify-worker
     restart: unless-stopped
     env_file:
@@ -193,10 +184,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.30'
-          memory: 200M
-        reservations:
-          memory: 100M
+          cpus: '0.15'
+          memory: 128M
     depends_on:
       redis:
         condition: service_healthy
@@ -212,42 +201,19 @@ services:
     restart: unless-stopped
     ports:
       - '6381:6379'
-    command: >
-      sh -c '
-        if [ -n "$$REDIS_PASSWORD" ]; then
-          redis-server --requirepass $$REDIS_PASSWORD --maxmemory 150mb --maxmemory-policy allkeys-lru
-        else
-          redis-server --maxmemory 150mb --maxmemory-policy allkeys-lru
-        fi
-      '
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-    volumes:
-      - redis_data:/data
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
     deploy:
       resources:
         limits:
-          cpus: '0.30'
-          memory: 200M
-        reservations:
-          memory: 100M
+          cpus: '0.10'
+          memory: 64M
     healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'if [ -n "$$REDIS_PASSWORD" ]; then redis-cli -a "$$REDIS_PASSWORD" ping; else redis-cli ping; fi',
-        ]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - homify-network
-
-# ─────────────────────────────────────────
-# Volumes & Network
-# ─────────────────────────────────────────
-volumes:
-  redis_data:
 
 networks:
   homify-network:
